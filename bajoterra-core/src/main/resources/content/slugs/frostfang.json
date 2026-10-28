@@ -1,0 +1,26 @@
+{
+  "id": "frostfang",
+  "name": "Frostfang",
+  "element": "ICE",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 45,
+    "gravity": 3,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 8
+    },
+    {
+      "type": "freeze",
+      "durationSeconds": 1.5
+    }
+  ]
+}

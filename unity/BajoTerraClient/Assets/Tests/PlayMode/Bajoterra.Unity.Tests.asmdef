@@ -1,0 +1,25 @@
+{
+    "name": "Bajoterra.Unity.Tests",
+    "rootNamespace": "Bajoterra.Unity.Tests",
+    "references": [
+        "Bajoterra.Client",
+        "Bajoterra.Unity",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "Google.Protobuf.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

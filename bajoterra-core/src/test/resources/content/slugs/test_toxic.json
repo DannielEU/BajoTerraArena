@@ -1,0 +1,25 @@
+{
+  "id": "test_toxic",
+  "name": "Test Toxic",
+  "element": "NEUTRAL",
+  "role": "DAMAGE",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 40,
+    "gravity": 1,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5
+  },
+  "botWeight": 0.01,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 4
+    },
+    {
+      "type": "poison",
+      "dps": 6,
+      "durationSeconds": 4
+    }
+  ]
+}

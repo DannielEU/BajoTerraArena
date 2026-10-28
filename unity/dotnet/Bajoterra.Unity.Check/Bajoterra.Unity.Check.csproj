@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Compile check for the Unity-facing code. Unity is not needed: the sources under Assets/Scripts/Unity and
+    Assets/Scripts/Editor are compiled here against the UnityEngine reference assemblies from NuGet (2021.3 API, a
+    subset of what Unity 6 offers) plus small stubs for the two packages that are not on NuGet (Unity UI, Input System)
+    and for UnityEditor. It proves the code type-checks at Unity 6's language level; it does not run it.
+
+    dotnet build -p:InputBackend=legacy   checks the code path used when only the old Input Manager is enabled.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Bajoterra.Unity.Check</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>$(DefineConstants);UNITY_STANDALONE;UNITY_EDITOR</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(InputBackend)' == 'legacy'">
+    <DefineConstants>$(DefineConstants);ENABLE_LEGACY_INPUT_MANAGER</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(InputBackend)' != 'legacy'">
+    <DefineConstants>$(DefineConstants);BAJOTERRA_INPUT_SYSTEM;ENABLE_INPUT_SYSTEM</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../BajoTerraClient/Assets/Scripts/Unity/**/*.cs" Link="Unity/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../../BajoTerraClient/Assets/Scripts/Editor/**/*.cs" Link="Editor/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="Stubs/**/*.cs" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" />
+    <ProjectReference Include="../Bajoterra.Client/Bajoterra.Client.csproj" />
+  </ItemGroup>
+
+</Project>

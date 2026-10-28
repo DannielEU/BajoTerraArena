@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs exclusions. Each entry needs a justification.
+
+  EI_EXPOSE_REP / EI_EXPOSE_REP2: the simulation entities (Combatant, Projectile, Vec3, ...) deliberately share
+  mutable state by reference: copying on every access would allocate in the 60 Hz hot path, which the performance
+  budget forbids. Immutable content definitions are not affected by this.
+-->
+<FindBugsFilter>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+
+  <!--
+    PA_PUBLIC_PRIMITIVE_ATTRIBUTE / URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD: the per-tick data holders (Vec3, Combatant,
+    InputState, StatBlock, GameEvent, DamageEvent) expose public mutable fields on purpose. Accessors would add
+    nothing but indirection in the hot loop, and some fields are only read by the server module (snapshots).
+  -->
+  <Match>
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE,URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+  </Match>
+  <!-- Generated protobuf code is not ours to fix -->
+  <Match>
+    <Package name="~com\.bajoterra\.protocol\.generated.*"/>
+  </Match>
+</FindBugsFilter>

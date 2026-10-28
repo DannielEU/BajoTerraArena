@@ -12,7 +12,71 @@
 
   <artifactId>bajoterra-protocol</artifactId>
   <name>Bajoterra Protocol</name>
-  <description>Contrato de red servidor Java - cliente Unity (game.proto, codec, Transport)</description>
+  <description>Network contract between the Java server and the Unity client (game.proto, codec, Transport)</description>
 
-  <!-- protobuf-java y la generacion de codigo se agregan en el hito M7 -->
+  <properties>
+    <jacoco.line.min>0.70</jacoco.line.min>
+    <jacoco.branch.min>0.0</jacoco.branch.min>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Generates Java (compiled here) and C# (copied into the Unity project) from the same .proto -->
+      <plugin>
+        <groupId>io.github.ascopes</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${protobuf-maven-plugin.version}</version>
+        <configuration>
+          <protoc>${protobuf.version}</protoc>
+        </configuration>
+        <executions>
+          <execution>
+            <id>generate-java</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+          <!-- C# classes for the Unity client, produced from the very same game.proto -->
+          <execution>
+            <id>generate-csharp</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <!-- The plugin needs one built-in language; the Java output of this pass is simply ignored -->
+              <registerAsCompilationRoot>false</registerAsCompilationRoot>
+              <embedSourcesInClassOutputs>false</embedSourcesInClassOutputs>
+              <outputDirectory>${project.build.directory}/generated-sources/csharp</outputDirectory>
+              <arguments>
+                <argument>--csharp_out=${project.build.directory}/generated-sources/csharp</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Style rules apply to hand-written code only, not to generated sources -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <sourceDirectories>
+            <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+          </sourceDirectories>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -1,0 +1,13 @@
+{
+  "id": "health_pack",
+  "name": "Health pack",
+  "respawnSeconds": 20,
+  "radius": 1.2,
+  "requirement": "NEEDS_HP",
+  "effects": [
+    {
+      "type": "heal",
+      "amount": 40
+    }
+  ]
+}

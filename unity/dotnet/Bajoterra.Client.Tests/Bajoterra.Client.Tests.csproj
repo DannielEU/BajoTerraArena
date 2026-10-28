@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Runs the EditMode tests of the Unity project (shared sources, NUnit 3 like Unity's test framework) plus the
+    integration tests that need a real Java server.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../BajoTerraClient/Assets/Tests/EditMode/**/*.cs" Link="EditMode/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="Integration/**/*.cs" />
+    <None Include="../../BajoTerraClient/Assets/Tests/EditMode/Fixtures/**" Link="Fixtures/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <ProjectReference Include="../Bajoterra.Client/Bajoterra.Client.csproj" />
+  </ItemGroup>
+
+</Project>

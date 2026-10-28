@@ -1,25 +1,25 @@
 package com.bajoterra.core.sim;
 
-/** Conversion entre segundos de juego y ticks de simulacion. */
+/** Conversion between game seconds and simulation ticks. */
 public final class Ticks {
 
     private Ticks() {
-        throw new AssertionError("Clase de utilidades, no instanciable");
+        throw new AssertionError("Utility class, not instantiable");
     }
 
     /**
-     * Convierte una duracion en segundos al numero de ticks mas cercano.
+     * Converts a duration in seconds to the nearest number of ticks.
      *
-     * @throws IllegalArgumentException si la duracion es negativa o no es un numero finito
+     * @throws IllegalArgumentException if the duration is negative or not a finite number
      */
     public static int fromSeconds(double seconds) {
         if (!Double.isFinite(seconds) || seconds < 0) {
-            throw new IllegalArgumentException("Duracion invalida: " + seconds);
+            throw new IllegalArgumentException("Invalid duration: " + seconds);
         }
         return (int) Math.round(seconds * SimulationConstants.TICKS_PER_SECOND);
     }
 
-    /** Convierte un numero de ticks a segundos. */
+    /** Converts a number of ticks to seconds. */
     public static double toSeconds(int ticks) {
         return ticks * SimulationConstants.TICK_SECONDS;
     }

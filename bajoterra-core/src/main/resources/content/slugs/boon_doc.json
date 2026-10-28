@@ -1,0 +1,23 @@
+{
+  "id": "boon_doc",
+  "name": "Boon Doc",
+  "element": "ENERGY",
+  "role": "SUPPORT",
+  "targeting": "ALLIES",
+  "projectile": {
+    "speed": 40,
+    "gravity": 2,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.2,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "regen",
+      "hps": 8,
+      "durationSeconds": 5
+    }
+  ]
+}

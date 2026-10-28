@@ -1,27 +1,27 @@
 package com.bajoterra.core.sim;
 
 /**
- * Constantes de tiempo de la simulacion. El tiempo del juego se mide siempre en ticks;
- * nunca se consulta el reloj de pared dentro del core (determinismo y replay).
+ * Time constants of the simulation. Game time is always measured in ticks; the wall clock is never read
+ * inside the core (determinism and replay).
  */
 public final class SimulationConstants {
 
-    /** Frecuencia fija de simulacion. */
+    /** Fixed simulation frequency. */
     public static final int TICKS_PER_SECOND = 60;
 
-    /** Duracion de un tick en segundos. */
+    /** Duration of one tick in seconds. */
     public static final double TICK_SECONDS = 1.0 / TICKS_PER_SECOND;
 
-    /** Frecuencia a la que el servidor emite snapshots a los clientes. */
+    /** Rate at which the server sends snapshots to clients. */
     public static final int SNAPSHOT_RATE_HZ = 20;
 
-    /** Cada cuantos ticks se emite un snapshot. */
+    /** Number of ticks between two snapshots. */
     public static final int TICKS_PER_SNAPSHOT = TICKS_PER_SECOND / SNAPSHOT_RATE_HZ;
 
-    /** Cada cuantos ticks piensa un bot (10 Hz). */
+    /** Number of ticks between two bot decisions (10 Hz). */
     public static final int BOT_THINK_INTERVAL_TICKS = 6;
 
     private SimulationConstants() {
-        throw new AssertionError("Clase de constantes, no instanciable");
+        throw new AssertionError("Constants class, not instantiable");
     }
 }

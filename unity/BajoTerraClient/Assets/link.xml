@@ -1,0 +1,6 @@
+<linker>
+  <!-- Google.Protobuf builds message parsers and descriptors with reflection; keep everything it and the generated
+       classes (compiled into Bajoterra.Client) may touch when IL2CPP strips unused code. -->
+  <assembly fullname="Google.Protobuf" preserve="all"/>
+  <assembly fullname="Bajoterra.Client" preserve="all"/>
+</linker>

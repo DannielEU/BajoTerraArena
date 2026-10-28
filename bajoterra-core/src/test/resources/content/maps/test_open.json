@@ -1,0 +1,86 @@
+{
+  "id": "test_open",
+  "name": "Open test field",
+  "bounds": {
+    "minX": -20,
+    "maxX": 20,
+    "minZ": -10,
+    "maxZ": 10
+  },
+  "obstacles": [],
+  "spawns": {
+    "0": [
+      {
+        "pos": [
+          -15,
+          0,
+          -2
+        ],
+        "yaw": 90
+      },
+      {
+        "pos": [
+          -15,
+          0,
+          0
+        ],
+        "yaw": 90
+      },
+      {
+        "pos": [
+          -15,
+          0,
+          2
+        ],
+        "yaw": 90
+      }
+    ],
+    "1": [
+      {
+        "pos": [
+          15,
+          0,
+          -2
+        ],
+        "yaw": 270
+      },
+      {
+        "pos": [
+          15,
+          0,
+          0
+        ],
+        "yaw": 270
+      },
+      {
+        "pos": [
+          15,
+          0,
+          2
+        ],
+        "yaw": 270
+      }
+    ]
+  },
+  "pickups": [
+    {
+      "item": "health_pack",
+      "pos": [
+        0,
+        0,
+        6
+      ]
+    },
+    {
+      "item": "shield_cell",
+      "pos": [
+        0,
+        0,
+        -6
+      ]
+    }
+  ],
+  "nav": {
+    "cellSize": 3
+  }
+}

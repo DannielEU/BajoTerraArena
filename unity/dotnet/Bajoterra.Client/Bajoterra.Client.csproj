@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The engine-free half of the Unity client. It compiles the very same sources that Unity compiles through
+    Assets/Scripts/Client/Bajoterra.Client.asmdef, with the language level and API surface of Unity 6
+    (C# 9, .NET Standard 2.1), so anything that builds here also builds in the editor.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Bajoterra.Client</AssemblyName>
+    <RootNamespace>Bajoterra.Client</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../BajoTerraClient/Assets/Scripts/Client/**/*.cs" Link="Client/%(RecursiveDir)%(Filename)%(Extension)" />
+    <PackageReference Include="Google.Protobuf" Version="3.36.2" />
+  </ItemGroup>
+
+</Project>

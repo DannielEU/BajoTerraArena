@@ -1,0 +1,112 @@
+{
+  "id": "test_arena",
+  "name": "Test arena",
+  "bounds": {
+    "minX": -20,
+    "maxX": 20,
+    "minZ": -10,
+    "maxZ": 10
+  },
+  "obstacles": [
+    {
+      "id": "thin_wall",
+      "min": [
+        -0.2,
+        0,
+        -4
+      ],
+      "max": [
+        0.2,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "low_cover",
+      "min": [
+        7.5,
+        0,
+        -2
+      ],
+      "max": [
+        8.5,
+        1.0,
+        2
+      ]
+    },
+    {
+      "id": "fence",
+      "min": [
+        -8,
+        0,
+        -6
+      ],
+      "max": [
+        -7.7,
+        1.5,
+        -3
+      ],
+      "blocksProjectiles": false,
+      "blocksLineOfSight": false,
+      "blocksMovement": true
+    }
+  ],
+  "spawns": {
+    "0": [
+      {
+        "pos": [
+          -15,
+          0,
+          -2
+        ],
+        "yaw": 90
+      },
+      {
+        "pos": [
+          -15,
+          0,
+          0
+        ],
+        "yaw": 90
+      },
+      {
+        "pos": [
+          -15,
+          0,
+          2
+        ],
+        "yaw": 90
+      }
+    ],
+    "1": [
+      {
+        "pos": [
+          15,
+          0,
+          -2
+        ],
+        "yaw": 270
+      },
+      {
+        "pos": [
+          15,
+          0,
+          0
+        ],
+        "yaw": 270
+      },
+      {
+        "pos": [
+          15,
+          0,
+          2
+        ],
+        "yaw": 270
+      }
+    ]
+  },
+  "pickups": [],
+  "nav": {
+    "cellSize": 3
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "flaringo",
+  "name": "Flaringo",
+  "element": "FIRE",
+  "role": "DAMAGE",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 55,
+    "gravity": 2,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 0.6,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 14
+    }
+  ]
+}

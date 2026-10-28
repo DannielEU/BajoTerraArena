@@ -1,0 +1,28 @@
+{
+  "id": "aquabeek",
+  "name": "Aquabeek",
+  "element": "WATER",
+  "role": "SUPPORT",
+  "targeting": "ALLIES",
+  "projectile": {
+    "speed": 40,
+    "gravity": 2,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "restore_shield",
+      "amount": 30
+    },
+    {
+      "type": "cleanse",
+      "tags": [
+        "burn"
+      ]
+    }
+  ]
+}

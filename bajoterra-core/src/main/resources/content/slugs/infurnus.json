@@ -1,0 +1,28 @@
+{
+  "id": "infurnus",
+  "name": "Infurnus",
+  "element": "FIRE",
+  "role": "DAMAGE",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 45,
+    "gravity": 4,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 18
+    },
+    {
+      "type": "burn",
+      "dps": 4,
+      "durationSeconds": 3,
+      "stacking": "REFRESH"
+    }
+  ]
+}

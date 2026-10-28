@@ -1,5 +1,4 @@
 /**
- * Contrato de red entre el servidor Java y el cliente Unity.
- * Se completa en el hito M7 (game.proto, codec y la interfaz Transport).
+ * Network contract between the Java server and the Unity client: game.proto, codec and the Transport interface.
  */
 package com.bajoterra.protocol;

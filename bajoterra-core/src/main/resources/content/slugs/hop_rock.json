@@ -1,0 +1,70 @@
+{
+  "id": "hop_rock",
+  "name": "Hop Rock",
+  "element": "FIRE",
+  "role": "DAMAGE",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 35,
+    "gravity": 10,
+    "radius": 0.3,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.2,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "area",
+      "radius": 3.0,
+      "falloff": "LINEAR",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 25
+        },
+        {
+          "type": "knockback",
+          "force": 8,
+          "lift": 3
+        }
+      ]
+    }
+  ],
+  "onWorldHit": [
+    {
+      "type": "area",
+      "radius": 3.0,
+      "falloff": "LINEAR",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 25
+        },
+        {
+          "type": "knockback",
+          "force": 8,
+          "lift": 3
+        }
+      ]
+    }
+  ],
+  "onExpire": [
+    {
+      "type": "area",
+      "radius": 3.0,
+      "falloff": "LINEAR",
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 25
+        },
+        {
+          "type": "knockback",
+          "force": 8,
+          "lift": 3
+        }
+      ]
+    }
+  ]
+}

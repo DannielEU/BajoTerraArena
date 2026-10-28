@@ -1,0 +1,15 @@
+{
+  "id": "dash",
+  "durationSeconds": 0.2,
+  "cooldownSeconds": 2.0,
+  "allowedFrom": [
+    "GROUNDED",
+    "AIRBORNE",
+    "CROUCHING"
+  ],
+  "interruptible": false,
+  "behavior": {
+    "type": "drive",
+    "speed": 16.0
+  }
+}

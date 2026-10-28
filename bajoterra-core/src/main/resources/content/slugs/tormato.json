@@ -1,0 +1,27 @@
+{
+  "id": "tormato",
+  "name": "Tormato",
+  "element": "AIR",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 40,
+    "gravity": 2,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 10
+    },
+    {
+      "type": "knockback",
+      "force": 14,
+      "lift": 4
+    }
+  ]
+}

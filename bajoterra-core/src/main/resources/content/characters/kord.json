@@ -1,0 +1,20 @@
+{
+  "id": "kord",
+  "name": "Kord Zane",
+  "maxHp": 140,
+  "maxShield": 70,
+  "speed": 5.0,
+  "hitRadius": 0.65,
+  "hitHeight": 2.35,
+  "affinity": "EARTH",
+  "healPotency": 1.0,
+  "moves": [
+    "jump",
+    "crouch",
+    "roll"
+  ],
+  "blaster": {
+    "fireIntervalSeconds": 0.7,
+    "reloadShots": 3
+  }
+}

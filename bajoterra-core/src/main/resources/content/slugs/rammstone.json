@@ -1,0 +1,26 @@
+{
+  "id": "rammstone",
+  "name": "Rammstone",
+  "element": "EARTH",
+  "role": "DAMAGE",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 30,
+    "gravity": 6,
+    "radius": 0.35,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.5,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 35
+    },
+    {
+      "type": "knockback",
+      "force": 4
+    }
+  ]
+}

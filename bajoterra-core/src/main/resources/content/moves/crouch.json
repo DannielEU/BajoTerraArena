@@ -1,0 +1,10 @@
+{
+  "id": "crouch",
+  "holdable": true,
+  "stance": true,
+  "allowedFrom": [
+    "GROUNDED"
+  ],
+  "speedMultiplier": 0.5,
+  "hitboxHeightMultiplier": 0.6
+}

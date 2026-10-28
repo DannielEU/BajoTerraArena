@@ -1,0 +1,14 @@
+{
+  "id": "overshield_orb",
+  "name": "Overshield orb",
+  "respawnSeconds": 30,
+  "radius": 1.2,
+  "requirement": "ANY",
+  "effects": [
+    {
+      "type": "overshield",
+      "amount": 40,
+      "durationSeconds": 10
+    }
+  ]
+}

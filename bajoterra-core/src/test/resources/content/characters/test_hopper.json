@@ -1,0 +1,18 @@
+{
+  "id": "test_hopper",
+  "name": "Test Hopper",
+  "maxHp": 70,
+  "maxShield": 30,
+  "speed": 6.5,
+  "moves": [
+    "jump",
+    "crouch",
+    "roll",
+    "test_leap",
+    "test_slide"
+  ],
+  "blaster": {
+    "fireIntervalSeconds": 0.35,
+    "reloadShots": 3
+  }
+}

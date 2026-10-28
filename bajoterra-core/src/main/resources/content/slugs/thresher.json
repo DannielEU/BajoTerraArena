@@ -1,0 +1,23 @@
+{
+  "id": "thresher",
+  "name": "Thresher",
+  "element": "METAL",
+  "role": "DAMAGE",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 50,
+    "gravity": 1,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 1
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 22,
+      "shieldPierce": 0.5
+    }
+  ]
+}

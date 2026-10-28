@@ -1,0 +1,27 @@
+{
+  "id": "arachnet",
+  "name": "Arachnet",
+  "element": "EARTH",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 40,
+    "gravity": 3,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 6
+    },
+    {
+      "type": "slow",
+      "factor": 0.4,
+      "durationSeconds": 3
+    }
+  ]
+}

@@ -12,13 +12,78 @@
 
   <artifactId>bajoterra-core</artifactId>
   <name>Bajoterra Core</name>
-  <description>Simulacion pura y determinista: combate, municion, movimientos, reglas, bots y contenido</description>
+  <description>Pure deterministic simulation: combat, ammo, moves, rules, bots and data-driven content</description>
 
   <dependencies>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <!-- Generates META-INF/services entries so new effects/behaviors register themselves -->
+    <dependency>
+      <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service-annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>com.tngtech.archunit</groupId>
       <artifactId>archunit-junit5</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>com.google.auto.service</groupId>
+              <artifactId>auto-service</artifactId>
+              <version>${auto-service.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- mvn -Pmutation verify: mutation testing of the rules that matter most (takes a few minutes) -->
+    <profile>
+      <id>mutation</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <configuration>
+              <targetClasses>
+                <param>com.bajoterra.core.combat.*</param>
+                <param>com.bajoterra.core.ammo.*</param>
+                <param>com.bajoterra.core.effect.*</param>
+                <param>com.bajoterra.core.stats.*</param>
+              </targetClasses>
+              <targetTests>
+                <param>com.bajoterra.core.*</param>
+              </targetTests>
+              <mutationThreshold>80</mutationThreshold>
+              <threads>4</threads>
+            </configuration>
+            <executions>
+              <execution>
+                <id>mutation-coverage</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>mutationCoverage</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

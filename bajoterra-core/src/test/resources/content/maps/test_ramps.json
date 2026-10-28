@@ -1,0 +1,17 @@
+{
+  "id": "test_ramps",
+  "name": "Test ramps",
+  "bounds": { "minX": -20, "maxX": 20, "minZ": -10, "maxZ": 10 },
+  "obstacles": [
+    { "id": "ramp_up", "min": [0, 0, -2], "max": [4, 1.6, 2], "ramp": "+x" },
+    { "id": "plateau", "min": [4, 0, -2], "max": [8, 1.6, 2] },
+    { "id": "ramp_down", "min": [8, 0, -2], "max": [12, 1.6, 2], "ramp": "-x" },
+    { "id": "side_ramp", "min": [-12, 0, 6], "max": [-8, 1.0, 9], "ramp": "+z" }
+  ],
+  "spawns": {
+    "0": [ { "pos": [-15, 0, -2], "yaw": 90 }, { "pos": [-15, 0, 0], "yaw": 90 }, { "pos": [-15, 0, 2], "yaw": 90 } ],
+    "1": [ { "pos": [15, 0, -2], "yaw": 270 }, { "pos": [15, 0, 0], "yaw": 270 }, { "pos": [15, 0, 2], "yaw": 270 } ]
+  },
+  "pickups": [ { "item": "health_pack", "pos": [6, 1.6, 0] } ],
+  "nav": { "cellSize": 3 }
+}

@@ -7,8 +7,8 @@ import net.jqwik.api.Property;
 import net.jqwik.api.constraints.IntRange;
 
 /**
- * Comprueba que JUnit, AssertJ y jqwik funcionan con bytecode del JDK 27 (spike del hito M0).
- * Las pruebas reales de propiedades del juego se agregan desde M1.
+ * Checks that JUnit, AssertJ and jqwik work with JDK 27 bytecode (milestone M0 spike).
+ * The real game properties live next to the code they exercise.
  */
 class ToolchainSmokeTest {
 

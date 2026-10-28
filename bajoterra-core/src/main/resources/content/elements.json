@@ -1,0 +1,34 @@
+{
+  "FIRE": {
+    "ICE": 1.25,
+    "WATER": 0.8,
+    "METAL": 0.9
+  },
+  "WATER": {
+    "FIRE": 1.25,
+    "EARTH": 0.9,
+    "ENERGY": 0.8
+  },
+  "EARTH": {
+    "ENERGY": 1.25,
+    "METAL": 0.9,
+    "AIR": 0.8
+  },
+  "AIR": {
+    "EARTH": 1.25,
+    "FIRE": 0.9
+  },
+  "ENERGY": {
+    "WATER": 1.25,
+    "AIR": 1.25,
+    "EARTH": 0.8
+  },
+  "ICE": {
+    "AIR": 1.25,
+    "FIRE": 0.8
+  },
+  "METAL": {
+    "ICE": 1.25,
+    "ENERGY": 0.8
+  }
+}

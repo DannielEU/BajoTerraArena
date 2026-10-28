@@ -1,0 +1,18 @@
+{
+    "name": "Bajoterra.Editor",
+    "rootNamespace": "Bajoterra.Editor",
+    "references": [
+        "Bajoterra.Unity"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

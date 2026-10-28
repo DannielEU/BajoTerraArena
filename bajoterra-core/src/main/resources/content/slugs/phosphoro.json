@@ -1,0 +1,27 @@
+{
+  "id": "phosphoro",
+  "name": "Phosphoro",
+  "element": "LIGHT",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 50,
+    "gravity": 2,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 0.8,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 5
+    },
+    {
+      "type": "blind",
+      "spread": 0.3,
+      "durationSeconds": 3
+    }
+  ]
+}

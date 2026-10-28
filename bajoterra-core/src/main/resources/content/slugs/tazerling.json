@@ -1,0 +1,42 @@
+{
+  "id": "tazerling",
+  "name": "Tazerling",
+  "element": "ENERGY",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 55,
+    "gravity": 1,
+    "radius": 0.25,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.0,
+  "botWeight": 1.0,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 12
+    },
+    {
+      "type": "stun",
+      "durationSeconds": 0.8
+    },
+    {
+      "type": "chain",
+      "radius": 5,
+      "jumps": 1,
+      "decay": 0.6,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 12
+        },
+        {
+          "type": "stun",
+          "durationSeconds": 0.8
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,400 @@
+// Bajoterra Arena network contract between the Java server and the Unity client.
+//
+// Single source of truth: Java and C# classes are both generated from this file. Never reuse or renumber a field;
+// add new fields with new numbers and bump PROTOCOL_VERSION in ProtocolVersion.java only for breaking changes.
+//
+// Units: metres, seconds, radians. Y is up, +Z is forward, +X is right (Unity convention). Yaw 0 faces +Z and
+// increases towards +X; positive pitch looks up.
+syntax = "proto3";
+
+package bajoterra.v1;
+
+option java_package = "com.bajoterra.protocol.generated";
+option java_multiple_files = true;
+option csharp_namespace = "Bajoterra.Protocol";
+
+// ============================================================================================ client -> server
+
+message ClientMessage {
+  oneof body {
+    Hello hello = 1;
+    JoinRoom join_room = 2;
+    SelectLoadout select_loadout = 3;
+    Ready ready = 4;
+    InputFrame input = 5;
+    Ping ping = 6;
+  }
+}
+
+// First message of every connection.
+message Hello {
+  uint32 protocol_version = 1;
+  string player_name = 2;
+}
+
+// Enters (creating it if needed) a room. team: 0, 1, or -1 to let the server balance.
+message JoinRoom {
+  string room_id = 1;
+  sint32 team = 2;
+}
+
+// Picks the character and the ten slugs. An empty slug list asks the server for a balanced random loadout.
+message SelectLoadout {
+  string character_id = 1;
+  repeated string slug_ids = 2;
+}
+
+// The match starts when every human in the room is ready.
+message Ready {
+  bool ready = 1;
+}
+
+// One frame of player input; sent every tick while a match runs.
+message InputFrame {
+  uint32 sequence = 1;       // echoed back as Snapshot.ack_sequence
+  float move_x = 2;          // strafe, -1..1 (positive = right)
+  float move_z = 3;          // forward, -1..1
+  float aim_yaw = 4;         // camera yaw
+  float aim_pitch = 5;       // camera pitch
+  bool has_camera = 6;       // third person: cam_* carry the camera origin and the shot converges on the crosshair
+  float cam_x = 7;
+  float cam_y = 8;
+  float cam_z = 9;
+  bool fire = 10;            // fire button held
+  uint32 move_mask = 11;     // bit i requests the i-th move of the character's move set (see Slot.move_ids)
+  sint32 select_slot = 12;   // 0-9 selects a slot, -1 no change
+  sint32 cycle_slot = 13;    // -1 / 0 / +1 moves the selection
+}
+
+message Ping {
+  uint64 client_time = 1;
+}
+
+// ============================================================================================ server -> client
+
+message ServerMessage {
+  oneof body {
+    Welcome welcome = 1;
+    RoomState room_state = 2;
+    MatchStart match_start = 3;
+    Snapshot snapshot = 4;
+    EventBatch events = 5;
+    MatchEnd match_end = 6;
+    ServerError error = 7;
+    Pong pong = 8;
+  }
+}
+
+message Welcome {
+  uint32 protocol_version = 1;
+  uint32 connection_id = 2;
+  uint32 tick_rate = 3;       // simulation ticks per second
+  uint32 snapshot_rate = 4;   // snapshots per second
+  ContentManifest content = 5;
+  ContentDetails details = 6; // numeric content data, aligned with the manifest by index
+}
+
+// Ids in index order. Snapshots and events refer to content by these indices.
+message ContentManifest {
+  repeated string slug_ids = 1;
+  repeated string character_ids = 2;
+  repeated string move_ids = 3;
+  repeated string map_ids = 4;
+  repeated string pickup_ids = 5;
+  repeated string element_ids = 6;   // element names in ordinal order (SlugInfo.element, DAMAGE event.a)
+}
+
+// Everything a client needs to label the HUD and to predict its own movement. All lists are in manifest index
+// order. Times are in simulation ticks and masks are already resolved, so the client never parses content files.
+message ContentDetails {
+  repeated SlugInfo slugs = 1;
+  repeated CharacterInfo characters = 2;
+  repeated MoveInfo moves = 3;
+  repeated PickupInfo pickups = 4;
+}
+
+enum Targeting {
+  ENEMIES = 0;
+  ALLIES = 1;
+  ALLIES_AND_SELF = 2;
+  ANY = 3;
+}
+
+message SlugInfo {
+  string id = 1;
+  string name = 2;
+  uint32 element = 3;              // index in ContentManifest.element_ids
+  Targeting targeting = 4;
+  string role = 5;                 // DAMAGE, CONTROL or SUPPORT
+  float projectile_radius = 6;
+  float projectile_speed = 7;
+  float fire_delay_multiplier = 8; // scales the blaster's interval after firing this slug
+}
+
+message CharacterInfo {
+  string id = 1;
+  string name = 2;
+  float max_hp = 3;
+  float max_shield = 4;
+  float speed = 5;                 // walking speed, m/s
+  float hit_radius = 6;
+  float hit_height = 7;            // standing height
+  repeated uint32 move_indices = 8; // indices in ContentDetails.moves, in move_mask bit order
+  uint32 fire_interval_ticks = 9;
+  uint32 reload_shots = 10;
+  uint32 affinity = 11;            // index in ContentManifest.element_ids
+}
+
+// A move is data plus an optional behavior; behavior_params carry the numbers of the behavior types the client
+// can predict ("impulse": vertical, horizontal; "drive": speed). Unknown types are simply not predicted.
+message MoveInfo {
+  string id = 1;
+  uint32 duration_ticks = 2;
+  uint32 cooldown_ticks = 3;
+  bool holdable = 4;
+  bool stance = 5;
+  bool interruptible = 6;
+  bool blocks_firing = 7;
+  uint32 allowed_from_mask = 8;    // bit (1 << Posture) of every posture the move can start from
+  float speed_multiplier = 9;
+  float hitbox_height_multiplier = 10;
+  uint32 invulnerable_from_tick = 11;
+  uint32 invulnerable_to_tick = 12;
+  string behavior_type = 13;
+  map<string, float> behavior_params = 14;
+}
+
+message PickupInfo {
+  string id = 1;
+  string name = 2;
+  float radius = 3;
+}
+
+message Slot {
+  uint32 combatant_id = 1;
+  sint32 team = 2;
+  string character_id = 3;
+  string name = 4;
+  bool bot = 5;
+  bool ready = 6;
+  bool you = 7;
+  float max_hp = 8;
+  float max_shield = 9;
+  repeated string move_ids = 10;   // the character's move set, in move_mask bit order
+  repeated string slug_ids = 11;   // the ten slugs of the loadout (only for your own slot)
+}
+
+message RoomState {
+  string room_id = 1;
+  repeated Slot slots = 2;
+  bool match_running = 3;
+}
+
+message MatchStart {
+  string map_id = 1;
+  uint32 your_combatant_id = 2;
+  repeated Slot slots = 3;
+  MapData map = 4;
+}
+
+// The arena as the server simulates it: the client draws these boxes and uses them for its own collision and camera.
+message MapData {
+  string name = 1;
+  float min_x = 2;
+  float max_x = 3;
+  float min_z = 4;
+  float max_z = 5;
+  float ground_y = 6;
+  repeated ObstacleInfo obstacles = 7;
+  repeated PickupPlacement pickups = 8;   // list position == PickupState.index
+  repeated SpawnInfo spawns = 9;
+}
+
+message ObstacleInfo {
+  string id = 1;
+  float min_x = 2;
+  float min_y = 3;
+  float min_z = 4;
+  float max_x = 5;
+  float max_y = 6;
+  float max_z = 7;
+  bool blocks_projectiles = 8;
+  bool blocks_movement = 9;
+  bool blocks_line_of_sight = 10;
+  // 0 plain box; otherwise a ramp whose surface climbs from min_y (one edge) to max_y (the opposite edge):
+  // 1 towards +x, 2 towards -x, 3 towards +z, 4 towards -z.
+  uint32 rise = 11;
+}
+
+message PickupPlacement {
+  uint32 pickup_index = 1;         // index in ContentManifest.pickup_ids
+  float x = 2;
+  float y = 3;
+  float z = 4;
+}
+
+message SpawnInfo {
+  sint32 team = 1;
+  float x = 2;
+  float y = 3;
+  float z = 4;
+  float yaw = 5;
+}
+
+enum MatchPhase {
+  LOBBY = 0;
+  COUNTDOWN = 1;
+  ROUND_ACTIVE = 2;
+  ROUND_END = 3;
+  MATCH_END = 4;
+}
+
+message MatchInfo {
+  MatchPhase phase = 1;
+  uint32 ticks_left = 2;
+  uint32 round = 3;
+  uint32 wins_team0 = 4;
+  uint32 wins_team1 = 5;
+  sint32 last_round_winner = 6;   // team, -1 draw, -2 none yet
+  sint32 winner = 7;              // team or -1 once the match is over
+}
+
+// Slug lock state for the HUD: shots_until_ready is 0 when the slot can be fired.
+message SlotState {
+  uint32 slug_index = 1;
+  uint32 shots_until_ready = 2;
+}
+
+message StatusState {
+  string id = 1;
+  uint32 remaining_ticks = 2;
+  uint32 stacks = 3;
+}
+
+enum Posture {
+  GROUNDED = 0;
+  AIRBORNE = 1;
+  CROUCHING = 2;
+  ACTION = 3;
+}
+
+message CombatantState {
+  uint32 id = 1;
+  float x = 2;
+  float y = 3;                 // feet
+  float z = 4;
+  float yaw = 5;
+  float pitch = 6;
+  float hp = 7;
+  float shield = 8;
+  float overshield = 9;
+  bool alive = 10;
+  Posture posture = 11;
+  sint32 active_move = 12;     // index in ContentManifest.move_ids or -1
+  uint32 selected_slot = 13;
+  repeated SlotState slots = 14;   // the ten loadout slots (full detail for you, same for allies and enemies)
+  repeated StatusState statuses = 15;
+  float hitbox_height = 16;    // current hitbox height (shrinks while crouching)
+}
+
+message ProjectileState {
+  uint32 id = 1;
+  uint32 slug_index = 2;
+  uint32 owner = 3;
+  float x = 4;
+  float y = 5;
+  float z = 6;
+  float vx = 7;
+  float vy = 8;
+  float vz = 9;
+}
+
+message PickupState {
+  uint32 index = 1;
+  bool available = 2;
+}
+
+message Snapshot {
+  uint32 tick = 1;
+  uint32 ack_sequence = 2;       // last InputFrame.sequence the server applied for the receiving player
+  MatchInfo match = 3;
+  repeated CombatantState combatants = 4;
+  repeated ProjectileState projectiles = 5;
+  repeated PickupState pickups = 6;
+  LocalState local = 7;          // only in the snapshot sent to the player it describes
+}
+
+// What the receiving player's client needs, besides CombatantState, to continue the movement simulation from the
+// server state (client-side prediction): the exact state at the end of Snapshot.tick.
+message LocalState {
+  float vel_y = 1;
+  float knock_x = 2;
+  float knock_z = 3;
+  bool grounded = 4;
+  float status_speed_multiplier = 5;   // slows and freezes; the active move's own multiplier is not included
+  bool stunned = 6;
+  uint32 move_elapsed_ticks = 7;       // ticks since the active move started (CombatantState.active_move >= 0)
+  float move_dir_x = 8;
+  float move_dir_z = 9;
+  repeated uint32 move_cooldown_ticks = 10;   // ticks left before each move of the move set can start again
+}
+
+enum EventKind {
+  SHOT = 0;
+  PROJECTILE_HIT = 1;
+  PROJECTILE_WORLD_HIT = 2;
+  PROJECTILE_EXPIRED = 3;
+  DAMAGE = 4;
+  HEAL = 5;
+  SHIELD_RESTORED = 6;
+  OVERSHIELD = 7;
+  STATUS_APPLIED = 8;
+  STATUS_EXPIRED = 9;
+  DEFEATED = 10;
+  PICKUP_TAKEN = 11;
+  PICKUP_RESPAWNED = 12;
+  MOVE_STARTED = 13;
+  MOVE_ENDED = 14;
+  KNOCKBACK = 15;
+  EXPLOSION = 16;
+  ROUND_STARTED = 17;
+  ROUND_ENDED = 18;
+  MATCH_ENDED = 19;
+}
+
+// Fields a/b/value/x/y/z mean different things per kind; see the Javadoc of EventType in bajoterra-core.
+message GameEvent {
+  EventKind kind = 1;
+  uint32 tick = 2;
+  sint32 actor = 3;
+  sint32 subject = 4;
+  sint32 a = 5;
+  sint32 b = 6;
+  float x = 7;
+  float y = 8;
+  float z = 9;
+  float value = 10;
+}
+
+// Gameplay events since the previous batch; delivered together with each snapshot.
+message EventBatch {
+  uint32 tick = 1;
+  repeated GameEvent events = 2;
+}
+
+message MatchEnd {
+  sint32 winner = 1;
+  uint32 wins_team0 = 2;
+  uint32 wins_team1 = 3;
+}
+
+// Named ServerError so the generated Java/C# class never shadows System.Exception-style names.
+message ServerError {
+  uint32 code = 1;
+  string message = 2;
+}
+
+message Pong {
+  uint64 client_time = 1;
+  uint32 server_tick = 2;
+}

@@ -1,0 +1,14 @@
+{
+  "id": "jump",
+  "durationTicks": 1,
+  "cooldownSeconds": 0.35,
+  "allowedFrom": [
+    "GROUNDED",
+    "CROUCHING"
+  ],
+  "interruptible": true,
+  "behavior": {
+    "type": "impulse",
+    "vertical": 8.5
+  }
+}

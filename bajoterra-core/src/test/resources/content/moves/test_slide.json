@@ -1,0 +1,13 @@
+{
+  "id": "test_slide",
+  "durationSeconds": 0.4,
+  "cooldownSeconds": 1.0,
+  "allowedFrom": [
+    "GROUNDED"
+  ],
+  "hitboxHeightMultiplier": 0.5,
+  "behavior": {
+    "type": "drive",
+    "speed": 12.0
+  }
+}

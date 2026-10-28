@@ -1,0 +1,13 @@
+{
+  "id": "shield_cell",
+  "name": "Shield cell",
+  "respawnSeconds": 20,
+  "radius": 1.2,
+  "requirement": "NEEDS_SHIELD",
+  "effects": [
+    {
+      "type": "restore_shield",
+      "amount": 30
+    }
+  ]
+}

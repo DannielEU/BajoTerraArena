@@ -113,7 +113,7 @@ public final class PoisonEffect extends AbstractStatusEffect {
 - `Loadout` = 10 `SlugSlot{slugId, firedAtShot}`; `LoadoutValidator` (tamaño == 10, máx. repetidas configurable, `loadoutSize > reloadShots` para evitar bloqueo total).
 - Cada combatiente lleva `shotCounter` (se incrementa por disparo). Al disparar el slot en el tiro **n**: `firedAtShot = n`; el slot vuelve a estar disponible cuando `shotCounter >= n + reloadShots` (reloadShots = 3 ⇒ los tiros n+1, n+2, n+3 usan otras babosas y la bloqueada sirve desde el n+4). **Supuesto explícito** — parámetro `reloadShots` en configuración. Con 10 slots nunca hay más de 3 bloqueadas.
 - La babosa disparada **no se consume** (se recicla por el ciclo de bloqueo): siempre hay 10.
-- `FireController`: dispara solo si `tick >= nextFireAllowedTick` (intervalo base del blaster ≈ 0,35 s × `fireDelayMultiplier` de la babosa), slot disponible, vivo, sin stun y estado de movimiento que lo permita. `SlotSelectionPolicy` (Strategy): `Manual` (slot elegido / siguiente-anterior saltando bloqueados) y auto-avance al siguiente disponible tras disparar.
+- `FireController`: dispara solo si `tick >= nextFireAllowedTick` (intervalo base del blaster ≈ 0,7 s × `fireDelayMultiplier` de la babosa), slot disponible, vivo, sin stun y estado de movimiento que lo permita. `SlotSelectionPolicy` (Strategy): `Manual` (slot elegido / siguiente-anterior saltando bloqueados) y auto-avance al siguiente disponible tras disparar.
 - El snapshot incluye por slot `available/shotsUntilReady` para el HUD de Unity.
 
 ### 4.4 Movimientos (fáciles de ampliar)
@@ -245,3 +245,74 @@ BajoTerra/
 3. `mvn -pl bajoterra-bench package && java -jar bajoterra-bench/target/benchmarks.jar -prof gc -rf json -rff out.json` + script comparador contra el baseline.
 4. Arrancar `GameServer` y conectar `HeadlessClient` (1 humano simulado + 5 bots): ver snapshots a 20 Hz, estado de los 10 slots y fin de partida best-of-5.
 5. Matriz de trazabilidad (§2): cada requisito del usuario tiene al menos un test con nombre asociado.
+
+---
+
+## 13. Resultado final (hitos M0–M9 completados)
+
+| Hito | Estado | Evidencia |
+|---|---|---|
+| M0 Bootstrap | Hecho | JDK 27, POM multimódulo, todas las herramientas de calidad funcionan con bytecode 27 |
+| M1 Núcleo de combate | Hecho | `VitalsPropertyTest` (jqwik), `DamagePipelineTest`, `EffectsTest`, `ContentLoaderErrorsTest` |
+| M2 Munición | Hecho | `LoadoutCooldownTest` (el slot disparado en el tiro *n* vuelve en el *n+4*), `LoadoutPropertyTest`, `FireFlowTest` |
+| M3 Mundo y proyectiles | Hecho | 14 babosas, mapa "Caverna" con obstáculos, `ObstacleBlockingTest` (sin atravesar muros a 20–200 m/s) |
+| M4 Locomoción | Hecho | `LocomotionTest`, `ExtensibilityTest` (efecto, babosa, conducta, movimiento y personaje nuevos sin editar el núcleo) |
+| M5 Reglas y objetos | Hecho | `MatchFlowTest` (mejor de 5, sin reaparición), `HealAndPickupTest` |
+| M6 Bots | Hecho | `BotBehaviorTest`, `BotMatchTest`; 800 partidas espejo: A 49–52 %, lado 0 ≈ 51 % |
+| M7 Protocolo y servidor | Hecho | `GameServerLoopbackTest`, `TcpServerIntegrationTest` (partida completa por TCP real), contrato dorado |
+| M8 Rendimiento | Hecho | ver [performance.md](performance.md): tick medio ≈ 3 µs frente a un presupuesto de 250 µs |
+| M9 Cierre de calidad | Hecho | cobertura core 93 % / ramas 84 %, mutación 91 %, 0 avisos Checkstyle/SpotBugs, [unity-handoff.md](unity-handoff.md) |
+
+### Desviaciones respecto al plan (y por qué)
+
+- **`@AutoService` en lugar de `@EffectType`:** el registro por SPI se genera en compilación con `@AutoService`; la
+  fábrica declara su `type()`. Misma idea (añadir un efecto no edita ninguna clase), una anotación menos.
+- **Ejemplo de efecto:** `DamageType` no existe; el daño lleva un `Element` (con `NEUTRAL`). Ver
+  [content-authoring.md](content-authoring.md) para el ejemplo vigente.
+- **Trigonometría propia (`Trig`):** `Math.sin/cos/atan2` puede variar el último bit entre CPUs (rompería la repetición
+  exacta entre máquinas) y `StrictMath` asigna memoria al reducir el rango (rompía el tick sin basura, lo detectó
+  `AllocationRegressionTest`). `Trig` usa solo operaciones IEEE exactas.
+- **JUnit 5.14.4, no 6.x:** jqwik 1.10 depende de JUnit Platform 1.14.
+- **C# para Unity:** el plugin de Maven para protobuf no trae C#; se genera con una segunda ejecución de `protoc`
+  (`bajoterra-protocol/target/generated-sources/csharp/Game.cs`).
+- **Servidor ejecutable:** se añadió `bajoterra-server-<versión>-all.jar` (jar con dependencias) y
+  `ContentCatalogPrinter` (genera [content-catalog.md](content-catalog.md)).
+- **Pruebas de balance:** descubrieron un sesgo de lado (mapa y desempates de rutas asimétricos, ruido de puntería
+  por id); se corrigieron (malla de navegación centrada, desempate geométrico, ruido con la semilla de la partida,
+  rotación del orden de proceso).
+
+### Pendiente / fuera de alcance (según lo acordado)
+
+- ~~Cliente Unity~~ → implementado después, ver §14.
+- Transporte UDP, compensación de latencia, snapshots delta, modo con reaparición, babosas Ghoul y transformación por
+  velocidad (ver "Extensiones posteriores" en §8).
+- No se han hecho *commits*: el repositorio git está inicializado y listo para el primer commit y la etiqueta `v0.1`.
+
+## 14. Cliente Unity (fase posterior, hitos U0–U5)
+
+Pedido después de cerrar M0–M9. Se implementó en `unity/` (ver [unity/README.md](../unity/README.md)).
+
+| Hito | Contenido | Evidencia |
+|---|---|---|
+| U0 Contrato | `Welcome.details` (contenido numérico), `MatchStart.map` (geometría), `Snapshot.local` (estado de movimiento propio), `MoveBehavior.type()/params()`, DLL de protobuf y `Game.cs` en el proyecto | `ClientDataTest`, `ProtocolContractTest` (bytes dorados en Java **y** C#), `sync-protocol.sh --check` |
+| U1 Red | tramas, transporte TCP en hilos, `GameClient` (fachada y fases), pings | `FrameCodecTests`, `GameClientTests`, `ServerIntegrationTests` |
+| U2 Predicción | `MovementModel` (puerto del movimiento del servidor) + `PredictionController` (reconciliación) | `MovementParityFixtureTest` (Java graba 8 escenarios) + `MovementParityTests` (C# los reproduce y también desde cualquier estado intermedio), `PredictionTests`, integración: error mediano 0,000 m |
+| U3 Interpolación y eventos | `ServerClock`, `SnapshotBuffer`, `WorldSampler`, `EventScheduler`, `KillFeed`, `HudModel`, cámara | `TimingTests`, `WorldSamplerTests`, `HudAndInputTests` |
+| U4 Capa visual | arena, personajes, babosas, efectos, audio procedural, lobby con selector de 10 babosas, HUD, pausa y resultados, lanzador del servidor, menú del editor | compilación contra `UnityEngine` con ambos backends de entrada; **ejecutada en Unity 6.6**: `GameSmokeTests` (PlayMode) juega menú → lobby → partida contra bots sin errores en consola, con capturas de cada pantalla |
+| U5 Calidad | `unity/scripts/verify.sh`, `unity/scripts/unity-test.sh`, job `unity-client` en CI | 94 pruebas C# (86 + 8 de integración) fuera del editor; 86 EditMode + 2 PlayMode dentro de Unity 6.6 (CI no ejecuta Unity: requiere licencia) |
+
+Cambios en el servidor que motivó el cliente (y que antes estaban mal o ausentes):
+
+- **`TcpTransport.disconnect` perdía el último mensaje:** cerraba el socket en la misma vuelta del selector en que se
+  encolaba el error de versión incompatible, así que un cliente viejo nunca recibía el motivo. Ahora cierra tras
+  vaciar la cola (la encontró la primera prueba de integración del cliente C#).
+- **Orden no determinista de `Map.of`:** los parámetros de conducta se enviaban en orden distinto en cada arranque de la
+  JVM; ahora se ordenan (necesario para que el fixture de movimiento sea reproducible).
+
+Decisiones: el cliente no copia contenido del juego (lo recibe del servidor), la predicción es opcional
+(`GameSettings.Prediction`) y siempre manda el servidor; la UI se construye por código con uGUI y la tipografía y los
+sonidos son los integrados/procedurales, para que el proyecto no dependa de assets; el arte (modelos, animaciones, sonidos
+grabados) se sustituye en tres clases (`CombatantView`, `ArenaView`, `ProceduralAudio`).
+
+**Pendiente:** ejecutar y pulir la capa visual en el editor (aspecto, rendimiento de UI), arte real, mapa exportado desde
+una escena de Unity, builds para otras plataformas (WebGL requeriría WebSocket en lugar de TCP).

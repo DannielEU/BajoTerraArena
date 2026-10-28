@@ -9,7 +9,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
-/** Verifica que JMH genera y ejecuta benchmarks con JDK 27 (spike del hito M0). */
+/** Verifies that JMH generates and runs benchmarks on JDK 27; also used as a harness sanity check. */
 @State(Scope.Thread)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)

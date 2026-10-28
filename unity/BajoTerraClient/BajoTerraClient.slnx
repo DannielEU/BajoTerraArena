@@ -1,0 +1,7 @@
+﻿<Solution>
+  <Project Path="Bajoterra.Unity.csproj" />
+  <Project Path="Bajoterra.Client.csproj" />
+  <Project Path="Bajoterra.Client.Tests.csproj" />
+  <Project Path="Bajoterra.Unity.Tests.csproj" />
+  <Project Path="Bajoterra.Editor.csproj" />
+</Solution>

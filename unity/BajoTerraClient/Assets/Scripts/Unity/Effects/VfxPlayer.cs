@@ -215,7 +215,7 @@ namespace Bajoterra.Unity
             Color color = SlugColor(e.A);
             Burst(muzzle, color, 12, 2.8f, 0.09f);
             FlashAt(muzzle, color, e.Actor == _yourId ? 1.4f : 1.9f, 0.07f, 2.4f);
-            AudioClip clip = _audio.ShotBySound[(int)(e.A < 0 ? 0 : e.A) % _audio.ShotBySound.Length];
+            AudioClip clip = _audio.Shots[UnityEngine.Random.Range(0, _audio.Shots.Length)];
             _audio.PlayAt(clip, muzzle, e.Actor == _yourId ? 0.7f : 0.9f, Random(0.95f, 1.05f));
         }
 

@@ -4,9 +4,10 @@ using UnityEngine;
 namespace Bajoterra.Unity
 {
     /// <summary>
-    /// Synthesises the game's sound effects from maths so the project needs no audio files: swept tones, filtered
+    /// Synthesises the game's sound effects from maths so the project needs few audio files: swept tones, filtered
     /// noise and short arpeggios, each with a decay envelope. The clips are generated once at start-up (a few
-    /// hundred kilobytes in total) and can be replaced by recorded sounds without touching the code that plays them.
+    /// hundred kilobytes in total) and can be replaced by recorded sounds without touching the code that plays them,
+    /// as the blaster shots already are (<c>Resources/Sounds/Shots</c>; <see cref="Shot"/> is only their fallback).
     /// </summary>
     public static class ProceduralAudio
     {

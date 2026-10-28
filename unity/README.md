@@ -77,6 +77,7 @@ unity/
 │  │  │  │   ├─ Core/ Input/ Views/ Effects/ Ui/ Net/   (texturas, mallas y sprites se dibujan en código)
 │  │  │  └─ Editor/                    asmdef Bajoterra.Editor — escena inicial y menú del servidor
 │  │  ├─ Resources/Shaders/             dos shaders pequeños: brillo aditivo y burbuja de escudo (borde luminoso)
+│  │  ├─ Resources/Sounds/Shots/        los disparos grabados (desde sound/, con scripts/import-shot-sounds.sh)
 │  │  ├─ Tests/EditMode/               pruebas NUnit (Test Runner de Unity) + fixture grabado del servidor
 │  │  ├─ Tests/PlayMode/               prueba de humo: el juego real, una partida contra bots, capturas
 │  │  └─ link.xml                      evita que IL2CPP recorte protobuf
@@ -85,7 +86,7 @@ unity/
 │  ├─ Bajoterra.Client                 netstandard2.1 + C# 9 (el nivel de Unity 6)
 │  ├─ Bajoterra.Client.Tests           NUnit: pruebas EditMode + integración con el servidor real
 │  └─ Bajoterra.Unity.Check            compila la capa visual contra los ensamblados de UnityEngine
-└─ scripts/  sync-protocol.sh  verify.sh  unity-test.sh
+└─ scripts/  sync-protocol.sh  verify.sh  unity-test.sh  import-shot-sounds.sh
 ```
 
 La separación en dos ensamblados es deliberada: **todo lo que puede fallar de forma sutil (red, tiempo, predicción)
@@ -147,6 +148,11 @@ flowchart LR
 - **Arte real:** los héroes ya son modelos de Blender con esqueleto y animaciones (`unity/art/README.md`, FBX en
   `Assets/Resources/Models`); `ArenaView` (geometría) y `ProceduralAudio` (sonidos) son los puntos que quedan por sustituir
   por assets, y los datos que los alimentan no cambian. Un héroe sin FBX se dibuja con el cuerpo de primitivas.
+- **Disparos:** cada disparo suena como una de las grabaciones de `sound/` (elegida al azar), más fuerte cuanto más cerca
+  esté quien dispara: volumen completo hasta 4 m de la cámara y la mitad cada vez que se duplica la distancia (−8 dB a
+  10 m, −22 dB de una base a la otra); igual para impactos, explosiones y pasos. Para añadir o cambiar una,
+  se deja el `.mp3` en `sound/` y se ejecuta `unity/scripts/import-shot-sounds.sh` (necesita ffmpeg): recorta el silencio
+  del principio y del final, la pasa a mono y la nivela a −16 LUFS en `Assets/Resources/Sounds/Shots`.
 
 ## Verificación sin Unity
 

@@ -2,15 +2,16 @@ using UnityEngine;
 
 namespace Bajoterra.Unity
 {
-    /// <summary>Plays the procedural sounds through a small pool of audio sources, in 3D or as interface sounds.</summary>
+    /// <summary>Plays the game's sounds through a small pool of audio sources, in 3D or as interface sounds.</summary>
     public sealed class AudioPlayer
     {
-        private const int Voices = 16;
+        private const int Voices = 24;
 
         private readonly AudioSource[] _sources = new AudioSource[Voices];
         private int _next;
 
-        public readonly AudioClip[] ShotBySound;
+        /// <summary>The recorded blaster shots (<c>Resources/Sounds/Shots</c>); every shot plays one of them.</summary>
+        public readonly AudioClip[] Shots;
         public readonly AudioClip Hit = ProceduralAudio.Hit();
         public readonly AudioClip WorldHit = ProceduralAudio.WorldHit();
         public readonly AudioClip Explosion = ProceduralAudio.Explosion();
@@ -55,9 +56,14 @@ namespace Bajoterra.Unity
                 go.transform.SetParent(root.transform, false);
                 AudioSource source = go.GetComponent<AudioSource>();
                 source.playOnAwake = false;
-                source.rolloffMode = AudioRolloffMode.Linear;
+                // Real-world falloff: full volume up to 4 m from the camera (your own hero is ~3.5 m in front of
+                // it), then half as loud each time the distance doubles: -8 dB at 10 m, -22 dB across the cavern.
+                source.rolloffMode = AudioRolloffMode.Logarithmic;
                 source.minDistance = 4f;
-                source.maxDistance = 60f;
+                source.maxDistance = 75f;
+                // Sounds stay where they started; without this, moving a pooled voice to a new sound reads as a huge
+                // velocity and the Doppler effect warps the start of the sound.
+                source.dopplerLevel = 0f;
                 _sources[i] = source;
             }
             var ambience = new GameObject("Ambience", typeof(AudioSource));
@@ -69,11 +75,16 @@ namespace Bajoterra.Unity
             _ambience.volume = 0.5f;
             _ambience.Play();
 
-            ShotBySound = new[]
+            Shots = Resources.LoadAll<AudioClip>("Sounds/Shots");
+            if (Shots.Length == 0)
             {
-                ProceduralAudio.Shot(440f), ProceduralAudio.Shot(520f), ProceduralAudio.Shot(380f),
-                ProceduralAudio.Shot(600f)
-            };
+                Shots = new[] { ProceduralAudio.Shot(440f) };
+            }
+            // Imported clips are not preloaded by default; load them now so the first shot does not stall to decode.
+            foreach (AudioClip shot in Shots)
+            {
+                shot.LoadAudioData();
+            }
         }
 
         /// <summary>A sound located in the world.</summary>
@@ -90,8 +101,19 @@ namespace Bajoterra.Unity
 
         private void Play(AudioClip clip, Vector3 position, float volume, float pitch, float spatial)
         {
-            AudioSource source = _sources[_next];
-            _next = (_next + 1) % Voices;
+            // Prefer an idle voice, so a short sound does not cut off a shot (up to two seconds long) still ringing.
+            int voice = _next;
+            for (int i = 0; i < Voices; i++)
+            {
+                int candidate = (_next + i) % Voices;
+                if (!_sources[candidate].isPlaying)
+                {
+                    voice = candidate;
+                    break;
+                }
+            }
+            _next = (voice + 1) % Voices;
+            AudioSource source = _sources[voice];
             source.transform.position = position;
             source.spatialBlend = spatial;
             source.pitch = pitch;

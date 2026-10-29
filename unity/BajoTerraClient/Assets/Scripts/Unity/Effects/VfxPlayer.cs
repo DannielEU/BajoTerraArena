@@ -595,13 +595,12 @@ namespace Bajoterra.Unity
         private static TextMesh StyleNumber(GameObject go)
         {
             TextMesh text = go.GetComponent<TextMesh>();
-            text.font = UiKit.Font;
-            go.GetComponent<MeshRenderer>().sharedMaterial = UiKit.Font.material;
+            text.font = UiKit.DisplayFont;
+            go.GetComponent<MeshRenderer>().sharedMaterial = UiKit.DisplayFont.material;
             text.anchor = TextAnchor.MiddleCenter;
             text.alignment = TextAlignment.Center;
             text.characterSize = 0.09f;
             text.fontSize = 64;
-            text.fontStyle = FontStyle.Bold;
             return text;
         }
 

@@ -24,19 +24,18 @@ namespace Bajoterra.Unity
 
         public ResultScreen(UiRoot ui) : base(ui, "Result")
         {
-            Image dim = UiKit.Panel(Root, "Dim", new Color(0.01f, 0.015f, 0.035f, 0.9f));
+            Image dim = UiKit.Panel(Root, "Dim", new Color(0.0f, 0.04f, 0.06f, 0.86f));
             UiKit.Stretch(dim.rectTransform);
             dim.raycastTarget = true;
 
-            _title = UiKit.Label(Root, "Title", string.Empty, 150, TextAnchor.MiddleCenter, Color.white);
-            UiKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(1500f, 190f), new Vector2(0f, -34f));
-            _title.fontStyle = FontStyle.Bold;
-            UiKit.AddOutline(_title, 4f);
-            _score = UiKit.Label(Root, "Score", string.Empty, 44, TextAnchor.MiddleCenter, UiKit.TextColor);
-            UiKit.Place(_score.rectTransform, new Vector2(0.5f, 1f), new Vector2(1000f, 60f), new Vector2(0f, -226f));
-            _score.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(_score, 2f);
-            _detail = UiKit.Label(Root, "Detail", string.Empty, 24, TextAnchor.MiddleCenter, UiKit.TextDim);
+            _title = UiKit.Label(Root, "Title", string.Empty, 160, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(1500f, 200f), new Vector2(0f, -24f));
+            UiKit.Fire(_title);
+            _score = UiKit.Label(Root, "Score", string.Empty, 50, TextAnchor.MiddleCenter, UiKit.TextColor);
+            UiKit.Place(_score.rectTransform, new Vector2(0.5f, 1f), new Vector2(1000f, 64f), new Vector2(0f, -222f));
+            UiKit.Heading(_score);
+            _detail = UiKit.Label(Root, "Detail", string.Empty, 26, TextAnchor.MiddleCenter, UiKit.TextDim);
+            UiKit.AddShadow(_detail, 1.5f);
             UiKit.Place(_detail.rectTransform, new Vector2(0.5f, 1f), new Vector2(1000f, 36f), new Vector2(0f, -284f));
 
             RectTransform tableHolder = UiKit.Rect("TableHolder", Root);
@@ -47,12 +46,12 @@ namespace Bajoterra.Unity
             _table.Root.pivot = new Vector2(0.5f, 0.5f);
             _table.Root.anchoredPosition = Vector2.zero;
 
-            _primary = UiKit.MakeButton(Root, "Primary", "Volver a la sala", new Vector2(420f, 78f), () => _primaryAction?.Invoke(),
-                ButtonStyle.Primary, 30);
-            UiKit.Place((RectTransform)_primary.transform, new Vector2(0.5f, 0f), new Vector2(420f, 78f), new Vector2(-230f, 50f));
-            _secondary = UiKit.MakeButton(Root, "Secondary", "Menú principal", new Vector2(420f, 78f), () => _secondaryAction?.Invoke(),
-                ButtonStyle.Secondary, 30);
-            UiKit.Place((RectTransform)_secondary.transform, new Vector2(0.5f, 0f), new Vector2(420f, 78f), new Vector2(230f, 50f));
+            _primary = UiKit.MakeButton(Root, "Primary", UiText.BackToRoom, new Vector2(440f, 86f), () => _primaryAction?.Invoke(),
+                ButtonStyle.Primary, 36);
+            UiKit.Place((RectTransform)_primary.transform, new Vector2(0.5f, 0f), new Vector2(440f, 86f), new Vector2(-240f, 44f));
+            _secondary = UiKit.MakeButton(Root, "Secondary", "Menú principal", new Vector2(440f, 86f), () => _secondaryAction?.Invoke(),
+                ButtonStyle.Secondary, 36);
+            UiKit.Place((RectTransform)_secondary.transform, new Vector2(0.5f, 0f), new Vector2(440f, 86f), new Vector2(240f, 44f));
         }
 
         /// <summary>Shows the result of a finished match.</summary>
@@ -61,24 +60,28 @@ namespace Bajoterra.Unity
             Action backToMenu)
         {
             string title;
-            Color color;
+            Color top;
+            Color bottom;
             if (winner < 0)
             {
                 title = UiText.Draw;
-                color = Color.white;
+                top = new Color(0.9f, 0.97f, 1f);
+                bottom = new Color(0.45f, 0.68f, 0.9f);
             }
             else if (winner == match.YourTeam)
             {
                 title = UiText.Victory;
-                color = Palette.Health;
+                top = UiKit.FireTop;
+                bottom = UiKit.FireBottom;
             }
             else
             {
                 title = UiText.Defeat;
-                color = Palette.TeamOther;
+                top = new Color(1f, 0.6f, 0.5f);
+                bottom = new Color(0.8f, 0.08f, 0.1f);
             }
             _title.text = title;
-            _title.color = color;
+            UiKit.Gradient(_title, top, bottom);
             _score.text = UiText.You + "  " + ownWins + "  -  " + otherWins + "  Rival";
             Bajoterra.Client.Hud.StatLine mine = match.Stats.Line(match.YourId);
             _detail.text = "Tus bajas: " + mine.Kills + "     Caídas: " + mine.Deaths + "     Daño: "

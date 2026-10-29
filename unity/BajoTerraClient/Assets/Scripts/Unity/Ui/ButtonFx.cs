@@ -5,21 +5,34 @@ using UnityEngine.UI;
 namespace Bajoterra.Unity
 {
     /// <summary>
-    /// Makes a button feel alive: it grows a little and brightens under the pointer, sinks when pressed and plays the
-    /// interface sounds. It works on unscaled time, so it also animates while the game is paused.
+    /// Makes a cartoon button feel alive: it grows a little and brightens under the pointer, its face sinks into the
+    /// lip when pressed, it greys out when disabled, and it plays the interface sounds. It works on unscaled time, so
+    /// it also animates while the game is paused.
     /// </summary>
     public sealed class ButtonFx : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler,
         IPointerUpHandler
     {
-        private Image _background;
+        private const float Border = 3f;
+
         private Selectable _selectable;
-        private Color _normal;
-        private Color _hover;
-        private Color _pressed;
+        private RectTransform _face;
+        private UiGradient _shade;
+        private Image _lip;
+        private Image _rim;
+        private Text _caption;
+        private Color _top = Color.white;
+        private Color _bottom = Color.white;
+        private Color _text = Color.white;
+        private bool _raised = true;
         private bool _over;
         private bool _down;
         private float _blend;
+        private float _press;
         private float _scale = 1f;
+        private float _lastSink = -1f;
+
+        /// <summary>How much of the lip shows under a raised face (less on small buttons).</summary>
+        private float _lipDepth = 7f;
 
         /// <summary>Called when the pointer enters or a button is clicked (set once by the game for sound).</summary>
         public static System.Action Hovered;
@@ -33,22 +46,35 @@ namespace Bajoterra.Unity
             Clicked = null;
         }
 
-        /// <summary>Sets the three colours of the background and starts listening to the pointer.</summary>
-        public void Setup(Image background, Selectable selectable, Color normal, Color hover, Color pressed)
+        /// <summary>Wires the parts made by <see cref="UiKit.MakeButton(Transform,string,string,Vector2,UnityEngine.Events.UnityAction,ButtonStyle,int)"/>.</summary>
+        public void Setup(Selectable selectable, RectTransform face, UiGradient shade, Image lip, Image rim, Text caption)
         {
-            _background = background;
             _selectable = selectable;
-            _normal = normal;
-            _hover = hover;
-            _pressed = pressed;
-            _background.color = normal;
+            _face = face;
+            _shade = shade;
+            _lip = lip;
+            _rim = rim;
+            _caption = caption;
+            _lipDepth = Mathf.Clamp(((RectTransform)transform).sizeDelta.y * 0.09f, 3.5f, 7f);
+            caption.rectTransform.SetParent(face, false);
+            UiKit.Inset(caption.rectTransform, 10f, 3f, 10f, 1f);
         }
 
-        public void Recolor(Color normal, Color hover, Color pressed)
+        /// <summary>
+        /// Sets the face gradient, the lip colour and the caption colour; <paramref name="raised"/> is false for flat
+        /// buttons with no lip.
+        /// </summary>
+        public void Recolor(Color top, Color bottom, Color lip, Color text, bool raised)
         {
-            _normal = normal;
-            _hover = hover;
-            _pressed = pressed;
+            _top = top;
+            _bottom = bottom;
+            _text = text;
+            _raised = raised;
+            _lip.color = lip;
+            _lip.enabled = raised;
+            _rim.color = raised ? new Color(1f, 1f, 1f, 0.3f) : new Color(0.45f, 1f, 0.95f, 0.8f);
+            _lastSink = -1f;
+            Apply(Interactive);
         }
 
         private bool Interactive
@@ -61,34 +87,60 @@ namespace Bajoterra.Unity
             _over = false;
             _down = false;
             _blend = 0f;
+            _press = 0f;
             _scale = 1f;
             transform.localScale = Vector3.one;
-            if (_background != null)
+            if (_face != null)
             {
-                _background.color = Interactive ? _normal : DisabledColor();
+                _lastSink = -1f;
+                Apply(Interactive);
             }
         }
 
         private void Update()
         {
-            if (_background == null)
+            if (_face == null)
             {
                 return;
             }
             float dt = Time.unscaledDeltaTime;
             bool interactive = Interactive;
-            float targetBlend = interactive && _over ? 1f : 0f;
-            _blend = Mathf.MoveTowards(_blend, targetBlend, dt * 8f);
-            float targetScale = !interactive ? 1f : _down ? 0.97f : _over ? 1.035f : 1f;
+            _blend = Mathf.MoveTowards(_blend, interactive && _over ? 1f : 0f, dt * 8f);
+            _press = Mathf.MoveTowards(_press, interactive && _down ? 1f : 0f, dt * 30f);
+            float targetScale = interactive && _over && !_down ? 1.04f : 1f;
             _scale = Mathf.Lerp(_scale, targetScale, 1f - Mathf.Exp(-dt * 18f));
             transform.localScale = new Vector3(_scale, _scale, 1f);
-            Color target = !interactive ? DisabledColor() : _down ? _pressed : Color.Lerp(_normal, _hover, _blend);
-            _background.color = Color.Lerp(_background.color, target, 1f - Mathf.Exp(-dt * 20f));
+            Apply(interactive);
         }
 
-        private Color DisabledColor()
+        private void Apply(bool interactive)
         {
-            return new Color(_normal.r * 0.5f, _normal.g * 0.5f, _normal.b * 0.5f, _normal.a * 0.6f);
+            Color top = UiKit.Lighter(_top, 0.28f * _blend);
+            Color bottom = UiKit.Lighter(_bottom, 0.2f * _blend);
+            if (!interactive)
+            {
+                top = Greyed(top);
+                bottom = Greyed(bottom);
+            }
+            _shade.Set(top, bottom);
+            _caption.color = interactive ? _text : new Color(_text.r * 0.7f, _text.g * 0.7f, _text.b * 0.7f, _text.a * 0.8f);
+
+            // The face rests on the lip and sinks into it while pressed; a flat button has no lip.
+            float sink = _raised ? Mathf.Lerp(_lipDepth, 1.5f, _press) : 0f;
+            if (!Mathf.Approximately(sink, _lastSink))
+            {
+                _lastSink = sink;
+                float lift = _raised ? _lipDepth - sink : 0f;
+                UiKit.Inset(_face, Border, Border + sink, Border, Border + lift);
+            }
+        }
+
+        private static Color Greyed(Color color)
+        {
+            float grey = color.r * 0.3f + color.g * 0.59f + color.b * 0.11f;
+            Color flat = Color.Lerp(color, new Color(grey, grey, grey, color.a), 0.75f) * 0.62f;
+            flat.a = color.a;
+            return flat;
         }
 
         public void OnPointerEnter(PointerEventData eventData)

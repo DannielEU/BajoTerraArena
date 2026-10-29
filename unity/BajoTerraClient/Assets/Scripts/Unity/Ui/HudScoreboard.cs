@@ -29,6 +29,8 @@ namespace Bajoterra.Unity
             public Text[] Cells = new Text[6];
         }
 
+        private static readonly Color RowColor = new Color(0.04f, 0.13f, 0.22f, 0.92f);
+
         private readonly RectTransform _root;
         private readonly Row[][] _rows = new Row[2][];
         private readonly Text[] _teamTitle = new Text[2];
@@ -46,24 +48,24 @@ namespace Bajoterra.Unity
                 UiKit.Place(block, new Vector2(0.5f, 1f), new Vector2(Width, teamHeight), new Vector2(0f, top));
                 Color accent = team == 0 ? Palette.TeamOwn : Palette.TeamOther;
 
-                Image bar = UiKit.Card(block, "Header", Palette.WithAlpha(accent * 0.45f, 0.95f), 12);
-                UiKit.Place(bar.rectTransform, new Vector2(0.5f, 1f), new Vector2(Width, 52f), Vector2.zero);
-                UiKit.Edge(bar.transform, Palette.WithAlpha(accent, 0.8f), 12, 2);
-                _teamTitle[team] = UiKit.Label(bar.transform, "Title", string.Empty, 29, TextAnchor.MiddleLeft, Color.white);
-                _teamTitle[team].fontStyle = FontStyle.Bold;
+                Image bar = UiKit.Window(block, "Header", Palette.WithAlpha(accent * 0.6f, 0.96f), 12);
+                UiKit.Place(bar.rectTransform, new Vector2(0.5f, 1f), new Vector2(Width, 56f), Vector2.zero);
+                _teamTitle[team] = UiKit.Label(bar.transform, "Title", string.Empty, 32, TextAnchor.MiddleLeft, Color.white);
+                UiKit.Heading(_teamTitle[team]);
                 UiKit.Stretch(_teamTitle[team].rectTransform);
                 _teamTitle[team].rectTransform.offsetMin = new Vector2(36f, 0f);
                 UiKit.AddShadow(_teamTitle[team], 1.5f);
-                _teamScore[team] = UiKit.Label(bar.transform, "Score", string.Empty, 34, TextAnchor.MiddleRight, Color.white);
-                _teamScore[team].fontStyle = FontStyle.Bold;
+                _teamScore[team] = UiKit.Label(bar.transform, "Score", string.Empty, 38, TextAnchor.MiddleRight, Color.white);
+                UiKit.Heading(_teamScore[team]);
                 UiKit.Stretch(_teamScore[team].rectTransform);
                 _teamScore[team].rectTransform.offsetMax = new Vector2(-36f, 0f);
 
                 string[] heads = { "Jugador", "Héroe", "Bajas", "Caídas", "Daño", "Curación" };
                 for (int c = 0; c < heads.Length; c++)
                 {
-                    Text head = UiKit.Label(block, "Head " + c, heads[c], 19, c < 2 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter,
+                    Text head = UiKit.Label(block, "Head " + c, heads[c], 21, c < 2 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter,
                         UiKit.TextDim);
+                    UiKit.AddShadow(head, 1.5f);
                     UiKit.Place(head.rectTransform, new Vector2(0f, 1f), new Vector2(ColumnWidth[c], 36f),
                         new Vector2(ColumnX[c], -56f));
                 }
@@ -72,7 +74,7 @@ namespace Bajoterra.Unity
                 for (int r = 0; r < RowsPerTeam; r++)
                 {
                     var row = new Row();
-                    row.Background = UiKit.Card(block, "Row " + r, new Color(0.04f, 0.06f, 0.1f, 0.88f), 10);
+                    row.Background = UiKit.Card(block, "Row " + r, RowColor, 10);
                     UiKit.Place(row.Background.rectTransform, new Vector2(0.5f, 1f), new Vector2(Width, RowHeight - 6f),
                         new Vector2(0f, -(92f + r * RowHeight)));
                     row.Bar = UiKit.Card(row.Background.transform, "Bar", accent, 4);
@@ -80,8 +82,9 @@ namespace Bajoterra.Unity
                     row.Bar.rectTransform.pivot = new Vector2(0f, 0.5f);
                     for (int c = 0; c < 6; c++)
                     {
-                        row.Cells[c] = UiKit.Label(row.Background.transform, "Cell " + c, string.Empty, c < 2 ? 25 : 26,
+                        row.Cells[c] = UiKit.Label(row.Background.transform, "Cell " + c, string.Empty, c < 2 ? 26 : 28,
                             c < 2 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter, UiKit.TextColor);
+                        UiKit.AddShadow(row.Cells[c], 1.5f);
                         UiKit.Place(row.Cells[c].rectTransform, new Vector2(0f, 0.5f),
                             new Vector2(ColumnWidth[c], RowHeight - 6f), new Vector2(ColumnX[c], 0f));
                         row.Cells[c].rectTransform.pivot = new Vector2(0f, 0.5f);
@@ -128,9 +131,9 @@ namespace Bajoterra.Unity
             StatLine line = match.Stats.Line(id);
             bool you = id == match.YourId;
             string hero = match.Content.FindCharacter(slot.CharacterId)?.Name ?? slot.CharacterId;
-            row.Background.color = you ? new Color(0.14f, 0.22f, 0.34f, 0.95f) : new Color(0.04f, 0.06f, 0.1f, 0.88f);
-            row.Cells[0].text = slot.Name + (you ? "  (tú)" : slot.Bot ? "  [bot]" : string.Empty);
-            row.Cells[0].fontStyle = you ? FontStyle.Bold : FontStyle.Normal;
+            row.Background.color = you ? new Color(0.12f, 0.33f, 0.5f, 0.95f) : RowColor;
+            row.Cells[0].text = slot.Name + (you ? "  (tú)" : slot.Bot ? "  (CPU)" : string.Empty);
+            row.Cells[0].color = you ? UiKit.GoldColor : UiKit.TextColor;
             row.Cells[1].text = hero;
             row.Cells[1].color = ownTeam ? new Color(0.72f, 0.86f, 1f) : new Color(1f, 0.8f, 0.76f);
             row.Cells[2].text = line.Kills.ToString();

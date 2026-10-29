@@ -4,8 +4,9 @@ using UnityEngine;
 namespace Bajoterra.Unity
 {
     /// <summary>
-    /// The few sprites the interface is made of, drawn in code with signed-distance shapes: rounded rectangles
-    /// (nine-sliced, so one small texture serves every panel and button), their outlines, circles, rings, a soft
+    /// The few sprites the interface is made of, drawn in code with signed-distance shapes: plates with cut corners and
+    /// rounded rectangles (nine-sliced, so one small texture serves every panel and button), their outlines, circles,
+    /// rings, a soft
     /// vertical gradient and a diamond. White with alpha, so each widget tints them with its own colour.
     /// </summary>
     public static class UiSprites
@@ -28,6 +29,21 @@ namespace Bajoterra.Unity
         public static Sprite Outline(int radius = 14, int thickness = 2)
         {
             return Cached("outline" + radius + "_" + thickness, () => RoundedRect(radius, thickness));
+        }
+
+        /// <summary>
+        /// A filled rectangle with its corners cut at 45 degrees, <paramref name="chamfer"/> pixels deep: the shape of
+        /// the show's metal plates and buttons. Use it with <c>Image.Type.Sliced</c>.
+        /// </summary>
+        public static Sprite Plate(int chamfer = 12)
+        {
+            return Cached("plate" + chamfer, () => ChamferedRect(chamfer, 0));
+        }
+
+        /// <summary>The outline of <see cref="Plate"/>, <paramref name="thickness"/> pixels wide; use it sliced.</summary>
+        public static Sprite PlateOutline(int chamfer = 12, int thickness = 2)
+        {
+            return Cached("plateline" + chamfer + "_" + thickness, () => ChamferedRect(chamfer, thickness));
         }
 
         /// <summary>A filled circle (not sliced).</summary>
@@ -150,6 +166,39 @@ namespace Bajoterra.Unity
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
             int border = radius + 2;
+            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
+                SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+        }
+
+        private static Sprite ChamferedRect(int chamfer, int outline)
+        {
+            chamfer = Mathf.Max(1, chamfer);
+            int size = chamfer * 2 + 8;
+            Texture2D texture = NewTexture(size, size);
+            var pixels = new Color32[size * size];
+            float half = size * 0.5f;
+            float extent = half - 1f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float px = Mathf.Abs(x + 0.5f - half);
+                    float py = Mathf.Abs(y + 0.5f - half);
+                    // Distance to the box, then to the 45-degree cut through (extent, extent - chamfer).
+                    float box = Mathf.Max(px - extent, py - extent);
+                    float cut = (px + py - (2f * extent - chamfer)) * 0.70710678f;
+                    float d = Mathf.Max(box, cut);
+                    float alpha = Mathf.Clamp01(0.5f - d);
+                    if (outline > 0)
+                    {
+                        alpha *= Mathf.Clamp01(d + outline + 0.5f);
+                    }
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            int border = chamfer + 3;
             return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0,
                 SpriteMeshType.FullRect, new Vector4(border, border, border, border));
         }

@@ -110,7 +110,7 @@ namespace Bajoterra.Unity
 
         // ------------------------------------------------------------------------------------------ surfaces
 
-        /// <summary>Cracked slate flagstones with a little teal moss in the hollows.</summary>
+        /// <summary>Cracked blue-green flagstones with patches of green moss.</summary>
         private static Color FloorPixel(float u, float v)
         {
             Noise.Worley(u, v, 7, 3, out float nearest, out float second);
@@ -118,11 +118,11 @@ namespace Bajoterra.Unity
             float crack = Smooth(0.0f, 0.16f, edge);
             float tint = 0.82f + 0.36f * Noise.WorleyCellId(u, v, 7, 3);
             float grain = Noise.Fbm(u, v, 6, 4, 11);
-            var dark = new Color(0.14f, 0.16f, 0.22f);
-            var light = new Color(0.33f, 0.36f, 0.45f);
+            var dark = new Color(0.12f, 0.17f, 0.2f);
+            var light = new Color(0.3f, 0.38f, 0.41f);
             Color color = Color.Lerp(dark, light, grain) * tint;
-            float moss = Mathf.Clamp01((Noise.Fbm(u, v, 4, 3, 29) - 0.58f) * 3.2f);
-            color = Color.Lerp(color, new Color(0.08f, 0.30f, 0.27f), moss * 0.7f);
+            float moss = Mathf.Clamp01((Noise.Fbm(u, v, 4, 3, 29) - 0.5f) * 3.2f);
+            color = Color.Lerp(color, new Color(0.13f, 0.4f, 0.22f), moss * 0.8f);
             color *= 0.38f + 0.62f * crack;
             // A faint lighter lip just inside each crack reads as a chipped edge.
             float lip = Smooth(0.16f, 0.26f, edge) * (1f - Smooth(0.26f, 0.4f, edge));
@@ -131,13 +131,13 @@ namespace Bajoterra.Unity
             return color;
         }
 
-        /// <summary>Layered dark rock with horizontal strata (for tall walls and pillars).</summary>
+        /// <summary>Layered blue-green rock with horizontal strata (for tall walls and pillars).</summary>
         private static Color RockPixel(float u, float v)
         {
             float strata = Noise.Fbm(u, v, 2, 3, 41, 1, 7);
             float body = Noise.Fbm(u, v, 5, 5, 53);
-            var a = new Color(0.18f, 0.16f, 0.23f);
-            var b = new Color(0.40f, 0.33f, 0.38f);
+            var a = new Color(0.1f, 0.18f, 0.23f);
+            var b = new Color(0.24f, 0.4f, 0.43f);
             Color color = Color.Lerp(a, b, strata * 0.65f + body * 0.45f);
             Noise.Worley(u, v, 4, 61, out float nearest, out float second);
             float seam = Smooth(0.0f, 0.1f, second - nearest);
@@ -146,7 +146,7 @@ namespace Bajoterra.Unity
             float speck = Noise.Hash(Mathf.FloorToInt(u * 256f), Mathf.FloorToInt(v * 256f), 7);
             if (speck > 0.992f)
             {
-                color += new Color(0.25f, 0.3f, 0.4f);
+                color += new Color(0.2f, 0.42f, 0.45f);
             }
             color.a = 1f;
             return color;

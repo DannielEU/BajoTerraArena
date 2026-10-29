@@ -119,6 +119,8 @@ namespace Bajoterra.Unity
         private float _countdownPulse;
         private float _scoreboardTimer;
         private bool _debugVisible;
+        private bool _statsVisible;
+        private string _lastDebugSource;
         private bool _scoreboardVisible;
         private bool _dead;
         private bool _crosshairVisible = true;
@@ -137,35 +139,41 @@ namespace Bajoterra.Unity
             _minimap = new HudMinimap(Root);
 
             // ----- top centre: clock and score
-            Image clock = UiKit.Window(Root, "Clock", new Color(0.03f, 0.05f, 0.09f, 0.9f), 16);
-            UiKit.Place(clock.rectTransform, new Vector2(0.5f, 1f), new Vector2(176f, 70f), new Vector2(0f, -18f));
-            _timer = UiKit.Label(clock.transform, "Timer", "0:00", 44, TextAnchor.MiddleCenter, UiKit.TextColor);
-            _timer.fontStyle = FontStyle.Bold;
+            Image clock = UiKit.Window(Root, "Clock", UiKit.PanelColor, 16);
+            UiKit.Place(clock.rectTransform, new Vector2(0.5f, 1f), new Vector2(184f, 76f), new Vector2(0f, -16f));
+            _timer = UiKit.Label(clock.transform, "Timer", "0:00", 46, TextAnchor.MiddleCenter, UiKit.TextColor);
             UiKit.Stretch(_timer.rectTransform);
-            UiKit.AddShadow(_timer, 2f);
-            _round = UiKit.Label(Root, "Round", string.Empty, 21, TextAnchor.MiddleCenter, UiKit.TextDim);
-            UiKit.Place(_round.rectTransform, new Vector2(0.5f, 1f), new Vector2(300f, 30f), new Vector2(0f, -94f));
-            UiKit.AddShadow(_round, 1.5f);
+            _timer.rectTransform.offsetMin = new Vector2(0f, 2f);
+            UiKit.Heading(_timer);
+            Image roundTab = UiKit.Card(Root, "RoundTab", UiKit.Ink, 8);
+            UiKit.Place(roundTab.rectTransform, new Vector2(0.5f, 1f), new Vector2(150f, 34f), new Vector2(0f, -88f));
+            Image roundGlow = UiKit.Card(roundTab.transform, "Glow", Color.white, 6);
+            UiKit.Stretch(roundGlow.rectTransform, 3f);
+            UiKit.Gradient(roundGlow, new Color(0.45f, 1f, 0.92f), new Color(0.02f, 0.5f, 0.55f));
+            _round = UiKit.Label(roundTab.transform, "Round", string.Empty, 22, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Stretch(_round.rectTransform);
+            _round.font = UiKit.DisplayFont;
+            UiKit.Strong(_round);
             _capsules[0] = BuildCapsule(-1, "NOSOTROS", Palette.TeamOwn);
             _capsules[1] = BuildCapsule(1, "RIVALES", Palette.TeamOther);
 
             // ----- banners
-            _banner = UiKit.Shadowed(Root, "Banner", string.Empty, 104, TextAnchor.MiddleCenter, Color.white, true);
-            UiKit.Place(_banner.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1600f, 150f), new Vector2(0f, 330f));
-            UiKit.AddOutline(_banner, 3f);
-            _bannerSub = UiKit.Shadowed(Root, "BannerSub", string.Empty, 38, TextAnchor.MiddleCenter, UiKit.TextColor, true);
-            UiKit.Place(_bannerSub.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1200f, 60f), new Vector2(0f, 250f));
-            _countdown = UiKit.Shadowed(Root, "Countdown", string.Empty, 230, TextAnchor.MiddleCenter, Color.white, true);
-            UiKit.Place(_countdown.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(600f, 280f), new Vector2(0f, 150f));
-            UiKit.AddOutline(_countdown, 4f);
+            _banner = UiKit.Label(Root, "Banner", string.Empty, 112, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_banner.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1600f, 160f), new Vector2(0f, 330f));
+            UiKit.Fire(_banner);
+            _bannerSub = UiKit.Label(Root, "BannerSub", string.Empty, 46, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_bannerSub.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1200f, 70f), new Vector2(0f, 240f));
+            UiKit.Painted(_bannerSub, new Color(0.7f, 1f, 0.95f), new Color(0.15f, 0.8f, 0.78f));
+            _countdown = UiKit.Label(Root, "Countdown", string.Empty, 240, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_countdown.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(600f, 300f), new Vector2(0f, 150f));
+            UiKit.Fire(_countdown);
 
             // ----- bottom centre: vitals
             _vitals = UiKit.Rect("Vitals", Root);
             UiKit.Place(_vitals, new Vector2(0.5f, 0f), new Vector2(VitalsWidth, 110f), new Vector2(0f, 148f));
-            _heroName = UiKit.Label(_vitals, "Hero", string.Empty, 25, TextAnchor.MiddleLeft, UiKit.GoldColor);
-            UiKit.Place(_heroName.rectTransform, new Vector2(0f, 1f), new Vector2(300f, 30f), new Vector2(4f, 0f));
-            _heroName.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(_heroName, 1.5f);
+            _heroName = UiKit.Label(_vitals, "Hero", string.Empty, 28, TextAnchor.MiddleLeft, Color.white);
+            UiKit.Place(_heroName.rectTransform, new Vector2(0f, 1f), new Vector2(360f, 34f), new Vector2(4f, 4f));
+            UiKit.Fire(_heroName);
             _over = new UiBar(_vitals, "Overshield", new Vector2(VitalsWidth, 8f), Palette.Overshield, 4);
             UiKit.Place(_over.Rect, new Vector2(0f, 1f), new Vector2(VitalsWidth, 8f), new Vector2(0f, -34f));
             _shield = new UiBar(_vitals, "Shield", new Vector2(VitalsWidth, 20f), Palette.Shield, 9, 17);
@@ -177,9 +185,10 @@ namespace Bajoterra.Unity
             for (int i = 0; i < MaxChips; i++)
             {
                 Image chip = UiKit.Card(_vitals, "Chip " + i, Color.white, 8);
+                UiKit.Edge(chip.transform, UiKit.Ink, 8, 2);
                 UiKit.Place(chip.rectTransform, new Vector2(1f, 1f), new Vector2(126f, 26f), new Vector2(-i * 132f, 0f));
                 Text caption = UiKit.Label(chip.transform, "Name", string.Empty, 15, TextAnchor.MiddleCenter, Color.white);
-                caption.fontStyle = FontStyle.Bold;
+                UiKit.Strong(caption);
                 UiKit.Stretch(caption.rectTransform);
                 UiKit.AddShadow(caption, 1f);
                 chip.gameObject.SetActive(false);
@@ -191,20 +200,22 @@ namespace Bajoterra.Unity
             BuildSlots();
 
             // ----- bottom right: selected slug
-            Image card = UiKit.Window(Root, "SlugCard", new Color(0.04f, 0.06f, 0.1f, 0.9f), 16);
+            Image card = UiKit.Window(Root, "SlugCard", UiKit.PanelColor, 16);
             UiKit.Place(card.rectTransform, new Vector2(1f, 0f), new Vector2(350f, 190f), new Vector2(-30f, 30f));
             _slugAccent = UiKit.Card(card.transform, "Accent", UiKit.AccentColor, 4);
             UiKit.Place(_slugAccent.rectTransform, new Vector2(0f, 0.5f), new Vector2(8f, 150f), new Vector2(14f, 0f));
             _slugAccent.rectTransform.pivot = new Vector2(0f, 0.5f);
-            Text cardHeader = UiKit.Label(card.transform, "Header", "BABOSA ELEGIDA", 16, TextAnchor.MiddleLeft, UiKit.TextDim);
+            Text cardHeader = UiKit.Label(card.transform, "Header", "BABOSA ELEGIDA", 18, TextAnchor.MiddleLeft, UiKit.TextDim);
+            UiKit.AddShadow(cardHeader, 1.2f);
             UiKit.Place(cardHeader.rectTransform, new Vector2(0f, 1f), new Vector2(300f, 24f), new Vector2(36f, -12f));
-            _slugName = UiKit.Label(card.transform, "Name", string.Empty, 36, TextAnchor.MiddleLeft, Color.white);
-            UiKit.Place(_slugName.rectTransform, new Vector2(0f, 1f), new Vector2(300f, 46f), new Vector2(36f, -34f));
-            _slugName.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(_slugName, 2f);
-            _slugKind = UiKit.Label(card.transform, "Kind", string.Empty, 20, TextAnchor.MiddleLeft, UiKit.TextDim);
+            _slugName = UiKit.Label(card.transform, "Name", string.Empty, 38, TextAnchor.MiddleLeft, Color.white);
+            UiKit.Place(_slugName.rectTransform, new Vector2(0f, 1f), new Vector2(300f, 48f), new Vector2(36f, -34f));
+            UiKit.Heading(_slugName);
+            _slugKind = UiKit.Label(card.transform, "Kind", string.Empty, 21, TextAnchor.MiddleLeft, UiKit.TextDim);
+            UiKit.AddShadow(_slugKind, 1.2f);
             UiKit.Place(_slugKind.rectTransform, new Vector2(0f, 1f), new Vector2(300f, 28f), new Vector2(36f, -80f));
-            _slugReady = UiKit.Label(card.transform, "Ready", string.Empty, 19, TextAnchor.MiddleLeft, UiKit.TextColor);
+            _slugReady = UiKit.Label(card.transform, "Ready", string.Empty, 20, TextAnchor.MiddleLeft, UiKit.TextColor);
+            UiKit.AddShadow(_slugReady, 1.2f);
             UiKit.Place(_slugReady.rectTransform, new Vector2(0f, 1f), new Vector2(150f, 26f), new Vector2(36f, -112f));
             for (int i = 0; i < HudModel.SlotCount; i++)
             {
@@ -212,7 +223,8 @@ namespace Bajoterra.Unity
                 UiKit.Place(pip.rectTransform, new Vector2(1f, 1f), new Vector2(13f, 18f), new Vector2(-18f - (9 - i) * 17f, -114f));
                 _belt[i] = pip;
             }
-            Text blasterLabel = UiKit.Label(card.transform, "BlasterLabel", UiText.Blaster, 15, TextAnchor.MiddleLeft, UiKit.TextDim);
+            Text blasterLabel = UiKit.Label(card.transform, "BlasterLabel", UiText.Blaster, 17, TextAnchor.MiddleLeft, UiKit.TextDim);
+            UiKit.AddShadow(blasterLabel, 1.2f);
             UiKit.Place(blasterLabel.rectTransform, new Vector2(0f, 0f), new Vector2(100f, 20f), new Vector2(36f, 30f));
             _blaster = new UiBar(card.transform, "BlasterBar", new Vector2(290f, 20f), UiKit.GoldColor, 8, 14);
             UiKit.Place(_blaster.Rect, new Vector2(0f, 0f), new Vector2(290f, 20f), new Vector2(36f, 10f));
@@ -222,7 +234,7 @@ namespace Bajoterra.Unity
             {
                 _allies[i] = BuildAlly(i);
             }
-            _debug = UiKit.Label(Root, "Debug", string.Empty, 20, TextAnchor.UpperLeft, new Color(0.8f, 1f, 0.8f));
+            _debug = UiKit.Label(Root, "Debug", string.Empty, 21, TextAnchor.UpperLeft, new Color(0.8f, 1f, 0.9f));
             UiKit.Place(_debug.rectTransform, new Vector2(0f, 1f), new Vector2(560f, 160f), new Vector2(34f, -290f));
             UiKit.AddShadow(_debug, 1.5f);
             _debug.gameObject.SetActive(false);
@@ -230,9 +242,10 @@ namespace Bajoterra.Unity
             // ----- top right: kill feed
             for (int i = 0; i < MaxFeed; i++)
             {
-                Image back = UiKit.Card(Root, "FeedBack " + i, new Color(0.02f, 0.03f, 0.06f, 0.78f), 10);
-                UiKit.Place(back.rectTransform, new Vector2(1f, 1f), new Vector2(430f, 38f), new Vector2(-30f, -30f - i * 44f));
-                Text line = UiKit.Label(back.transform, "Feed", string.Empty, 22, TextAnchor.MiddleRight, Color.white);
+                Image back = UiKit.Card(Root, "FeedBack " + i, new Color(0.03f, 0.12f, 0.2f, 0.85f), 10);
+                UiKit.Place(back.rectTransform, new Vector2(1f, 1f), new Vector2(440f, 40f), new Vector2(-30f, -30f - i * 46f));
+                UiKit.Edge(back.transform, Palette.WithAlpha(UiKit.Ink, 0.9f), 10, 2);
+                Text line = UiKit.Label(back.transform, "Feed", string.Empty, 23, TextAnchor.MiddleRight, Color.white);
                 line.supportRichText = true;
                 UiKit.Stretch(line.rectTransform);
                 line.rectTransform.offsetMax = new Vector2(-14f, 0f);
@@ -245,11 +258,11 @@ namespace Bajoterra.Unity
             // ----- spectating
             _spectateBar = UiKit.Rect("Spectate", Root);
             UiKit.Place(_spectateBar, new Vector2(0.5f, 0f), new Vector2(760f, 74f), new Vector2(0f, 270f));
-            Image spectateBack = UiKit.Window(_spectateBar, "Back", new Color(0.04f, 0.06f, 0.1f, 0.9f), 14);
+            Image spectateBack = UiKit.Window(_spectateBar, "Back", UiKit.PanelColor, 14);
             UiKit.Stretch(spectateBack.rectTransform);
-            _spectateText = UiKit.Label(_spectateBar, "Text", string.Empty, 26, TextAnchor.MiddleCenter, UiKit.GoldColor);
+            _spectateText = UiKit.Label(_spectateBar, "Text", string.Empty, 28, TextAnchor.MiddleCenter, UiKit.GoldColor);
             UiKit.Stretch(_spectateText.rectTransform);
-            _spectateText.fontStyle = FontStyle.Bold;
+            UiKit.Strong(_spectateText);
             _spectateBar.gameObject.SetActive(false);
 
             // ----- defeat panel
@@ -260,55 +273,65 @@ namespace Bajoterra.Unity
             _death = UiKit.Rect("Death", Root);
             _deathGroup = _death.gameObject.AddComponent<CanvasGroup>();
             UiKit.Place(_death, new Vector2(0.5f, 0.5f), new Vector2(820f, 190f), new Vector2(0f, 20f));
-            Image deathBack = UiKit.Window(_death, "Back", new Color(0.09f, 0.025f, 0.03f, 0.92f), 20);
+            Image deathBack = UiKit.Window(_death, "Back", new Color(0.36f, 0.06f, 0.08f, 0.94f), 20);
             UiKit.Stretch(deathBack.rectTransform);
-            UiKit.Edge(deathBack.transform, new Color(1f, 0.3f, 0.25f, 0.8f), 20, 3);
-            _deathTitle = UiKit.Label(_death, "Title", UiText.Defeated, 68, TextAnchor.MiddleCenter, new Color(1f, 0.38f, 0.32f));
-            UiKit.Place(_deathTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(780f, 84f), new Vector2(0f, -14f));
-            _deathTitle.fontStyle = FontStyle.Bold;
-            UiKit.AddOutline(_deathTitle, 2.5f);
+            _deathTitle = UiKit.Label(_death, "Title", UiText.Defeated, 76, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_deathTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(780f, 92f), new Vector2(0f, -10f));
+            UiKit.Painted(_deathTitle, new Color(1f, 0.72f, 0.6f), new Color(0.95f, 0.16f, 0.12f));
             _deathBadge = UiKit.Panel(_death, "Badge", Color.white);
             _deathBadge.sprite = UiSprites.Circle();
             UiKit.Place(_deathBadge.rectTransform, new Vector2(0.5f, 1f), new Vector2(26f, 26f), new Vector2(-170f, -118f));
-            _deathBy = UiKit.Label(_death, "By", string.Empty, 32, TextAnchor.MiddleCenter, Color.white);
+            _deathBy = UiKit.Label(_death, "By", string.Empty, 34, TextAnchor.MiddleCenter, Color.white);
             UiKit.Place(_deathBy.rectTransform, new Vector2(0.5f, 1f), new Vector2(700f, 44f), new Vector2(18f, -104f));
-            _deathBy.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(_deathBy, 2f);
-            _deathDetail = UiKit.Label(_death, "Detail", string.Empty, 21, TextAnchor.MiddleCenter, UiKit.TextDim);
+            UiKit.Strong(_deathBy);
+            _deathDetail = UiKit.Label(_death, "Detail", string.Empty, 22, TextAnchor.MiddleCenter, new Color(1f, 0.85f, 0.8f));
+            UiKit.AddShadow(_deathDetail, 1.2f);
             UiKit.Place(_deathDetail.rectTransform, new Vector2(0.5f, 1f), new Vector2(740f, 30f), new Vector2(0f, -150f));
             _death.gameObject.SetActive(false);
 
             // ----- Tab table (on top of everything else)
             _scoreboardLayer = UiKit.Rect("ScoreboardLayer", Root);
             UiKit.Stretch(_scoreboardLayer);
-            Image dim = UiKit.Panel(_scoreboardLayer, "Dim", new Color(0f, 0f, 0f, 0.55f));
+            Image dim = UiKit.Panel(_scoreboardLayer, "Dim", new Color(0f, 0.04f, 0.06f, 0.6f));
             UiKit.Stretch(dim.rectTransform);
-            Text boardTitle = UiKit.Shadowed(_scoreboardLayer, "Title", UiText.Scoreboard, 40, TextAnchor.MiddleCenter, Color.white, true);
-            UiKit.Place(boardTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(600f, 60f), new Vector2(0f, -140f));
+            Text boardTitle = UiKit.Label(_scoreboardLayer, "Title", UiText.Scoreboard, 64, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(boardTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(700f, 84f), new Vector2(0f, -120f));
+            UiKit.Fire(boardTitle);
             _scoreboard = new HudScoreboard(_scoreboardLayer);
             _scoreboardLayer.gameObject.SetActive(false);
         }
 
         // ------------------------------------------------------------------------------------------ public
 
+        /// <summary>Shows or hides the full diagnostic readout (a developer key, not listed in the controls).</summary>
         public void ToggleDebug()
         {
             _debugVisible = !_debugVisible;
-            _debug.gameObject.SetActive(_debugVisible);
+            _lastDebugSource = null;
+            _debug.gameObject.SetActive(_debugVisible || _statsVisible);
         }
 
-        /// <summary>Keeps the debug readout on screen (the "show fps and ping" option).</summary>
+        /// <summary>Keeps the frame rate on screen (the "show FPS" option): only the first line of the readout.</summary>
         public void SetStatsVisible(bool visible)
         {
-            _debugVisible = visible;
-            _debug.gameObject.SetActive(visible);
+            _statsVisible = visible;
+            _lastDebugSource = null;
+            _debug.gameObject.SetActive(_debugVisible || _statsVisible);
         }
 
         /// <summary>Shows a big message in the middle of the screen for a few seconds.</summary>
         public void Banner(string text, Color color, float seconds = 2.2f, string sub = null)
         {
             _banner.text = text;
-            _banner.color = color;
+            _banner.color = Color.white;
+            if (color == Color.white)
+            {
+                UiKit.Gradient(_banner, UiKit.FireTop, UiKit.FireBottom);
+            }
+            else
+            {
+                UiKit.Gradient(_banner, UiKit.Lighter(color, 0.55f), UiKit.Darker(color, 0.1f));
+            }
             _bannerSub.text = sub ?? string.Empty;
             _bannerTime = seconds;
             _bannerTotal = Mathf.Max(0.1f, seconds);
@@ -351,7 +374,7 @@ namespace Bajoterra.Unity
             {
                 _spectated = name;
                 _spectateText.supportRichText = true;
-                _spectateText.text = "OBSERVANDO  -  " + name + "\n<size=19>" + UiText.SpectatingHint + "</size>";
+                _spectateText.text = "OBSERVANDO  -  " + name + "\n<size=20><color=#bfe9f2>" + UiText.SpectatingHint + "</color></size>";
             }
             else if (!spectating)
             {
@@ -410,9 +433,11 @@ namespace Bajoterra.Unity
                     _scoreboard.Refresh(match, model.WinsOwnTeam, model.WinsOtherTeam);
                 }
             }
-            if (_debugVisible)
+            if ((_debugVisible || _statsVisible) && !ReferenceEquals(debugText, _lastDebugSource))
             {
-                _debug.text = debugText;
+                _lastDebugSource = debugText;
+                int firstLine = debugText.IndexOf('\n');
+                _debug.text = _debugVisible || firstLine < 0 ? debugText : debugText.Substring(0, firstLine);
             }
         }
 
@@ -504,8 +529,8 @@ namespace Bajoterra.Unity
             {
                 _lastSeconds = model.SecondsLeft;
                 _timer.text = HudModel.Clock(model.SecondsLeft);
-                _timer.color = model.Phase == MatchPhase.RoundActive && model.SecondsLeft <= 10
-                    ? new Color(1f, 0.5f, 0.4f) : UiKit.TextColor;
+                bool hurry = model.Phase == MatchPhase.RoundActive && model.SecondsLeft <= 10;
+                _timer.color = hurry ? new Color(1f, 0.55f, 0.42f) : UiKit.TextColor;
             }
             // Alive pips from the latest snapshot.
             Snapshot latest = match.Latest;
@@ -563,8 +588,9 @@ namespace Bajoterra.Unity
                 {
                     w.LastSlug = view.SlugIndex;
                     Color element = Palette.Element(view.Element);
-                    w.Background.color = new Color(element.r * 0.5f, element.g * 0.5f, element.b * 0.5f, 0.95f);
-                    w.Sheen.color = new Color(element.r, element.g, element.b, 0.45f);
+                    w.Background.color = new Color(element.r * 0.62f, element.g * 0.62f, element.b * 0.62f, 0.96f);
+                    w.Sheen.color = new Color(Mathf.Lerp(element.r, 1f, 0.4f), Mathf.Lerp(element.g, 1f, 0.4f),
+                        Mathf.Lerp(element.b, 1f, 0.4f), 0.5f);
                     w.Name.text = view.Name;
                 }
                 if (view.ShotsUntilReady != w.LastShots)
@@ -576,7 +602,7 @@ namespace Bajoterra.Unity
                 if (view.Selected != w.LastSelected)
                 {
                     w.LastSelected = view.Selected;
-                    w.Border.color = view.Selected ? new Color(1f, 1f, 1f, 1f) : new Color(1f, 1f, 1f, 0.18f);
+                    w.Border.color = view.Selected ? UiKit.GoldColor : Palette.WithAlpha(UiKit.Ink, 0.95f);
                     w.Holder.localScale = Vector3.one * (view.Selected ? 1.12f : 1f);
                     Vector2 position = w.Holder.anchoredPosition;
                     position.y = view.Selected ? 44f : 30f;
@@ -731,7 +757,7 @@ namespace Bajoterra.Unity
                 _countdownPulse = Mathf.MoveTowards(_countdownPulse, 0f, deltaTime * 2.2f);
                 float scale = 1f + _countdownPulse * 0.45f;
                 _countdown.rectTransform.localScale = new Vector3(scale, scale, 1f);
-                _countdown.color = new Color(1f, 1f, 1f, 0.35f + 0.65f * (1f - _countdownPulse * 0.5f));
+                _countdown.color = new Color(1f, 1f, 1f, 0.5f + 0.5f * (1f - _countdownPulse * 0.5f));
             }
             else if (_lastCountdownShown >= 0)
             {
@@ -773,26 +799,26 @@ namespace Bajoterra.Unity
         private Capsule BuildCapsule(int side, string label, Color accent)
         {
             var capsule = new Capsule();
-            Image back = UiKit.Window(Root, "Capsule " + label, Palette.WithAlpha(accent * 0.28f, 0.92f), 16);
-            UiKit.Place(back.rectTransform, new Vector2(0.5f, 1f), new Vector2(330f, 62f), new Vector2(side * 262f, -22f));
-            UiKit.Edge(back.transform, Palette.WithAlpha(accent, 0.85f), 16, 3);
-            capsule.Label = UiKit.Label(back.transform, "Label", label, 19, side < 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight,
-                Color.Lerp(accent, Color.white, 0.55f));
+            Image back = UiKit.Window(Root, "Capsule " + label, Palette.WithAlpha(accent * 0.62f, 0.95f), 16);
+            UiKit.Place(back.rectTransform, new Vector2(0.5f, 1f), new Vector2(330f, 66f), new Vector2(side * 266f, -20f));
+            capsule.Label = UiKit.Label(back.transform, "Label", label, 22, side < 0 ? TextAnchor.UpperLeft : TextAnchor.UpperRight,
+                Color.white);
             UiKit.Stretch(capsule.Label.rectTransform);
             capsule.Label.rectTransform.offsetMin = new Vector2(26f, 6f);
             capsule.Label.rectTransform.offsetMax = new Vector2(-26f, -9f);
-            capsule.Label.fontStyle = FontStyle.Bold;
-            capsule.Score = UiKit.Label(back.transform, "Score", "0", 50, side < 0 ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft,
+            capsule.Label.font = UiKit.DisplayFont;
+            UiKit.Strong(capsule.Label);
+            capsule.Score = UiKit.Label(back.transform, "Score", "0", 54, side < 0 ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft,
                 Color.white);
             UiKit.Stretch(capsule.Score.rectTransform);
             capsule.Score.rectTransform.offsetMin = new Vector2(22f, 0f);
             capsule.Score.rectTransform.offsetMax = new Vector2(-22f, 0f);
-            capsule.Score.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(capsule.Score, 2f);
+            UiKit.Fire(capsule.Score);
             for (int i = 0; i < capsule.Pips.Length; i++)
             {
                 Image pip = UiKit.Panel(back.transform, "Pip " + i, accent);
                 pip.sprite = UiSprites.Circle();
+                UiKit.AddOutlineTo(pip, 1.5f);
                 float x = side < 0 ? 28f + i * 19f : -(28f + i * 19f);
                 UiKit.Place(pip.rectTransform, side < 0 ? new Vector2(0f, 0f) : new Vector2(1f, 0f), new Vector2(14f, 14f),
                     new Vector2(x, 9f));
@@ -804,33 +830,34 @@ namespace Bajoterra.Unity
         private AllyCard BuildAlly(int index)
         {
             var card = new AllyCard();
-            Image back = UiKit.Window(Root, "Ally " + index, new Color(0.03f, 0.05f, 0.09f, 0.86f), 14);
-            UiKit.Place(back.rectTransform, new Vector2(0f, 1f), new Vector2(320f, 80f), new Vector2(30f, -26f - index * 90f));
+            Image back = UiKit.Window(Root, "Ally " + index, UiKit.PanelColor, 14);
+            UiKit.Place(back.rectTransform, new Vector2(0f, 1f), new Vector2(330f, 84f), new Vector2(30f, -24f - index * 94f));
             card.Root = back.rectTransform;
-            UiKit.Edge(back.transform, Palette.WithAlpha(Palette.TeamOwn, 0.7f), 14, 2);
-            card.Avatar = UiKit.Panel(back.transform, "Avatar", Palette.TeamOwn);
+            Image ring = UiKit.Panel(back.transform, "AvatarRing", UiKit.Ink);
+            ring.sprite = UiSprites.Circle();
+            UiKit.Place(ring.rectTransform, new Vector2(0f, 0.5f), new Vector2(62f, 62f), new Vector2(12f, 0f));
+            ring.rectTransform.pivot = new Vector2(0f, 0.5f);
+            card.Avatar = UiKit.Panel(ring.transform, "Avatar", Palette.TeamOwn);
             card.Avatar.sprite = UiSprites.Circle();
-            UiKit.Place(card.Avatar.rectTransform, new Vector2(0f, 0.5f), new Vector2(54f, 54f), new Vector2(14f, 0f));
-            card.Avatar.rectTransform.pivot = new Vector2(0f, 0.5f);
-            card.Initial = UiKit.Label(card.Avatar.transform, "Initial", "?", 30, TextAnchor.MiddleCenter, Color.white);
-            card.Initial.fontStyle = FontStyle.Bold;
+            UiKit.Stretch(card.Avatar.rectTransform, 4f);
+            UiKit.Gradient(card.Avatar, Color.white, new Color(0.6f, 0.6f, 0.65f));
+            card.Initial = UiKit.Label(card.Avatar.transform, "Initial", "?", 32, TextAnchor.MiddleCenter, Color.white);
             UiKit.Stretch(card.Initial.rectTransform);
-            UiKit.AddShadow(card.Initial, 1.5f);
-            card.Name = UiKit.Label(back.transform, "Name", string.Empty, 24, TextAnchor.MiddleLeft, UiKit.TextColor);
-            UiKit.Place(card.Name.rectTransform, new Vector2(0f, 1f), new Vector2(230f, 30f), new Vector2(80f, -8f));
-            card.Name.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(card.Name, 1.5f);
-            card.Health = new UiBar(back.transform, "Hp", new Vector2(226f, 14f), Palette.Health, 6);
-            UiKit.Place(card.Health.Rect, new Vector2(0f, 1f), new Vector2(226f, 14f), new Vector2(80f, -42f));
-            card.Shield = new UiBar(back.transform, "Shield", new Vector2(226f, 9f), Palette.Shield, 4);
-            UiKit.Place(card.Shield.Rect, new Vector2(0f, 1f), new Vector2(226f, 9f), new Vector2(80f, -60f));
+            UiKit.Heading(card.Initial);
+            card.Name = UiKit.Label(back.transform, "Name", string.Empty, 25, TextAnchor.MiddleLeft, UiKit.TextColor);
+            UiKit.Place(card.Name.rectTransform, new Vector2(0f, 1f), new Vector2(230f, 30f), new Vector2(86f, -9f));
+            UiKit.Strong(card.Name);
+            card.Health = new UiBar(back.transform, "Hp", new Vector2(222f, 16f), Palette.Health, 6);
+            UiKit.Place(card.Health.Rect, new Vector2(0f, 1f), new Vector2(222f, 16f), new Vector2(88f, -42f));
+            card.Shield = new UiBar(back.transform, "Shield", new Vector2(222f, 10f), Palette.Shield, 4);
+            UiKit.Place(card.Shield.Rect, new Vector2(0f, 1f), new Vector2(222f, 10f), new Vector2(88f, -61f));
             card.Dim = UiKit.Card(back.transform, "Dim", new Color(0f, 0f, 0f, 0.62f), 14);
             UiKit.Stretch(card.Dim.rectTransform);
-            card.Down = UiKit.Label(back.transform, "Down", "ABATIDO", 22, TextAnchor.MiddleRight, new Color(1f, 0.45f, 0.4f));
-            card.Down.fontStyle = FontStyle.Bold;
+            card.Down = UiKit.Label(back.transform, "Down", "ABATIDO", 26, TextAnchor.MiddleRight, new Color(1f, 0.45f, 0.4f));
+            card.Down.font = UiKit.DisplayFont;
+            UiKit.Strong(card.Down);
             UiKit.Stretch(card.Down.rectTransform);
             card.Down.rectTransform.offsetMax = new Vector2(-18f, 0f);
-            UiKit.AddShadow(card.Down, 1.5f);
             card.Root.gameObject.SetActive(false);
             return card;
         }
@@ -848,15 +875,16 @@ namespace Bajoterra.Unity
                 w.Holder = holder;
                 w.Background = UiKit.Card(holder, "Background", new Color(0.2f, 0.2f, 0.25f, 0.95f), 12);
                 UiKit.Stretch(w.Background.rectTransform);
-                w.Sheen = UiKit.Panel(w.Background.transform, "Sheen", new Color(1f, 1f, 1f, 0.3f));
-                w.Sheen.sprite = UiSprites.Gradient();
-                UiKit.Stretch(w.Sheen.rectTransform, 3f);
-                w.Border = UiKit.Edge(w.Background.transform, new Color(1f, 1f, 1f, 0.18f), 12, 3);
-                w.Key = UiKit.Label(w.Background.transform, "Key", ((i + 1) % 10).ToString(), 21, TextAnchor.UpperLeft,
-                    new Color(1f, 1f, 1f, 0.8f));
+                w.Sheen = UiKit.Card(w.Background.transform, "Sheen", new Color(1f, 1f, 1f, 0.3f), 10);
+                UiKit.Gradient(w.Sheen, Color.white, new Color(1f, 1f, 1f, 0f));
+                UiKit.Inset(w.Sheen.rectTransform, 4f, 0f, 4f, 4f);
+                w.Sheen.rectTransform.anchorMin = new Vector2(0f, 0.45f);
+                w.Border = UiKit.Edge(w.Background.transform, Palette.WithAlpha(UiKit.Ink, 0.95f), 12, 4);
+                w.Key = UiKit.Label(w.Background.transform, "Key", ((i + 1) % 10).ToString(), 24, TextAnchor.UpperLeft,
+                    new Color(1f, 1f, 1f, 0.9f));
                 UiKit.Stretch(w.Key.rectTransform, 8f);
-                w.Key.fontStyle = FontStyle.Bold;
-                UiKit.AddShadow(w.Key, 1.2f);
+                w.Key.font = UiKit.DisplayFont;
+                UiKit.Strong(w.Key);
                 w.Name = UiKit.Label(w.Background.transform, "Name", string.Empty, 17, TextAnchor.LowerCenter, UiKit.TextColor);
                 UiKit.Stretch(w.Name.rectTransform, 5f);
                 w.Name.horizontalOverflow = HorizontalWrapMode.Wrap;
@@ -864,12 +892,11 @@ namespace Bajoterra.Unity
                 w.Name.resizeTextForBestFit = true;
                 w.Name.resizeTextMinSize = 11;
                 w.Name.resizeTextMaxSize = 18;
-                w.Name.fontStyle = FontStyle.Bold;
-                UiKit.AddShadow(w.Name, 1.2f);
-                w.Lock = UiKit.Card(w.Background.transform, "Lock", new Color(0f, 0f, 0f, 0.72f), 12);
+                UiKit.Strong(w.Name);
+                w.Lock = UiKit.Card(w.Background.transform, "Lock", new Color(0.01f, 0.04f, 0.1f, 0.74f), 12);
                 UiKit.Stretch(w.Lock.rectTransform);
-                w.LockText = UiKit.Label(w.Lock.transform, "LockText", string.Empty, 44, TextAnchor.MiddleCenter, Color.white);
-                w.LockText.fontStyle = FontStyle.Bold;
+                w.LockText = UiKit.Label(w.Lock.transform, "LockText", string.Empty, 48, TextAnchor.MiddleCenter, Color.white);
+                UiKit.Heading(w.LockText);
                 UiKit.Stretch(w.LockText.rectTransform);
                 w.Lock.gameObject.SetActive(false);
                 _slots[i] = w;

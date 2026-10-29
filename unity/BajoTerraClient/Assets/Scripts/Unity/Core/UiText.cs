@@ -1,24 +1,32 @@
 namespace Bajoterra.Unity
 {
-    /// <summary>Every string shown to the player, in one place (Spanish).</summary>
+    /// <summary>
+    /// Every string shown to the player, in one place (Spanish). They talk about the game, never about how it runs:
+    /// what went wrong behind the scenes goes to the log, and the player reads what to do next.
+    /// </summary>
     public static class UiText
     {
-        public const string Title = "BAJOTERRA ARENA";
-        public const string Connect = "Conectar";
-        public const string PlayLocal = "Jugar contra bots (servidor local)";
-        public const string Quit = "Salir";
-        public const string Host = "Servidor";
-        public const string Port = "Puerto";
-        public const string PlayerName = "Nombre";
-        public const string Connecting = "Conectando...";
-        public const string StartingServer = "Iniciando el servidor local...";
-        public const string Room = "Sala";
-        public const string Team = "Equipo";
-        public const string TeamAuto = "Automático";
+        public const string Title = "BAJOTERRA";
+        public const string TitleTab = "ARENA";
+        public const string Tagline = "Elige tu munición... ¡y a la batalla!";
+        public const string PlayerName = "Tu nombre de lanzador";
+        public const string QuickMatch = "¡A LA ARENA!";
+        public const string QuickMatchHint = "3 contra 3: los huecos los ocupan lanzadores de la caverna.";
+        public const string JoinFriendDivider = "o únete a la partida de un amigo";
+        public const string FriendCode = "Código de tu amigo";
+        public const string JoinFriend = "Unirse";
+        public const string OpeningCave = "Abriendo la caverna";
+        public const string EnteringCave = "Entrando en la caverna";
+        public const string CaveUnavailable = "No se pudo abrir la arena en este equipo. Inténtalo de nuevo.";
+        public const string CouldNotEnter = "No se pudo entrar en la partida. Revisa el código e inténtalo otra vez.";
+        public const string InviteCode = "Código para invitar a tus amigos";
+        public const string Room = "Nombre de la sala";
+        public const string Team = "Tu equipo";
+        public const string TeamAuto = "Al azar";
         public const string Character = "Personaje";
         public const string Loadout = "Tus 10 babosas";
-        public const string RandomLoadout = "Aleatorias equilibradas";
-        public const string Ready = "¡Listo!";
+        public const string RandomLoadout = "Elegir al azar";
+        public const string Ready = "¡LISTO!";
         public const string NotReady = "Cancelar";
         public const string Leave = "Salir de la sala";
         public const string BackToRoom = "Volver a la sala";
@@ -27,20 +35,20 @@ namespace Bajoterra.Unity
         public const string Victory = "¡VICTORIA!";
         public const string Defeat = "DERROTA";
         public const string Draw = "EMPATE";
-        public const string RoundWon = "Ronda ganada";
-        public const string RoundLost = "Ronda perdida";
-        public const string RoundDraw = "Ronda empatada";
+        public const string RoundWon = "¡RONDA GANADA!";
+        public const string RoundLost = "RONDA PERDIDA";
+        public const string RoundDraw = "RONDA EMPATADA";
         public const string Round = "Ronda";
         public const string You = "Tú";
         public const string Allies = "Aliados";
         public const string Spectating = "Observando a";
         public const string Eliminated = "Has sido derrotado. Clic para cambiar de observado.";
         public const string Paused = "PAUSA";
-        public const string Disconnected = "Conexión perdida";
+        public const string Disconnected = "¡SE CORTÓ LA PARTIDA!";
+        public const string DisconnectedDetail = "Se perdió el contacto con la caverna. Vuelve al menú y entra de nuevo.";
         public const string BackToMenu = "Volver al menú";
-        public const string JavaMissing = "No se encontró el servidor local. Compílalo con: mvn -DskipTests package";
         public const string LockedTemplate = "vuelve en {0}";
-        public const string Defeated = "ELIMINADO";
+        public const string Defeated = "¡DERROTADO!";
         public const string DefeatedBy = "por";
         public const string Fell = "Caíste";
         public const string SpectatingHint = "Clic: siguiente compañero";
@@ -49,6 +57,24 @@ namespace Bajoterra.Unity
         public const string Blaster = "BLASTER";
         public const string FightNow = "¡A LUCHAR!";
         public const string GetReady = "PREPÁRATE";
+        public const string CaveFighter = "lanzador de la caverna";
+
+        /// <summary>
+        /// What the player reads when the game refused something, by the code the game sent. The game's own message
+        /// is for the log only.
+        /// </summary>
+        public static string Problem(uint code)
+        {
+            switch (code)
+            {
+                case 1: return "Tu versión del juego no es la misma que la de esta partida. Actualízala para jugar.";
+                case 3: return "Esa sala no está disponible ahora mismo. Prueba con otro nombre.";
+                case 4: return "Esa combinación de babosas no vale: revisa tu cinturón.";
+                case 5: return "Ese héroe no está disponible. Elige otro.";
+                case 6: return "Primero entra en una sala.";
+                default: return "Algo salió mal. Inténtalo otra vez.";
+            }
+        }
 
         /// <summary>The short Spanish name of a status effect for its chip.</summary>
         public static string Status(string id)

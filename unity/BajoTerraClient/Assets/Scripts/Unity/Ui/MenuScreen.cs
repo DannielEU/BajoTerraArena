@@ -5,9 +5,10 @@ using UnityEngine.UI;
 namespace Bajoterra.Unity
 {
     /// <summary>
-    /// The main menu: the game's name over a slowly turning view of the cavern, the four doors (Play, Controls,
-    /// Settings, Quit) and, on the right, the page that the chosen door opens: the connection form, the key list or
-    /// the options. A rotating tip at the bottom teaches the rules a few words at a time.
+    /// The main menu: the game's logo on its metal banner over a slowly turning view of the cavern, the four doors
+    /// (Play, Controls, Settings, Quit) and, on the right, the page that the chosen door opens: playing (straight into
+    /// the arena, or joining a friend's game with the code they read out), the key list or the options. A rotating tip
+    /// at the bottom teaches the rules a few words at a time.
     /// </summary>
     public sealed class MenuScreen : UiScreen
     {
@@ -37,17 +38,19 @@ namespace Bajoterra.Unity
         private readonly RectTransform _controlsWindow;
         private readonly RectTransform _settingsWindow;
         private readonly SettingsPanel _options;
-        private readonly InputField _host;
-        private readonly InputField _port;
+        private readonly InputField _code;
         private readonly InputField _name;
         private readonly Text _status;
         private readonly Text _tip;
         private readonly Button _connect;
         private readonly Button _local;
+        private readonly RectTransform _logo;
         private float _tipTimer;
         private int _tipIndex;
         private bool _busy;
         private float _busyPhase;
+        private float _age;
+        private string _statusBase = string.Empty;
 
         public event Action<string, int, string> ConnectClicked;
 
@@ -62,104 +65,98 @@ namespace Bajoterra.Unity
         {
             _settings = settings;
 
-            // A dark side panel with a feathered edge, so the title reads over the 3D backdrop.
-            Image side = UiKit.Panel(Root, "Side", new Color(0.02f, 0.03f, 0.055f, 0.9f));
+            // A deep teal shade on the left with a feathered edge, so the logo and doors read over the cavern.
+            Color shade = new Color(0.01f, 0.05f, 0.08f, 0.86f);
+            Image side = UiKit.Panel(Root, "Side", shade);
             side.rectTransform.anchorMin = new Vector2(0f, 0f);
             side.rectTransform.anchorMax = new Vector2(0f, 1f);
             side.rectTransform.pivot = new Vector2(0f, 0.5f);
-            side.rectTransform.sizeDelta = new Vector2(760f, 0f);
-            Image feather = UiKit.Panel(Root, "Feather", new Color(0.02f, 0.03f, 0.055f, 0.9f));
+            side.rectTransform.sizeDelta = new Vector2(720f, 0f);
+            Image feather = UiKit.Panel(Root, "Feather", shade);
             feather.sprite = UiSprites.FadeRight();
             feather.rectTransform.anchorMin = new Vector2(0f, 0f);
             feather.rectTransform.anchorMax = new Vector2(0f, 1f);
             feather.rectTransform.pivot = new Vector2(0f, 0.5f);
-            feather.rectTransform.sizeDelta = new Vector2(360f, 0f);
-            feather.rectTransform.anchoredPosition = new Vector2(760f, 0f);
+            feather.rectTransform.sizeDelta = new Vector2(420f, 0f);
+            feather.rectTransform.anchoredPosition = new Vector2(720f, 0f);
 
-            // Logo.
-            Text tag = UiKit.Label(Root, "Tag", "ARENA DE BABOSAS   -   3 CONTRA 3", 24, TextAnchor.MiddleLeft, UiKit.GoldColor);
-            UiKit.Place(tag.rectTransform, new Vector2(0f, 1f), new Vector2(660f, 36f), new Vector2(110f, -92f));
-            tag.fontStyle = FontStyle.Bold;
-            Text title = UiKit.Label(Root, "Title", "BAJOTERRA", 132, TextAnchor.MiddleLeft, Color.white);
-            UiKit.Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(700f, 150f), new Vector2(104f, -126f));
-            title.fontStyle = FontStyle.Bold;
-            UiKit.AddOutline(title, 3f);
-            Text title2 = UiKit.Label(title.transform, "Glow", "BAJOTERRA", 132, TextAnchor.MiddleLeft,
-                new Color(0.22f, 0.72f, 1f, 0.35f));
-            UiKit.Stretch(title2.rectTransform);
-            title2.rectTransform.anchoredPosition = new Vector2(0f, -5f);
-            title2.fontStyle = FontStyle.Bold;
-            title2.transform.SetAsFirstSibling();
-            Text sub = UiKit.Label(Root, "Subtitle", "A R E N A", 54, TextAnchor.MiddleLeft, UiKit.AccentColor);
-            UiKit.Place(sub.rectTransform, new Vector2(0f, 1f), new Vector2(600f, 70f), new Vector2(114f, -268f));
-            sub.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(sub, 2f);
+            // Logo and tagline.
+            _logo = UiKit.Logo(Root, UiText.Title, UiText.TitleTab, 680f, 124);
+            UiKit.Place(_logo, new Vector2(0f, 1f), _logo.sizeDelta, new Vector2(70f, -46f));
+            // Pivot in the middle so the drop-in bounce grows from the centre of the banner.
+            _logo.pivot = new Vector2(0.5f, 0.5f);
+            _logo.anchoredPosition = new Vector2(70f + _logo.sizeDelta.x * 0.5f, -46f - _logo.sizeDelta.y * 0.5f);
+            Text tagline = UiKit.Label(Root, "Tagline", UiText.Tagline, 34, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(tagline.rectTransform, new Vector2(0f, 1f), new Vector2(680f, 50f), new Vector2(70f, -300f));
+            UiKit.Fire(tagline);
 
             // The four doors.
             _homeButtons = UiKit.Rect("Doors", Root);
-            UiKit.Place(_homeButtons, new Vector2(0f, 0.5f), new Vector2(520f, 440f), new Vector2(110f, -70f));
+            UiKit.Place(_homeButtons, new Vector2(0f, 0.5f), new Vector2(520f, 420f), new Vector2(150f, 130f));
+            _homeButtons.pivot = new Vector2(0f, 1f);
             string[] captions = { "JUGAR", "CONTROLES", "AJUSTES", "SALIR" };
             ButtonStyle[] styles = { ButtonStyle.Primary, ButtonStyle.Secondary, ButtonStyle.Secondary, ButtonStyle.Danger };
+            float y = 0f;
             for (int i = 0; i < 4; i++)
             {
                 int index = i;
-                _doors[i] = UiKit.MakeButton(_homeButtons, "Door " + captions[i], captions[i], new Vector2(520f, 84f),
-                    () => OnDoor(index), styles[i], 34);
-                UiKit.Place((RectTransform)_doors[i].transform, new Vector2(0f, 1f), new Vector2(520f, 84f),
-                    new Vector2(0f, -i * 112f));
+                bool main = i == 0;
+                var size = new Vector2(main ? 520f : 470f, main ? 104f : 80f);
+                _doors[i] = UiKit.MakeButton(_homeButtons, "Door " + captions[i], captions[i], size,
+                    () => OnDoor(index), styles[i], main ? 50 : 36);
+                UiKit.Place((RectTransform)_doors[i].transform, new Vector2(0f, 1f), size, new Vector2(main ? 0f : 25f, y));
+                y -= size.y + 18f;
             }
 
-            // Tip and footer.
-            _tip = UiKit.Label(Root, "Tip", string.Empty, 23, TextAnchor.MiddleLeft, UiKit.TextDim);
-            UiKit.Place(_tip.rectTransform, new Vector2(0f, 0f), new Vector2(640f, 100f), new Vector2(110f, 70f));
+            // Tip.
+            Image tipPlate = UiKit.Window(Root, "TipPlate", new Color(0.05f, 0.2f, 0.3f, 0.9f), 14);
+            UiKit.Place(tipPlate.rectTransform, new Vector2(0f, 0f), new Vector2(620f, 124f), new Vector2(100f, 46f));
+            Text tipTag = UiKit.Tag(tipPlate.transform, "TipTag", "CONSEJO", new Vector2(170f, 40f));
+            UiKit.Place((RectTransform)tipTag.transform.parent, new Vector2(0f, 1f), new Vector2(170f, 40f), new Vector2(22f, 22f));
+            _tip = UiKit.Label(tipPlate.transform, "Tip", string.Empty, 24, TextAnchor.MiddleLeft, UiKit.TextColor);
+            UiKit.Inset(_tip.rectTransform, 26f, 12f, 26f, 22f);
             _tip.horizontalOverflow = HorizontalWrapMode.Wrap;
-            Text footer = UiKit.Label(Root, "Footer", "Bajoterra Arena  -  servidor autoritativo en Java", 20,
-                TextAnchor.MiddleLeft, new Color(0.45f, 0.52f, 0.65f));
-            UiKit.Place(footer.rectTransform, new Vector2(0f, 0f), new Vector2(640f, 30f), new Vector2(110f, 30f));
 
             // Status line under the pages.
-            _status = UiKit.Label(Root, "Status", string.Empty, 27, TextAnchor.MiddleCenter, UiKit.GoldColor);
-            UiKit.Place(_status.rectTransform, new Vector2(1f, 0f), new Vector2(980f, 70f), new Vector2(-110f, 60f));
+            _status = UiKit.Label(Root, "Status", string.Empty, 30, TextAnchor.MiddleCenter, UiKit.GoldColor);
+            UiKit.Place(_status.rectTransform, new Vector2(1f, 0f), new Vector2(980f, 70f), new Vector2(-110f, 50f));
             _status.horizontalOverflow = HorizontalWrapMode.Wrap;
-            UiKit.AddShadow(_status, 2f);
+            UiKit.Strong(_status);
 
             // Page: play.
-            _playWindow = Window("Play", 760f, 700f, "JUGAR");
-            Text nameLabel = UiKit.Label(_playWindow, "NameLabel", "Tu nombre", 23, TextAnchor.MiddleLeft, UiKit.TextDim);
-            UiKit.Place(nameLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(660f, 30f), new Vector2(0f, -112f));
-            _name = UiKit.MakeField(_playWindow, "NameField", settings.PlayerName, new Vector2(660f, 58f));
-            UiKit.Place((RectTransform)_name.transform, new Vector2(0.5f, 1f), new Vector2(660f, 58f), new Vector2(0f, -148f));
+            _playWindow = Window("Play", 760f, 690f, "JUGAR");
+            Text nameLabel = UiKit.Label(_playWindow, "NameLabel", UiText.PlayerName, 25, TextAnchor.MiddleLeft, UiKit.TextDim);
+            UiKit.Place(nameLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(660f, 30f), new Vector2(0f, -118f));
+            _name = UiKit.MakeField(_playWindow, "NameField", settings.PlayerName, new Vector2(660f, 62f));
+            UiKit.Place((RectTransform)_name.transform, new Vector2(0.5f, 1f), new Vector2(660f, 62f), new Vector2(0f, -154f));
             _name.characterLimit = 16;
-            _local = UiKit.MakeButton(_playWindow, "Local", "JUGAR CONTRA BOTS", new Vector2(660f, 92f), OnLocal,
-                ButtonStyle.Primary, 32);
-            UiKit.Place((RectTransform)_local.transform, new Vector2(0.5f, 1f), new Vector2(660f, 92f), new Vector2(0f, -240f));
-            Text localHint = UiKit.Label(_playWindow, "LocalHint", "Arranca el servidor en tu ordenador y rellena los huecos con bots.",
-                21, TextAnchor.MiddleCenter, UiKit.TextDim);
-            UiKit.Place(localHint.rectTransform, new Vector2(0.5f, 1f), new Vector2(660f, 30f), new Vector2(0f, -340f));
-            Text or = UiKit.Label(_playWindow, "Or", "- o conéctate a un servidor -", 22, TextAnchor.MiddleCenter,
-                new Color(0.5f, 0.58f, 0.72f));
-            UiKit.Place(or.rectTransform, new Vector2(0.5f, 1f), new Vector2(660f, 30f), new Vector2(0f, -400f));
-            _host = UiKit.MakeField(_playWindow, "HostField", settings.Host, new Vector2(440f, 56f));
-            UiKit.Place((RectTransform)_host.transform, new Vector2(0f, 1f), new Vector2(440f, 56f), new Vector2(50f, -450f));
-            _port = UiKit.MakeField(_playWindow, "PortField", settings.Port.ToString(), new Vector2(200f, 56f));
-            UiKit.Place((RectTransform)_port.transform, new Vector2(1f, 1f), new Vector2(200f, 56f), new Vector2(-50f, -450f));
-            _port.contentType = InputField.ContentType.IntegerNumber;
-            _connect = UiKit.MakeButton(_playWindow, "Connect", "Conectar", new Vector2(660f, 68f), OnConnect,
-                ButtonStyle.Secondary, 28);
-            UiKit.Place((RectTransform)_connect.transform, new Vector2(0.5f, 1f), new Vector2(660f, 68f), new Vector2(0f, -530f));
-            BackButton(_playWindow, -616f);
+            _local = UiKit.MakeButton(_playWindow, "Local", UiText.QuickMatch, new Vector2(660f, 108f), OnLocal,
+                ButtonStyle.Primary, 52);
+            UiKit.Place((RectTransform)_local.transform, new Vector2(0.5f, 1f), new Vector2(660f, 108f), new Vector2(0f, -244f));
+            Text localHint = UiKit.Label(_playWindow, "LocalHint", UiText.QuickMatchHint, 23, TextAnchor.MiddleCenter,
+                UiKit.TextDim);
+            UiKit.Place(localHint.rectTransform, new Vector2(0.5f, 1f), new Vector2(660f, 30f), new Vector2(0f, -364f));
+
+            Divider(_playWindow, UiText.JoinFriendDivider, -424f);
+            _code = UiKit.MakeField(_playWindow, "CodeField", FriendCodeOf(settings), new Vector2(430f, 62f),
+                UiText.FriendCode);
+            UiKit.Place((RectTransform)_code.transform, new Vector2(0f, 1f), new Vector2(430f, 62f), new Vector2(50f, -470f));
+            _connect = UiKit.MakeButton(_playWindow, "Connect", UiText.JoinFriend, new Vector2(214f, 68f), OnConnect,
+                ButtonStyle.Secondary, 34);
+            UiKit.Place((RectTransform)_connect.transform, new Vector2(1f, 1f), new Vector2(214f, 68f), new Vector2(-50f, -467f));
+            BackButton(_playWindow, -582f);
 
             // Page: controls.
-            _controlsWindow = Window("Controls", 900f, 860f, "CONTROLES");
+            _controlsWindow = Window("Controls", 900f, 800f, "CONTROLES");
             BuildControls(_controlsWindow);
-            BackButton(_controlsWindow, -776f);
+            BackButton(_controlsWindow, -704f);
 
             // Page: settings.
             _settingsWindow = Window("Settings", 860f, 800f, "AJUSTES");
             _options = new SettingsPanel(_settingsWindow, settings, 760f);
-            UiKit.Place(_options.Root, new Vector2(0.5f, 1f), new Vector2(760f, 76f * 7f), new Vector2(0f, -112f));
+            UiKit.Place(_options.Root, new Vector2(0.5f, 1f), new Vector2(760f, 76f * 7f), new Vector2(0f, -124f));
             _options.Changed += () => SettingsChanged?.Invoke();
-            BackButton(_settingsWindow, -716f);
+            BackButton(_settingsWindow, -704f);
 
             ShowPage(Page.Home);
             NextTip();
@@ -167,7 +164,8 @@ namespace Bajoterra.Unity
 
         public void SetStatus(string message)
         {
-            _status.text = message;
+            _statusBase = message ?? string.Empty;
+            _status.text = _statusBase;
         }
 
         public void SetBusy(bool busy)
@@ -191,6 +189,7 @@ namespace Bajoterra.Unity
         protected override void OnShown()
         {
             _options.Refresh();
+            _age = 0f;
         }
 
         protected override void OnTick(float deltaTime)
@@ -200,36 +199,53 @@ namespace Bajoterra.Unity
             {
                 NextTip();
             }
-            if (_busy)
+            if (_busy && _statusBase.Length > 0)
             {
                 _busyPhase += deltaTime;
                 int dots = 1 + (int)(_busyPhase * 2.5f) % 3;
-                string baseText = _status.text.TrimEnd('.');
-                _status.text = baseText + new string('.', dots);
+                _status.text = _statusBase + new string('.', dots);
             }
+
+            // The logo drops in with a little bounce, then floats.
+            _age += deltaTime;
+            float t = Mathf.Clamp01(_age / 0.55f);
+            float bounce = 1f + Mathf.Sin(t * Mathf.PI) * 0.12f * (1f - t);
+            float scale = Mathf.Lerp(0.7f, 1f, 1f - (1f - t) * (1f - t)) * bounce;
+            _logo.localScale = new Vector3(scale, scale, 1f);
+            _logo.localRotation = Quaternion.Euler(0f, 0f, Mathf.Sin(_age * 0.8f) * 0.6f);
         }
 
         // ------------------------------------------------------------------------------------------ pages
 
         private RectTransform Window(string name, float width, float height, string title)
         {
-            Image window = UiKit.Window(Root, name, UiKit.PanelColor, 22);
-            UiKit.Place(window.rectTransform, new Vector2(1f, 0.5f), new Vector2(width, height), new Vector2(-110f, 20f));
-            Text caption = UiKit.Label(window.transform, "Title", title, 40, TextAnchor.MiddleLeft, UiKit.TextColor);
-            UiKit.Place(caption.rectTransform, new Vector2(0f, 1f), new Vector2(width - 80f, 60f), new Vector2(46f, -26f));
-            caption.fontStyle = FontStyle.Bold;
-            UiKit.AddShadow(caption, 2f);
-            Image rule = UiKit.Panel(window.transform, "Rule", new Color(0.22f, 0.72f, 1f, 0.6f));
-            UiKit.Place(rule.rectTransform, new Vector2(0f, 1f), new Vector2(120f, 4f), new Vector2(50f, -88f));
+            Image window = UiKit.Window(Root, name, UiKit.PanelColor, 24);
+            UiKit.Place(window.rectTransform, new Vector2(1f, 0.5f), new Vector2(width, height), new Vector2(-110f, 30f));
+            Text caption = UiKit.Label(window.transform, "Title", title, 60, TextAnchor.MiddleLeft, Color.white);
+            UiKit.Place(caption.rectTransform, new Vector2(0f, 1f), new Vector2(width - 100f, 76f), new Vector2(50f, -22f));
+            UiKit.Fire(caption);
+            Image rule = UiKit.Card(window.transform, "Rule", UiKit.AccentColor, 3);
+            UiKit.Place(rule.rectTransform, new Vector2(0f, 1f), new Vector2(width - 100f, 5f), new Vector2(50f, -98f));
             window.gameObject.SetActive(false);
             return window.rectTransform;
         }
 
+        private static void Divider(RectTransform window, string caption, float y)
+        {
+            Text text = UiKit.Label(window, "Divider", caption, 23, TextAnchor.MiddleCenter, UiKit.AccentColor);
+            UiKit.Place(text.rectTransform, new Vector2(0.5f, 1f), new Vector2(660f, 30f), new Vector2(0f, y));
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Image line = UiKit.Panel(window, "DividerLine", Palette.WithAlpha(UiKit.AccentColor, 0.45f));
+                UiKit.Place(line.rectTransform, new Vector2(0.5f, 1f), new Vector2(120f, 3f), new Vector2(side * 270f, y - 14f));
+            }
+        }
+
         private void BackButton(RectTransform window, float y)
         {
-            Button back = UiKit.MakeButton(window, "Back", "Volver", new Vector2(300f, 60f), () => ShowPage(Page.Home),
-                ButtonStyle.Ghost, 26);
-            UiKit.Place((RectTransform)back.transform, new Vector2(0.5f, 1f), new Vector2(300f, 60f), new Vector2(0f, y));
+            Button back = UiKit.MakeButton(window, "Back", "Volver", new Vector2(300f, 66f), () => ShowPage(Page.Home),
+                ButtonStyle.Ghost, 32);
+            UiKit.Place((RectTransform)back.transform, new Vector2(0.5f, 1f), new Vector2(300f, 66f), new Vector2(0f, y));
         }
 
         private void ShowPage(Page page)
@@ -237,11 +253,10 @@ namespace Bajoterra.Unity
             _playWindow.gameObject.SetActive(page == Page.Play);
             _controlsWindow.gameObject.SetActive(page == Page.Controls);
             _settingsWindow.gameObject.SetActive(page == Page.Settings);
-            for (int i = 0; i < _doors.Length; i++)
+            for (int i = 1; i < 3; i++)
             {
                 bool current = (int)page - 1 == i;
-                UiKit.Restyle(_doors[i], i == 0 ? ButtonStyle.Primary : i == 3 ? ButtonStyle.Danger
-                    : current ? ButtonStyle.Success : ButtonStyle.Secondary);
+                UiKit.Restyle(_doors[i], current ? ButtonStyle.Success : ButtonStyle.Secondary);
             }
             if (page == Page.Settings)
             {
@@ -272,7 +287,7 @@ namespace Bajoterra.Unity
         {
             _tipTimer = 7f;
             _tipIndex = (_tipIndex + 1) % Tips.Length;
-            _tip.text = "CONSEJO\n" + Tips[_tipIndex];
+            _tip.text = Tips[_tipIndex];
         }
 
         private static void BuildControls(RectTransform window)
@@ -288,35 +303,53 @@ namespace Bajoterra.Unity
                 { "Shift", "Rodar: breve invulnerabilidad" },
                 { "F", "Dash, según el personaje" },
                 { "Tab", "Marcador de la partida" },
-                { "Esc", "Pausa y opciones" },
-                { "F3", "Información de depuración" }
+                { "Esc", "Pausa y opciones" }
             };
             for (int i = 0; i < rows.GetLength(0); i++)
             {
-                float y = -112f - i * 54f;
-                Image chip = UiKit.Card(window, "Key " + i, new Color(0.12f, 0.17f, 0.27f, 1f), 10);
-                UiKit.Place(chip.rectTransform, new Vector2(0f, 1f), new Vector2(290f, 46f), new Vector2(46f, y));
-                UiKit.Edge(chip.transform, new Color(1f, 1f, 1f, 0.16f), 10, 2);
-                Text key = UiKit.Label(chip.transform, "Name", rows[i, 0], 23, TextAnchor.MiddleCenter, Color.white);
-                key.fontStyle = FontStyle.Bold;
+                float y = -124f - i * 56f;
+                Image chip = UiKit.Card(window, "Key " + i, UiKit.Ink, 10);
+                UiKit.Place(chip.rectTransform, new Vector2(0f, 1f), new Vector2(290f, 46f), new Vector2(50f, y));
+                Image face = UiKit.Card(chip.transform, "Face", Color.white, 8);
+                UiKit.Inset(face.rectTransform, 3f, 5f, 3f, 3f);
+                UiKit.Gradient(face, new Color(0.45f, 0.74f, 1f), new Color(0.13f, 0.35f, 0.68f));
+                Text key = UiKit.Label(face.transform, "Name", rows[i, 0], 24, TextAnchor.MiddleCenter, Color.white);
+                UiKit.Strong(key);
                 UiKit.Stretch(key.rectTransform);
-                Text what = UiKit.Label(window, "Action " + i, rows[i, 1], 24, TextAnchor.MiddleLeft, UiKit.TextColor);
-                UiKit.Place(what.rectTransform, new Vector2(0f, 1f), new Vector2(520f, 46f), new Vector2(360f, y));
+                Text what = UiKit.Label(window, "Action " + i, rows[i, 1], 26, TextAnchor.MiddleLeft, UiKit.TextColor);
+                UiKit.Place(what.rectTransform, new Vector2(0f, 1f), new Vector2(520f, 46f), new Vector2(366f, y));
+                UiKit.AddShadow(what, 1.5f);
             }
         }
 
         // ------------------------------------------------------------------------------------------ actions
 
+        /// <summary>The code to show in the friend field: the last friend's address, never this computer's own.</summary>
+        private static string FriendCodeOf(GameSettings settings)
+        {
+            string host = settings.Host ?? string.Empty;
+            if (host.Length == 0 || host == "127.0.0.1" || host == "localhost")
+            {
+                return string.Empty;
+            }
+            return settings.Port == LanAddress.DefaultPort ? host : host + ":" + settings.Port;
+        }
+
         private void OnConnect()
         {
-            int.TryParse(_port.text, out int port);
-            ConnectClicked?.Invoke(_host.text.Trim(), port > 0 ? port : 7777, _name.text.Trim());
+            LanAddress.Parse(_code.text, out string host, out int port);
+            if (host.Length == 0)
+            {
+                SetStatus(UiText.FriendCode + "?");
+                return;
+            }
+            ConnectClicked?.Invoke(host, port, _name.text.Trim());
         }
 
         private void OnLocal()
         {
-            int.TryParse(_port.text, out int port);
-            PlayLocalClicked?.Invoke(port > 0 ? port : 7777, _name.text.Trim());
+            int port = _settings.Port > 0 ? _settings.Port : LanAddress.DefaultPort;
+            PlayLocalClicked?.Invoke(port, _name.text.Trim());
         }
     }
 }

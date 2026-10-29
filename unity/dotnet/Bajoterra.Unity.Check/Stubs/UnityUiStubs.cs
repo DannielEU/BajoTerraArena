@@ -1,6 +1,7 @@
 // Signatures of the parts of the Unity UI package (com.unity.ugui 2.0) that the game code uses, written from the
 // public documentation. They exist only so the compile check can type-check the code; they do nothing.
 #pragma warning disable CS0649, CS0067, CS8981
+using System.Collections.Generic;
 using UnityEngine.Events;
 
 namespace UnityEngine.UI
@@ -11,6 +12,42 @@ namespace UnityEngine.UI
         public virtual bool raycastTarget { get; set; }
         public RectTransform rectTransform { get; }
         public virtual Material material { get; set; }
+
+        public virtual void SetVerticesDirty()
+        {
+        }
+    }
+
+    public class VertexHelper
+    {
+        public int currentVertCount { get; }
+
+        public void PopulateUIVertex(ref UIVertex vertex, int i)
+        {
+        }
+
+        public void SetUIVertex(UIVertex vertex, int i)
+        {
+        }
+
+        public void GetUIVertexStream(List<UIVertex> stream)
+        {
+        }
+
+        public void AddUIVertexTriangleStream(List<UIVertex> verts)
+        {
+        }
+
+        public void Clear()
+        {
+        }
+    }
+
+    public abstract class BaseMeshEffect : EventSystems.UIBehaviour
+    {
+        protected Graphic graphic { get; }
+
+        public abstract void ModifyMesh(VertexHelper vh);
     }
 
     public abstract class MaskableGraphic : Graphic
@@ -29,6 +66,12 @@ namespace UnityEngine.UI
         public float fillAmount { get; set; }
         public bool fillClockwise { get; set; }
         public int fillOrigin { get; set; }
+    }
+
+    public class RawImage : MaskableGraphic
+    {
+        public Texture texture { get; set; }
+        public Rect uvRect { get; set; }
     }
 
     public class Text : MaskableGraphic
@@ -159,6 +202,14 @@ namespace UnityEngine.EventSystems
     public interface IPointerUpHandler
     {
         void OnPointerUp(PointerEventData eventData);
+    }
+
+    public abstract class UIBehaviour : MonoBehaviour
+    {
+        public virtual bool IsActive()
+        {
+            return true;
+        }
     }
 
     public abstract class BaseRaycaster : MonoBehaviour

@@ -36,6 +36,9 @@ final class Room {
     static final int ERROR_UNKNOWN_CHARACTER = 5;
     static final int ERROR_NOT_IN_ROOM = 6;
 
+    /** Nicknames of the cave fighters that fill the empty places, by combatant id (shown to players). */
+    private static final String[] BOT_NAMES = {"Chispa", "Roca", "Brasa", "Niebla", "Trueno", "Sombra"};
+
     private final String id;
     private final Content content;
     private final ServerConfig config;
@@ -195,7 +198,7 @@ final class Room {
                 .setCombatantId(combatantId)
                 .setTeam(c.team)
                 .setCharacterId(c.character.id())
-                .setName(owner != null ? owner.name : "Bot " + combatantId)
+                .setName(owner != null ? owner.name : BOT_NAMES[combatantId % BOT_NAMES.length])
                 .setBot(owner == null)
                 .setReady(true)
                 .setYou(you)

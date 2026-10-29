@@ -33,6 +33,7 @@ namespace Bajoterra.Unity
         private MenuBackdrop _backdrop;
         private LocalServerLauncher _launcher;
         private bool _waitingForLocalServer;
+        private bool _hosting;
         private bool _reportedCameraRepair;
         private int _localPort;
         private string _localName;
@@ -67,7 +68,11 @@ namespace Bajoterra.Unity
             _overlay = new OverlayScreen(_ui, "Overlay", _settings);
             _result = new ResultScreen(_ui);
 
-            _menu.ConnectClicked += (host, port, name) => BeginConnect(host, port, name);
+            _menu.ConnectClicked += (host, port, name) =>
+            {
+                _hosting = false;
+                BeginConnect(host, port, name);
+            };
             _menu.PlayLocalClicked += BeginLocal;
             _menu.QuitClicked += Quit;
             _menu.SettingsChanged += OnSettingsChanged;
@@ -111,6 +116,7 @@ namespace Bajoterra.Unity
         {
             // Destroying the object without quitting (a scene reset, a test) must not leave the child server running.
             Shutdown();
+            _lobby?.Destroy();
             ButtonFx.Hovered = null;
             ButtonFx.Clicked = null;
         }
@@ -252,12 +258,13 @@ namespace Bajoterra.Unity
                 _menu.SetStatus(error);
                 return;
             }
+            _hosting = true;
             _waitingForLocalServer = true;
             _localPort = port;
             _localName = name;
             _localTimeout = 20f;
             _menu.SetBusy(true);
-            _menu.SetStatus(UiText.StartingServer);
+            _menu.SetStatus(UiText.OpeningCave);
         }
 
         private void PollLocalServer(float deltaTime)
@@ -296,7 +303,7 @@ namespace Bajoterra.Unity
             _client.ErrorReceived += OnServerError;
             _client.Disconnected += OnDisconnected;
             _menu.SetBusy(true);
-            _menu.SetStatus(UiText.Connecting);
+            _menu.SetStatus(UiText.EnteringCave);
             _client.Connect(host, port);
         }
 
@@ -315,6 +322,7 @@ namespace Bajoterra.Unity
         {
             _menu.Hide();
             _menu.SetBusy(false);
+            _lobby.SetInviteCode(_hosting ? LanAddress.InviteCode(_settings.Port) : null);
             _lobby.ShowJoin(_settings.RoomId);
         }
 
@@ -379,8 +387,9 @@ namespace Bajoterra.Unity
 
         private void OnServerError(ServerError error)
         {
-            _lobby.ShowError(error.Message);
-            _menu.SetStatus(error.Message);
+            Debug.Log("Bajoterra: the game refused a request (" + error.Code + "): " + error.Message);
+            _lobby.ShowError(UiText.Problem(error.Code));
+            _menu.SetStatus(UiText.Problem(error.Code));
             const uint InvalidLoadout = 4;
             const uint UnknownCharacter = 5;
             if (error.Code == InvalidLoadout || error.Code == UnknownCharacter)
@@ -399,13 +408,15 @@ namespace Bajoterra.Unity
             _lobby.Hide();
             _result.Hide();
             EnsureBackdrop();
+            Debug.Log("Bajoterra: disconnected: " + reason);
             if (_menu.Visible)
             {
                 _menu.SetBusy(false);
-                _menu.SetStatus(reason);
+                _menu.SetStatus(UiText.CouldNotEnter);
                 return;
             }
-            _overlay.Present(UiText.Disconnected, Palette.TeamOther, reason, UiText.BackToMenu, BackToMenu);
+            _overlay.Present(UiText.Disconnected, Palette.TeamOther, UiText.DisconnectedDetail, UiText.BackToMenu,
+                BackToMenu);
         }
 
         // ------------------------------------------------------------------------------------------ navigation
@@ -430,6 +441,7 @@ namespace Bajoterra.Unity
             DisposeClient();
             _launcher.Stop();
             _waitingForLocalServer = false;
+            _hosting = false;
             ShowMenu(string.Empty);
         }
 

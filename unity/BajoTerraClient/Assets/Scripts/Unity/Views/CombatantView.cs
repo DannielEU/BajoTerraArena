@@ -335,7 +335,6 @@ namespace Bajoterra.Unity
             mesh.alignment = TextAlignment.Center;
             mesh.characterSize = 0.065f;
             mesh.fontSize = 64;
-            mesh.fontStyle = FontStyle.Bold;
             mesh.color = color;
             return mesh;
         }

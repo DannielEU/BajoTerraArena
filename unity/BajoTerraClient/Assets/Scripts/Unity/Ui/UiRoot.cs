@@ -77,6 +77,7 @@ namespace Bajoterra.Unity
         public void Hide()
         {
             Root.gameObject.SetActive(false);
+            OnHidden();
         }
 
         internal void Tick(float deltaTime)
@@ -98,6 +99,10 @@ namespace Bajoterra.Unity
         }
 
         protected virtual void OnTick(float deltaTime)
+        {
+        }
+
+        protected virtual void OnHidden()
         {
         }
     }

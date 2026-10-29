@@ -26,42 +26,42 @@ namespace Bajoterra.Unity
 
         public OverlayScreen(UiRoot ui, string name, GameSettings settings) : base(ui, name)
         {
-            Image dim = UiKit.Panel(Root, "Dim", new Color(0.01f, 0.015f, 0.03f, 0.72f));
+            Image dim = UiKit.Panel(Root, "Dim", new Color(0.0f, 0.04f, 0.06f, 0.74f));
             UiKit.Stretch(dim.rectTransform);
             dim.raycastTarget = true;
 
-            _window = UiKit.Window(Root, "Window", new Color(0.045f, 0.06f, 0.1f, 0.94f), 24);
+            _window = UiKit.Window(Root, "Window", UiKit.PanelColor, 24);
             UiKit.Place(_window.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(WindowWidth, 640f), Vector2.zero);
 
             _mainView = UiKit.Rect("Main", _window.transform);
             UiKit.Stretch(_mainView);
-            _title = UiKit.Label(_mainView, "Title", string.Empty, 72, TextAnchor.MiddleCenter, UiKit.TextColor);
-            UiKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(WindowWidth - 60f, 100f), new Vector2(0f, -40f));
-            _title.fontStyle = FontStyle.Bold;
-            UiKit.AddOutline(_title, 2.5f);
-            _subtitle = UiKit.Label(_mainView, "Subtitle", string.Empty, 29, TextAnchor.MiddleCenter, UiKit.TextDim);
+            _title = UiKit.Label(_mainView, "Title", string.Empty, 84, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(WindowWidth - 60f, 110f), new Vector2(0f, -34f));
+            UiKit.Fire(_title);
+            _subtitle = UiKit.Label(_mainView, "Subtitle", string.Empty, 30, TextAnchor.MiddleCenter, UiKit.TextDim);
+            UiKit.AddShadow(_subtitle, 1.5f);
             UiKit.Place(_subtitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(WindowWidth - 80f, 90f), new Vector2(0f, -150f));
             _subtitle.horizontalOverflow = HorizontalWrapMode.Wrap;
             for (int i = 0; i < _buttons.Length; i++)
             {
                 int index = i;
-                _buttons[i] = UiKit.MakeButton(_mainView, "Button " + i, string.Empty, new Vector2(560f, 78f),
-                    () => _actions[index]?.Invoke(), ButtonStyle.Secondary, 31);
-                UiKit.Place((RectTransform)_buttons[i].transform, new Vector2(0.5f, 1f), new Vector2(560f, 78f),
+                _buttons[i] = UiKit.MakeButton(_mainView, "Button " + i, string.Empty, new Vector2(560f, 82f),
+                    () => _actions[index]?.Invoke(), ButtonStyle.Secondary, 36);
+                UiKit.Place((RectTransform)_buttons[i].transform, new Vector2(0.5f, 1f), new Vector2(560f, 82f),
                     new Vector2(0f, -260f - i * 98f));
             }
 
             _optionsView = UiKit.Rect("Options", _window.transform);
             UiKit.Stretch(_optionsView);
-            Text optionsTitle = UiKit.Label(_optionsView, "Title", "AJUSTES", 52, TextAnchor.MiddleCenter, UiKit.TextColor);
-            UiKit.Place(optionsTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(600f, 70f), new Vector2(0f, -34f));
-            optionsTitle.fontStyle = FontStyle.Bold;
+            Text optionsTitle = UiKit.Label(_optionsView, "Title", "AJUSTES", 62, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(optionsTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(600f, 80f), new Vector2(0f, -28f));
+            UiKit.Fire(optionsTitle);
             _options = new SettingsPanel(_optionsView, settings, 660f);
             UiKit.Place(_options.Root, new Vector2(0.5f, 1f), new Vector2(660f, 76f * 7f), new Vector2(0f, -120f));
             _options.Changed += () => SettingsChanged?.Invoke();
-            Button back = UiKit.MakeButton(_optionsView, "Back", "Volver", new Vector2(320f, 64f), ShowMainView,
-                ButtonStyle.Primary, 28);
-            UiKit.Place((RectTransform)back.transform, new Vector2(0.5f, 0f), new Vector2(320f, 64f), new Vector2(0f, 40f));
+            Button back = UiKit.MakeButton(_optionsView, "Back", "Volver", new Vector2(320f, 70f), ShowMainView,
+                ButtonStyle.Primary, 34);
+            UiKit.Place((RectTransform)back.transform, new Vector2(0.5f, 0f), new Vector2(320f, 70f), new Vector2(0f, 40f));
             _optionsView.gameObject.SetActive(false);
         }
 
@@ -81,10 +81,10 @@ namespace Bajoterra.Unity
         /// <summary>Shows the pause menu: resume, options, and leaving the match.</summary>
         public void PresentPause(Action resume, Action leave)
         {
-            SetTexts("PAUSA", Color.white, "La partida sigue en marcha mientras estás en pausa.");
-            SetButton(0, "Reanudar", resume, ButtonStyle.Primary);
+            SetTexts(UiText.Paused, Color.white, "La partida sigue en marcha mientras estás en pausa.");
+            SetButton(0, UiText.Resume, resume, ButtonStyle.Primary);
             SetButton(1, "Ajustes", ShowOptions, ButtonStyle.Secondary);
-            SetButton(2, "Abandonar la partida", leave, ButtonStyle.Danger);
+            SetButton(2, UiText.LeaveMatch, leave, ButtonStyle.Danger);
             Resize(3);
             ShowMainView();
             Show();
@@ -93,7 +93,14 @@ namespace Bajoterra.Unity
         private void SetTexts(string title, Color color, string subtitle)
         {
             _title.text = title;
-            _title.color = color;
+            if (color == Color.white)
+            {
+                UiKit.Gradient(_title, UiKit.FireTop, UiKit.FireBottom);
+            }
+            else
+            {
+                UiKit.Gradient(_title, UiKit.Lighter(color, 0.45f), UiKit.Darker(color, 0.15f));
+            }
             _subtitle.text = subtitle ?? string.Empty;
         }
 

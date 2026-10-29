@@ -44,7 +44,8 @@ namespace Bajoterra.Unity
             string jar = FindJar(configuredJar);
             if (jar == null)
             {
-                error = UiText.JavaMissing;
+                UnityEngine.Debug.LogWarning("Bajoterra: no server jar found; build it with `mvn -DskipTests package`.");
+                error = UiText.CaveUnavailable;
                 return false;
             }
             // BAJOTERRA_SERVER_ARGS adds server options, e.g. "--rules quick" for a match that lasts seconds.
@@ -76,7 +77,8 @@ namespace Bajoterra.Unity
             catch (System.Exception e)
             {
                 _process = null;
-                error = "No se pudo iniciar Java: " + e.Message;
+                UnityEngine.Debug.LogWarning("Bajoterra: could not start Java for the local server: " + e.Message);
+                error = UiText.CaveUnavailable;
                 return false;
             }
             error = string.Empty;
@@ -124,7 +126,7 @@ namespace Bajoterra.Unity
 
         public bool Start(string configuredJar, int port, out string error)
         {
-            error = "Este dispositivo no puede iniciar el servidor local.";
+            error = UiText.CaveUnavailable;
             return false;
         }
 

@@ -4,7 +4,7 @@ namespace Bajoterra.Unity
 {
     /// <summary>
     /// The scene behind the menus: a lit corner of the cavern with the four heroes lined up on a wooden stage, glowing
-    /// crystals, drifting dust and a camera that sways slowly around them. It is built from the same procedural
+    /// crystals and giant glowing mushrooms, drifting spores and a camera that sways slowly around them. It is built from the same procedural
     /// pieces as the arena, needs no server, and is thrown away when a match starts.
     /// </summary>
     public sealed class MenuBackdrop
@@ -23,7 +23,7 @@ namespace Bajoterra.Unity
         private static readonly float[] Radii = { 0.4f, 0.4f, 0.65f, 0.3f };
         private static readonly Color[] Crystals =
         {
-            new Color(0.25f, 0.85f, 1f), new Color(0.65f, 0.35f, 1f), new Color(0.3f, 1f, 0.6f), new Color(1f, 0.55f, 0.8f)
+            new Color(0.2f, 0.95f, 0.85f), new Color(0.3f, 0.7f, 1f), new Color(0.45f, 1f, 0.4f), new Color(0.25f, 1f, 0.7f)
         };
 
         private readonly Transform _root;
@@ -112,7 +112,7 @@ namespace Bajoterra.Unity
             Mesh stage = MeshKit.Box(new Vector3(12.5f, 0.3f, 4.2f), Textures.BrickTile, Textures.PlankTile, 5);
             GameObject deck = Gfx.Make("Stage", stage, _root, stone, planks);
             deck.transform.localPosition = new Vector3(3.2f, 0.15f, 0f);
-            Material glow = MaterialFactory.Emissive(new Color(0.25f, 0.85f, 1f), 1.8f);
+            Material glow = MaterialFactory.Emissive(new Color(0.2f, 0.95f, 0.82f), 1.8f);
             for (int side = -1; side <= 1; side += 2)
             {
                 GameObject strip = Gfx.Primitive(PrimitiveType.Cube, "Stage trim", _root, glow);
@@ -124,7 +124,7 @@ namespace Bajoterra.Unity
 
         private void BuildCave()
         {
-            Material rock = MaterialFactory.Surface(Textures.Rock, new Color(0.9f, 0.9f, 1f), 0.2f, 0f);
+            Material rock = MaterialFactory.Surface(Textures.Rock, Color.white, 0.2f, 0f);
             Mesh back = MeshKit.Box(new Vector3(70f, 18f, 4f), Textures.RockTile, Textures.RockTile, 7);
             GameObject wall = Gfx.Make("Back wall", back, _root, rock, rock);
             wall.transform.localPosition = new Vector3(0f, 9f, 11f);
@@ -160,6 +160,23 @@ namespace Bajoterra.Unity
                 _lights[i] = Gfx.AddPointLight(_root, "Crystal light", at, color, 15f, 1.5f);
                 Gfx.Halo(_root, "Crystal glow", at + Vector3.up * 0.3f, new Color(color.r, color.g, color.b, 0.55f), 5f);
             }
+            // Glowing mushrooms: clumps along the back wall and two giants framing the stage.
+            float[] clumps = { -1f, 6f, 11.5f };
+            for (int i = 0; i < clumps.Length; i++)
+            {
+                Color color = Mushrooms.Colors[i % Mushrooms.Colors.Length];
+                Mushrooms.Clump(_root, _root.position + new Vector3(clumps[i], 0f, 8.2f), Vector3.back,
+                    2f + (float)random.NextDouble() * 1.4f, color, random);
+                Gfx.Halo(_root, "Mushroom glow", _root.position + new Vector3(clumps[i], 2.2f, 7.6f),
+                    new Color(color.r, color.g, color.b, 0.45f), 5f);
+            }
+            Mushrooms.One(_root, _root.position + new Vector3(10.5f, 0f, 4.5f), 5.6f, Mushrooms.Colors[0], Vector3.left,
+                9f, random);
+            Mushrooms.One(_root, _root.position + new Vector3(-3.8f, 0f, 5.5f), 4.4f, Mushrooms.Colors[1], Vector3.right,
+                7f, random);
+            Gfx.Halo(_root, "Giant glow", _root.position + new Vector3(10.2f, 5.2f, 4.5f), new Color(0.2f, 0.95f, 0.85f, 0.5f), 8f);
+            Gfx.Halo(_root, "Giant glow", _root.position + new Vector3(-3.6f, 4.1f, 5.5f), new Color(0.3f, 0.65f, 1f, 0.5f), 7f);
+
             // Stalactites.
             for (int i = 0; i < 18; i++)
             {
@@ -222,7 +239,7 @@ namespace Bajoterra.Unity
             main.startLifetime = 12f;
             main.startSpeed = 0f;
             main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.1f);
-            main.startColor = new Color(0.6f, 0.8f, 1f, 0.4f);
+            main.startColor = new Color(0.55f, 1f, 0.85f, 0.45f);
             main.maxParticles = 160;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.prewarm = true;

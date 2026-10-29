@@ -21,7 +21,7 @@ namespace Bajoterra.Unity
         private const float Margin = 3f;
         private const float SlabSize = 9f;
 
-        private static readonly Color DeckTrim = new Color(0.25f, 0.85f, 1f);
+        private static readonly Color DeckTrim = new Color(0.2f, 0.95f, 0.82f);
 
         private readonly Transform _root;
         private readonly ArenaMap _map;
@@ -148,7 +148,7 @@ namespace Bajoterra.Unity
         {
             float thickness = 4f;
             float top = _map.GroundY + CeilingHeight;
-            Material rock = MaterialFactory.Surface(Textures.Rock, new Color(1f, 0.97f, 1f), 0.2f, 0f);
+            Material rock = MaterialFactory.Surface(Textures.Rock, Color.white, 0.2f, 0f);
             float x0 = _map.MinX - thickness;
             float x1 = _map.MaxX + thickness;
             float z0 = _map.MinZ - thickness;
@@ -225,14 +225,14 @@ namespace Bajoterra.Unity
             }
 
             // Tall walls and pillars: dark rock with a capstone.
-            Material rock = MaterialFactory.Surface(Textures.Rock, Color.Lerp(Color.white, new Color(0.9f, 0.8f, 1f),
+            Material rock = MaterialFactory.Surface(Textures.Rock, Color.Lerp(Color.white, new Color(0.8f, 0.95f, 0.9f),
                 (index % 3) / 2f), 0.2f, 0f);
             Mesh pillar = MeshKit.Box(size, Textures.RockTile, Textures.BrickTile, index);
             GameObject tower = Gfx.Make("Pillar " + box.Id, pillar, _root, rock, stone);
             tower.transform.position = center;
             // A glowing seam near the top makes tall things easy to read from afar.
             Strip(new Vector3(center.x, box.MaxY - 0.25f, center.z), new Vector3(size.x + 0.06f, 0.07f, size.z + 0.06f),
-                MaterialFactory.Emissive(new Color(0.55f, 0.35f, 1f), 1.6f));
+                MaterialFactory.Emissive(new Color(0.2f, 0.95f, 0.8f), 1.6f));
         }
 
         private void BuildRamp(ObstacleBox box, Vector3 size, Vector3 center, int index)
@@ -373,11 +373,14 @@ namespace Bajoterra.Unity
 
         private static readonly Color[] CrystalColors =
         {
-            new Color(0.25f, 0.85f, 1f), new Color(0.65f, 0.35f, 1f), new Color(0.3f, 1f, 0.6f),
-            new Color(1f, 0.55f, 0.8f), new Color(0.35f, 0.55f, 1f)
+            new Color(0.2f, 0.95f, 0.85f), new Color(0.25f, 0.8f, 1f), new Color(0.45f, 1f, 0.4f),
+            new Color(0.3f, 1f, 0.65f), new Color(0.3f, 0.55f, 1f)
         };
 
-        /// <summary>Clusters of glowing crystals at the foot of the walls, each cluster with a light of its own.</summary>
+        /// <summary>
+        /// Clusters of glowing crystals and clumps of glowing mushrooms, by turns, at the foot of the walls, each with a
+        /// light of its own.
+        /// </summary>
         private void BuildCrystals()
         {
             float width = _map.MaxX - _map.MinX;
@@ -390,6 +393,11 @@ namespace Bajoterra.Unity
                 Vector3 position;
                 Vector3 inward;
                 PerimeterPoint(along, width, depth, out position, out inward);
+                if (i % 2 == 1)
+                {
+                    BuildMushrooms(position, inward, i);
+                    continue;
+                }
                 Color color = CrystalColors[_random.Next(CrystalColors.Length)];
                 BuildCluster(position, inward, color, i);
             }
@@ -441,7 +449,22 @@ namespace Bajoterra.Unity
             }
             Vector3 center = anchor + inward * 0.5f + Vector3.up * 0.9f;
             Gfx.Halo(_root, "Crystal glow", center + Vector3.up * 0.3f, WithAlpha(color, 0.5f), 4.2f);
-            Light light = Gfx.AddPointLight(_root, "Crystal light", center + inward * 0.6f, color, 16f, 1.35f);
+            AddGlowLight(center + inward * 0.6f, color, index);
+        }
+
+        private void BuildMushrooms(Vector3 anchor, Vector3 inward, int index)
+        {
+            Color color = Mushrooms.Colors[_random.Next(Mushrooms.Colors.Length)];
+            float height = 1.6f + (float)_random.NextDouble() * 1.6f;
+            Mushrooms.Clump(_root, anchor + inward * 0.1f, inward, height, color, _random);
+            Vector3 center = anchor + inward * 0.6f + Vector3.up * height * 0.8f;
+            Gfx.Halo(_root, "Mushroom glow", center, WithAlpha(color, 0.45f), 4.6f);
+            AddGlowLight(center + inward * 0.5f, color, index);
+        }
+
+        private void AddGlowLight(Vector3 position, Color color, int index)
+        {
+            Light light = Gfx.AddPointLight(_root, "Glow light", position, color, 16f, 1.35f);
             _crystalLights.Add(light);
             _crystalBase.Add(1.35f);
             _crystalPhase.Add(index * 1.7f);
@@ -450,7 +473,7 @@ namespace Bajoterra.Unity
         /// <summary>Boulders along the base of the walls; only their near side pokes into the arena.</summary>
         private void BuildRocks()
         {
-            Material rock = MaterialFactory.Surface(Textures.Rock, new Color(1f, 0.95f, 1f), 0.15f, 0f);
+            Material rock = MaterialFactory.Surface(Textures.Rock, Color.white, 0.15f, 0f);
             float width = _map.MaxX - _map.MinX;
             float depth = _map.MaxZ - _map.MinZ;
             int count = 46;
@@ -471,7 +494,7 @@ namespace Bajoterra.Unity
 
         private void BuildStalactites()
         {
-            Material rock = MaterialFactory.Surface(Textures.Rock, new Color(0.8f, 0.8f, 0.95f), 0.1f, 0f);
+            Material rock = MaterialFactory.Surface(Textures.Rock, new Color(0.8f, 0.9f, 0.92f), 0.1f, 0f);
             float ceiling = _map.GroundY + CeilingHeight;
             int count = 46;
             for (int i = 0; i < count; i++)
@@ -499,7 +522,7 @@ namespace Bajoterra.Unity
             main.startLifetime = 14f;
             main.startSpeed = 0f;
             main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.1f);
-            main.startColor = new Color(0.6f, 0.8f, 1f, 0.35f);
+            main.startColor = new Color(0.55f, 1f, 0.85f, 0.38f);
             main.maxParticles = 220;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.prewarm = true;

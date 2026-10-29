@@ -306,9 +306,9 @@ namespace Bajoterra.Unity
             _debugTimer = 0.25f;
             _debug.Length = 0;
             var p = _match.Prediction;
-            _debug.Append(Mathf.RoundToInt(1f / Mathf.Max(0.0001f, _smoothedFrame))).Append(" fps   ")
-                .Append(_client.PingMs).Append(" ms\n")
-                .Append("predicción ").Append(p.IsPredicting ? "sí" : "no").Append("  error ")
+            _debug.Append(Mathf.RoundToInt(1f / Mathf.Max(0.0001f, _smoothedFrame))).Append(" FPS\n")
+                .Append("ping ").Append(_client.PingMs).Append(" ms  predicción ").Append(p.IsPredicting ? "sí" : "no")
+                .Append("  error ")
                 .Append(p.LastError.ToString("0.000")).Append(" m\n")
                 .Append("pendientes ").Append(p.PendingInputs).Append("  saltos ").Append(p.SnapCount).Append('\n')
                 .Append("snapshots ").Append(_match.Snapshots.Count).Append("  eventos en cola");

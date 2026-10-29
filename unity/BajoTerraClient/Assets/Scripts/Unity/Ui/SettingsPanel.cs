@@ -58,9 +58,9 @@ namespace Bajoterra.Unity
                     _ambienceValue.text = Mathf.RoundToInt(value * 100f) + "%";
                 });
             _invert = SwitchRow(row++, width, "Invertir eje Y", () => _settings.InvertY, v => _settings.InvertY = v);
-            _prediction = SwitchRow(row++, width, "Predicción de movimiento", () => _settings.Prediction,
+            _prediction = SwitchRow(row++, width, "Respuesta instantánea al moverte", () => _settings.Prediction,
                 v => _settings.Prediction = v);
-            _stats = SwitchRow(row, width, "Mostrar FPS y ping", () => _settings.ShowStats,
+            _stats = SwitchRow(row, width, "Mostrar FPS en pantalla", () => _settings.ShowStats,
                 v => _settings.ShowStats = v);
 
             // Prime the value labels now that every field exists.
@@ -86,13 +86,14 @@ namespace Bajoterra.Unity
         {
             float y = -row * RowHeight;
             Text name = UiKit.Label(Root, label + " label", label, 27, TextAnchor.MiddleLeft, UiKit.TextColor);
+            UiKit.AddShadow(name, 1.5f);
             UiKit.Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(width * 0.42f, RowHeight), new Vector2(0f, y));
             Slider slider = UiKit.MakeSlider(Root, label, new Vector2(width * 0.42f, 30f), min, max, value, null);
             UiKit.Place((RectTransform)slider.transform, new Vector2(0f, 1f), new Vector2(width * 0.42f, 30f),
                 new Vector2(width * 0.44f, y - RowHeight * 0.5f + 15f));
             valueLabel = UiKit.Label(Root, label + " value", string.Empty, 26, TextAnchor.MiddleRight, UiKit.AccentColor);
             UiKit.Place(valueLabel.rectTransform, new Vector2(1f, 1f), new Vector2(width * 0.12f, RowHeight), new Vector2(0f, y));
-            valueLabel.fontStyle = FontStyle.Bold;
+            UiKit.Strong(valueLabel);
             slider.onValueChanged.AddListener(apply);
             slider.onValueChanged.AddListener(_ => OnChanged());
             return slider;
@@ -102,6 +103,7 @@ namespace Bajoterra.Unity
         {
             float y = -row * RowHeight;
             Text name = UiKit.Label(Root, label + " label", label, 27, TextAnchor.MiddleLeft, UiKit.TextColor);
+            UiKit.AddShadow(name, 1.5f);
             UiKit.Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(width * 0.6f, RowHeight), new Vector2(0f, y));
             Button button = null;
             button = UiKit.MakeButton(Root, label, string.Empty, new Vector2(150f, 52f), () =>

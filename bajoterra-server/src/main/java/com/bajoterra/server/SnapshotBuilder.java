@@ -86,7 +86,10 @@ public final class SnapshotBuilder {
                     .setRole(slug.role().name())
                     .setProjectileRadius((float) slug.projectile().radius())
                     .setProjectileSpeed((float) slug.projectile().speed())
-                    .setFireDelayMultiplier((float) slug.fireDelayMultiplier()));
+                    .setFireDelayMultiplier((float) slug.fireDelayMultiplier())
+                    .setSticky(slug.projectile().sticky())
+                    .setFuseTicks(slug.projectile().fuseTicks())
+                    .setBlastRadius((float) slug.onExpire().areaRadius()));
         }
         for (var character : content.characters().all()) {
             CharacterInfo.Builder info = CharacterInfo.newBuilder().setId(character.id()).setName(character.name())
@@ -190,7 +193,9 @@ public final class SnapshotBuilder {
             if (p.active) {
                 builder.addProjectiles(ProjectileState.newBuilder().setId(p.id).setSlugIndex(p.slug.index())
                         .setOwner(p.owner.id).setX((float) p.pos.x).setY((float) p.pos.y).setZ((float) p.pos.z)
-                        .setVx((float) p.vel.x).setVy((float) p.vel.y).setVz((float) p.vel.z));
+                        .setVx((float) p.vel.x).setVy((float) p.vel.y).setVz((float) p.vel.z)
+                        .setStuck(p.stuck).setFuseTicks(p.stuck ? Math.max(0, p.ticksLeft) : 0)
+                        .setStuckTo(p.stuck && p.stuckTo != null ? p.stuckTo.id : -1));
             }
         }
         for (Pickup pickup : sim.pickups()) {
@@ -221,7 +226,8 @@ public final class SnapshotBuilder {
                 .setAlive(c.alive)
                 .setPosture(Posture.forNumber(c.posture.ordinal()))
                 .setSelectedSlot(c.loadout.selected())
-                .setHitboxHeight((float) c.hitHeight());
+                .setHitboxHeight((float) c.hitHeight())
+                .setCourage(c.courage);
         MoveDefinition active = c.moves.active();
         builder.setActiveMove(active == null ? -1 : active.index());
         for (int slot = 0; slot < Loadout.SIZE; slot++) {

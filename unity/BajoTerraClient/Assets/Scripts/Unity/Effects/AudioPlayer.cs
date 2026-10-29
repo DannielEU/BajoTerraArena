@@ -15,6 +15,12 @@ namespace Bajoterra.Unity
         public readonly AudioClip Hit = ProceduralAudio.Hit();
         public readonly AudioClip WorldHit = ProceduralAudio.WorldHit();
         public readonly AudioClip Explosion = ProceduralAudio.Explosion();
+        public readonly AudioClip GrenadeBlast = ProceduralAudio.GrenadeBlast();
+        public readonly AudioClip Fuse = ProceduralAudio.FuseLoop();
+        public readonly AudioClip FuseBeep = ProceduralAudio.FuseBeep();
+        public readonly AudioClip Stick = ProceduralAudio.Stick();
+        public readonly AudioClip Critical = ProceduralAudio.Critical();
+        public readonly AudioClip Courage = ProceduralAudio.Courage();
         public readonly AudioClip Heal = ProceduralAudio.Heal();
         public readonly AudioClip Shield = ProceduralAudio.Shield();
         public readonly AudioClip Pickup = ProceduralAudio.Pickup();
@@ -55,15 +61,7 @@ namespace Bajoterra.Unity
                 var go = new GameObject("Voice " + i, typeof(AudioSource));
                 go.transform.SetParent(root.transform, false);
                 AudioSource source = go.GetComponent<AudioSource>();
-                source.playOnAwake = false;
-                // Real-world falloff: full volume up to 4 m from the camera (your own hero is ~3.5 m in front of
-                // it), then half as loud each time the distance doubles: -8 dB at 10 m, -22 dB across the cavern.
-                source.rolloffMode = AudioRolloffMode.Logarithmic;
-                source.minDistance = 4f;
-                source.maxDistance = 75f;
-                // Sounds stay where they started; without this, moving a pooled voice to a new sound reads as a huge
-                // velocity and the Doppler effect warps the start of the sound.
-                source.dopplerLevel = 0f;
+                ConfigureWorldVoice(source);
                 _sources[i] = source;
             }
             var ambience = new GameObject("Ambience", typeof(AudioSource));
@@ -85,6 +83,35 @@ namespace Bajoterra.Unity
             {
                 shot.LoadAudioData();
             }
+        }
+
+        /// <summary>
+        /// A looping sound that lives on <paramref name="parent"/> and moves with it (a grenade's fuse). It starts
+        /// stopped; the owner plays, re-pitches and stops it.
+        /// </summary>
+        public AudioSource CreateLoop(Transform parent, AudioClip clip)
+        {
+            var go = new GameObject("Loop", typeof(AudioSource));
+            go.transform.SetParent(parent, false);
+            AudioSource source = go.GetComponent<AudioSource>();
+            ConfigureWorldVoice(source);
+            source.clip = clip;
+            source.loop = true;
+            source.spatialBlend = 1f;
+            return source;
+        }
+
+        private static void ConfigureWorldVoice(AudioSource source)
+        {
+            source.playOnAwake = false;
+            // Real-world falloff: full volume up to 4 m from the camera (your own hero is ~3.5 m in front of it),
+            // then half as loud each time the distance doubles: -8 dB at 10 m, -22 dB across the cavern.
+            source.rolloffMode = AudioRolloffMode.Logarithmic;
+            source.minDistance = 4f;
+            source.maxDistance = 75f;
+            // Sounds stay where they started; without this, moving a pooled voice to a new sound reads as a huge
+            // velocity and the Doppler effect warps the start of the sound.
+            source.dopplerLevel = 0f;
         }
 
         /// <summary>A sound located in the world.</summary>

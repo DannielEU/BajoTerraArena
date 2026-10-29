@@ -18,6 +18,15 @@ public final class CompositeEffect implements Effect {
         }
     }
 
+    @Override
+    public double areaRadius() {
+        double largest = 0;
+        for (Effect child : children) {
+            largest = Math.max(largest, child.areaRadius());
+        }
+        return largest;
+    }
+
     public int size() {
         return children.length;
     }

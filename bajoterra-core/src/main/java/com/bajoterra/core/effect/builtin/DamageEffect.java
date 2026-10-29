@@ -1,5 +1,6 @@
 package com.bajoterra.core.effect.builtin;
 
+import com.bajoterra.core.combat.CriticalHits;
 import com.bajoterra.core.content.Spec;
 import com.bajoterra.core.effect.Effect;
 import com.bajoterra.core.effect.EffectContext;
@@ -11,7 +12,8 @@ import com.google.auto.service.AutoService;
 
 /**
  * Direct damage ({@code "damage"}): {@code amount}, optional {@code element} (defaults to the slug's) and
- * {@code shieldPierce}.
+ * {@code shieldPierce}. Damage to the combatant a slug struck in the head is multiplied by
+ * {@link CriticalHits#MULTIPLIER}.
  */
 public final class DamageEffect implements Effect {
 
@@ -40,7 +42,9 @@ public final class DamageEffect implements Effect {
         if (used == null) {
             used = ctx.slug() != null ? ctx.slug().element() : Element.NEUTRAL;
         }
-        ctx.arena().damage(ctx.source(), target, amount * ctx.scale(), used, shieldPierce);
+        boolean critical = target == ctx.criticalTarget();
+        double dealt = amount * ctx.scale() * (critical ? CriticalHits.MULTIPLIER : 1.0);
+        ctx.arena().damage(ctx.source(), target, dealt, used, shieldPierce, critical);
     }
 
     /** Factory registered through the service loader. */

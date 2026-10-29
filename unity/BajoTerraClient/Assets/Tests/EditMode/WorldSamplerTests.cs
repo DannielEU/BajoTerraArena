@@ -65,6 +65,31 @@ namespace Bajoterra.Client.Tests
         }
 
         [Test]
+        public void AStuckGrenadeKeepsItsFuseAndWhoItClingsTo()
+        {
+            ProjectileState Grenade(uint fuse) => new ProjectileState
+            {
+                Id = 7, SlugIndex = 1, Owner = 2, X = 3f, Y = 0.3f, Z = 1f, Stuck = true, FuseTicks = fuse, StuckTo = 4
+            };
+            var buffer = Buffer(
+                TestContent.Snapshot(60, new[] { TestContent.Combatant(0, 0f, 0f) }, projectiles: new[] { Grenade(40) }),
+                TestContent.Snapshot(63, new[] { TestContent.Combatant(0, 0f, 0f) }, projectiles: new[] { Grenade(37) }));
+            var frame = new WorldFrame();
+
+            WorldSampler.Sample(buffer, 61.5 / 60.0, frame);
+
+            Assert.IsTrue(frame.Projectiles[0].Stuck);
+            Assert.AreEqual(37, frame.Projectiles[0].FuseTicks);
+            Assert.AreEqual(4, frame.Projectiles[0].StuckTo);
+            Assert.AreEqual(3f, frame.Projectiles[0].Position.X, 1e-5f);
+
+            WorldSampler.Sample(Buffer(TestContent.Snapshot(60, new[] { TestContent.Combatant(0, 0f, 0f) },
+                projectiles: new[] { Slug(5, 0f, 45f) })), 1.0, frame);
+            Assert.IsFalse(frame.Projectiles[0].Stuck);
+            Assert.AreEqual(-1, frame.Projectiles[0].StuckTo, "a slug in flight clings to nobody");
+        }
+
+        [Test]
         public void SlugsPresentInBothSnapshotsAreInterpolated()
         {
             var buffer = Buffer(

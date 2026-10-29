@@ -38,6 +38,112 @@ namespace Bajoterra.Unity
             });
         }
 
+        /// <summary>
+        /// A grenade going off: a sharp crack, a deep boom whose pitch sinks, a rolling rumble and pebbles raining
+        /// down for a second afterwards.
+        /// </summary>
+        public static AudioClip GrenadeBlast()
+        {
+            const float seconds = 2.2f;
+            float low = 0f;
+            float rumble = 0f;
+            return Build("grenade", seconds, t =>
+            {
+                float noise = Noise(t);
+                // Two one-pole low-passes over the same noise: a punchy body and a much darker rumble.
+                low += (noise - low) * 0.09f;
+                rumble += (noise - rumble) * 0.012f;
+                float crack = noise * Mathf.Exp(-t * 70f) * 1.1f;
+                float boomHz = 38f + 70f * Mathf.Exp(-t * 6f);
+                float boom = Mathf.Sin(2f * Mathf.PI * boomHz * t) * Mathf.Exp(-t * 3.2f) * 1.3f;
+                float body = low * Mathf.Exp(-t * 4.5f) * 2.4f;
+                float tail = rumble * Mathf.Exp(-t * 1.6f) * 5f;
+                float debris = Debris(t, 0.18f, 1.9f) * 0.35f;
+                float attack = Mathf.Min(1f, t / 0.0015f);
+                float edge = Mathf.Min(1f, (seconds - t) / 0.2f);
+                return (crack + boom + body + tail + debris) * attack * edge;
+            });
+        }
+
+        /// <summary>
+        /// A lit fuse, as a seamless loop: a bright hiss that flickers with little crackling pops. Played on a loop
+        /// while a grenade is stuck, its pitch rising as the fuse burns down.
+        /// </summary>
+        public static AudioClip FuseLoop()
+        {
+            const float seconds = 1.2f;
+            float previous = 0f;
+            float body = 0f;
+            return Build("fuse", seconds, t =>
+            {
+                float noise = Noise(t);
+                // Difference of neighbouring samples = a crude high-pass: the "tsss" of burning powder.
+                float hiss = noise - previous;
+                previous = noise;
+                body += (noise - body) * 0.25f;
+                float flicker = 0.65f + 0.35f * Mathf.Sin(2f * Mathf.PI * 13f * t) * Mathf.Sin(2f * Mathf.PI * 7f * t + 1.3f);
+                float pops = Debris(t, 0f, seconds) * 0.6f;
+                return (hiss * 0.32f + body * 0.18f) * flicker + pops;
+            });
+        }
+
+        /// <summary>The short warning tick of a grenade about to blow; it repeats faster as the fuse runs out.</summary>
+        public static AudioClip FuseBeep()
+        {
+            return Build("fusebeep", 0.08f, t => (Mathf.Sin(2f * Mathf.PI * 1760f * t) + Mathf.Sin(2f * Mathf.PI * 2640f * t) * 0.4f)
+                                                 * Env(t, 0.08f, 0.002f, 5f) * 0.5f);
+        }
+
+        /// <summary>A wet "splotch" with a thud: a slug grenade sticking to whatever it hit.</summary>
+        public static AudioClip Stick()
+        {
+            float low = 0f;
+            return Build("stick", 0.22f, t =>
+            {
+                low += (Noise(t) - low) * 0.18f;
+                float thud = Sweep(170f, 55f, 0.22f, t) * Env(t, 0.22f, 0.002f, 6f) * 0.9f;
+                float squish = low * Env(t, 0.22f, 0.004f, 4f) * 1.6f * (0.6f + 0.4f * Mathf.Sin(2f * Mathf.PI * 38f * t));
+                return thud + squish;
+            });
+        }
+
+        /// <summary>A bright metallic "ding" for a headshot.</summary>
+        public static AudioClip Critical()
+        {
+            return Build("critical", 0.45f, t =>
+            {
+                float bell = Mathf.Sin(2f * Mathf.PI * 1568f * t) + Mathf.Sin(2f * Mathf.PI * 2349f * t) * 0.6f
+                             + Mathf.Sin(2f * Mathf.PI * 4186f * t) * 0.25f;
+                float knock = Noise(t) * Mathf.Exp(-t * 90f) * 0.6f;
+                return bell * Env(t, 0.45f, 0.001f, 3.5f) * 0.45f + knock;
+            });
+        }
+
+        /// <summary>A rising, defiant chord with a whoosh: your team is outnumbered and you get courage.</summary>
+        public static AudioClip Courage()
+        {
+            float[] notes = { 293.66f, 440f, 587.33f, 880f };
+            const float seconds = 1.1f;
+            float air = 0f;
+            return Build("courage", seconds, t =>
+            {
+                air += (Noise(t) - air) * 0.05f;
+                float swell = Mathf.Clamp01(t / 0.35f);
+                float value = air * swell * Mathf.Exp(-t * 2f) * 1.2f;
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    float local = t - n * 0.06f;
+                    if (local >= 0f)
+                    {
+                        float tone = Mathf.Sin(2f * Mathf.PI * notes[n] * local)
+                                     + Mathf.Sin(2f * Mathf.PI * notes[n] * 2.003f * local) * 0.3f;
+                        value += tone * Env(local, seconds, 0.03f, 2.2f) * 0.3f;
+                    }
+                }
+                return value;
+            });
+        }
+
         public static AudioClip Heal()
         {
             return Arpeggio("heal", new[] { 523.25f, 659.25f, 783.99f, 1046.5f }, 0.07f, 0.12f);
@@ -182,6 +288,41 @@ namespace Bajoterra.Unity
             }
             float rise = Mathf.Min(1f, t / attack);
             return rise * Mathf.Exp(-decay * t / Mathf.Max(0.01f, seconds) * 3f);
+        }
+
+        /// <summary>
+        /// Sparse crackles between <paramref name="from"/> and <paramref name="to"/> seconds: short decaying clicks at
+        /// pseudo-random moments (pebbles, sparks), thinning out towards the end.
+        /// </summary>
+        private static float Debris(float t, float from, float to)
+        {
+            if (t < from || t > to)
+            {
+                return 0f;
+            }
+            const float slot = 0.023f;
+            float index = Mathf.Floor(t / slot);
+            float local = t - index * slot;
+            float chance = Hash(index);
+            float density = 1f - (t - from) / Mathf.Max(0.01f, to - from) * 0.7f;
+            if (chance > 0.45f * density)
+            {
+                return 0f;
+            }
+            float delay = Hash(index + 17.3f) * slot * 0.6f;
+            if (local < delay)
+            {
+                return 0f;
+            }
+            float age = local - delay;
+            return Noise(t) * Mathf.Exp(-age * 600f) * (0.4f + Hash(index + 3.1f));
+        }
+
+        /// <summary>A repeatable pseudo-random number in [0, 1) for a given input.</summary>
+        private static float Hash(float x)
+        {
+            float h = Mathf.Sin(x * 78.233f + 12.9898f) * 43758.5453f;
+            return h - Mathf.Floor(h);
         }
 
         /// <summary>Deterministic white noise from the sample time (no random state to seed).</summary>

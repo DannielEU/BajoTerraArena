@@ -58,6 +58,29 @@ namespace Bajoterra.Unity
         public const string FightNow = "¡A LUCHAR!";
         public const string GetReady = "PREPÁRATE";
         public const string CaveFighter = "lanzador de la caverna";
+        public const string Critical = "¡CRÍTICO!";
+        public const string Grenade = "Granada";
+        public const string CourageBanner = "¡CORAJE!";
+
+        /// <summary>The badge over your bars while your team is outnumbered.</summary>
+        public static string CourageBadge(int level)
+        {
+            return level <= 0 ? string.Empty : level == 1 ? "CORAJE" : "CORAJE x2";
+        }
+
+        /// <summary>What courage gives, under the banner when it starts.</summary>
+        public static string CourageDetail(int level)
+        {
+            return level >= 2
+                ? "¡Último en pie! Mucho más daño y disparo, y aguantas más"
+                : "Tu equipo va en desventaja: más daño, disparo más rápido y escudo extra";
+        }
+
+        /// <summary>The warning while an enemy grenade is stuck to you.</summary>
+        public static string GrenadeOnYou(float seconds)
+        {
+            return "¡GRANADA PEGADA!  " + seconds.ToString("0.0") + " s";
+        }
 
         /// <summary>
         /// What the player reads when the game refused something, by the code the game sent. The game's own message

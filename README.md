@@ -16,6 +16,11 @@ que se conecta por red (carpeta [`unity/`](unity/README.md)).
   (curación, escudo, protección).
 - **Mapas con obstáculos** que bloquean las babosas (muros, pilares, coberturas bajas que no frenan los tiros en arco).
 - Rondas sin reaparición, **mejor de 5**.
+- **Grenuke**, la babosa granada: se pega donde choca y explota a los 1,6 s.
+- **Golpe crítico** (×1,5) al acertar en la cabeza y **Coraje** para el equipo que se queda en desventaja numérica.
+- **Dificultad adaptativa** contra bots: tras cada ronda, los bots del equipo que gana juegan peor y los del que
+  pierde, mejor; la sala recuerda el nivel para la partida siguiente, de modo que las partidas tienden al 50/50 sea
+  cual sea el nivel del jugador (`BotDirector`, `BotFiller`).
 
 ## Documentación
 

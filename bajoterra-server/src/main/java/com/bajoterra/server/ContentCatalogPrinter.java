@@ -146,11 +146,17 @@ public final class ContentCatalogPrinter {
             return "-";
         }
         List<String> parts = new ArrayList<>();
-        parts.add(describeList(json.path("onHit")));
+        if (json.has("onHit")) {
+            parts.add(describeList(json.path("onHit")));
+        }
         if (json.has("onWorldHit")) {
             parts.add("al chocar con un obstáculo: " + describeList(json.path("onWorldHit")));
         }
-        if (json.has("onExpire")) {
+        if (slug.projectile().sticky()) {
+            parts.add(String.format(Locale.ROOT, "se pega donde choca y a los %.1f s explota: %s",
+                    slug.projectile().fuseTicks() / (double) SimulationConstants.TICKS_PER_SECOND,
+                    describeList(json.path("onExpire"))));
+        } else if (json.has("onExpire")) {
             parts.add("al caducar: " + describeList(json.path("onExpire")));
         }
         if (slug.projectile().pierce() > 0) {

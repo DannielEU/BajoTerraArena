@@ -139,12 +139,17 @@ final class ContentParsers {
         ProjectileSpec projectile = ProjectileSpec.standard();
         Spec flight = spec.optObject("projectile");
         if (flight != null) {
+            int fuse = 0;
+            if (flight.optBoolean("sticky", false)) {
+                fuse = Math.max(1, ticks(flight, "fuse", 90));
+            }
             projectile = new ProjectileSpec(
                     flight.optDouble("speed", 45, 1, 200),
                     flight.optDouble("gravity", 4, 0, 60),
                     flight.optDouble("radius", 0.25, 0.05, 2),
                     Math.max(1, ticks(flight, "lifetime", 120)),
-                    flight.optInt("pierce", 0, 0, 5));
+                    flight.optInt("pierce", 0, 0, 5),
+                    fuse);
         }
         return SlugDefinition.builder(id)
                 .name(spec.optString("name", id))

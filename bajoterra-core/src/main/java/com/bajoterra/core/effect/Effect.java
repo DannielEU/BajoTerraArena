@@ -13,4 +13,9 @@ public interface Effect {
     };
 
     void apply(EffectContext ctx);
+
+    /** Radius in metres of the largest area this effect reaches around its point (0 when it has no area). */
+    default double areaRadius() {
+        return 0;
+    }
 }

@@ -74,8 +74,9 @@ public final class FireController {
         SlugDefinition slug = c.loadout.fireSelected();
         projectiles.spawn(c, slug, origin, direction);
         c.shotsFired++;
-        int interval = (int) Math.round(c.character.blaster().fireIntervalTicks() * slug.fireDelayMultiplier());
-        c.nextFireTick = arena.tick() + Math.max(1, interval);
+        int interval = Math.max(1, (int) Math.round(c.character.blaster().fireIntervalTicks()
+                * slug.fireDelayMultiplier() * c.stats.fireIntervalMultiplier));
+        c.nextFireTick = arena.tick() + interval;
         selectionPolicy.afterFire(c.loadout, slot);
 
         GameEvent event = arena.events().begin(EventType.SHOT, arena.tick());
@@ -85,6 +86,7 @@ public final class FireController {
         event.x = origin.x;
         event.y = origin.y;
         event.z = origin.z;
+        event.value = interval;
     }
 
     /** Fills {@link #origin} and {@link #direction} for the combatant's current input. */

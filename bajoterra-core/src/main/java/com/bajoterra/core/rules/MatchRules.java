@@ -32,4 +32,13 @@ public interface MatchRules {
 
     /** The winning team of a finished match, or {@link #DRAW}. */
     int matchWinner(int[] wins);
+
+    /**
+     * Courage level of a survivor whose team has {@code ownAlive} combatants standing against {@code enemyAlive}
+     * (see {@link Courage}). By default one level per combatant the team is down, up to {@link Courage#MAX_LEVEL};
+     * a rule set without comebacks returns 0.
+     */
+    default int courageLevel(int ownAlive, int enemyAlive) {
+        return Math.max(0, Math.min(Courage.MAX_LEVEL, enemyAlive - ownAlive));
+    }
 }

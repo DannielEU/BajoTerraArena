@@ -101,6 +101,9 @@ namespace Bajoterra.Client.Interpolation
                 frame.Projectiles[count].Owner = (int)to.Owner;
                 frame.Projectiles[count].Position = position;
                 frame.Projectiles[count].Velocity = velocity;
+                frame.Projectiles[count].Stuck = to.Stuck;
+                frame.Projectiles[count].FuseTicks = (int)to.FuseTicks;
+                frame.Projectiles[count].StuckTo = to.Stuck ? to.StuckTo : -1;
                 count++;
             }
             frame.ProjectileCount = count;

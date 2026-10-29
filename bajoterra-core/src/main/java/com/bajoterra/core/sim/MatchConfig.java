@@ -16,6 +16,8 @@ import java.util.List;
  * @param friendlyFire damage multiplier between teammates (0 disables friendly fire)
  * @param maxDuplicateSlugs most copies of one slug allowed in a loadout
  * @param fillWithBots complete both teams to {@link #TEAM_SIZE} members with bots (disable for scripted tests)
+ * @param allySkill skill of the filler bots on the side of people playing against bots
+ * @param rivalSkill skill of the filler bots playing against people (a room carries both over between matches)
  */
 public record MatchConfig(
         long seed,
@@ -24,7 +26,9 @@ public record MatchConfig(
         MatchRules rules,
         double friendlyFire,
         int maxDuplicateSlugs,
-        boolean fillWithBots) {
+        boolean fillWithBots,
+        double allySkill,
+        double rivalSkill) {
 
     /** Number of combatants per team in a full match. */
     public static final int TEAM_SIZE = 3;
@@ -50,6 +54,8 @@ public record MatchConfig(
         private double friendlyFire;
         private int maxDuplicateSlugs = LoadoutValidator.DEFAULT_MAX_DUPLICATES;
         private boolean fillWithBots = true;
+        private double allySkill = BotFiller.ALLY_SKILL;
+        private double rivalSkill = BotFiller.RIVAL_SKILL;
 
         private Builder(String mapId) {
             this.mapId = mapId;
@@ -85,8 +91,16 @@ public record MatchConfig(
             return this;
         }
 
+        /** Skills of the filler bots beside and against people (where the previous match left them). */
+        public Builder fillerSkills(double ally, double rival) {
+            this.allySkill = ally;
+            this.rivalSkill = rival;
+            return this;
+        }
+
         public MatchConfig build() {
-            return new MatchConfig(seed, mapId, slots, rules, friendlyFire, maxDuplicateSlugs, fillWithBots);
+            return new MatchConfig(seed, mapId, slots, rules, friendlyFire, maxDuplicateSlugs, fillWithBots,
+                    allySkill, rivalSkill);
         }
     }
 }

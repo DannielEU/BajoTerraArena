@@ -28,7 +28,11 @@ namespace Bajoterra.Unity
             "El escudo se agota antes que la vida: cuando está a cero, cada impacto cuenta el doble.",
             "Las coberturas bajas detienen los disparos rectos, pero una babosa lanzada en arco las sobrevuela.",
             "Rueda (Shift) para esquivar: durante un instante eres invulnerable.",
-            "Las cápsulas de vida, escudo y sobreescudo reaparecen: controla el mapa y úsalas por turnos."
+            "Las cápsulas de vida, escudo y sobreescudo reaparecen: controla el mapa y úsalas por turnos.",
+            "Apunta a la cabeza: un impacto directo en la cabeza es CRÍTICO y hace la mitad más de daño.",
+            "Si tu equipo se queda en desventaja ganas CORAJE: más daño, disparo más rápido y escudo extra.",
+            "Grenuke se pega donde choca y explota al poco: el círculo rojo marca hasta dónde llega. ¡Sal de él!",
+            "Los lanzadores de la caverna se adaptan a ti: si pierdes una ronda aflojan, y si ganas, aprietan."
         };
 
         private readonly GameSettings _settings;

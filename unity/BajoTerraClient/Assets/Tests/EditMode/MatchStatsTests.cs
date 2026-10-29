@@ -142,5 +142,18 @@ namespace Bajoterra.Client.Tests
             Assert.IsTrue(model.BlasterReady);
             Assert.AreEqual(1f, model.BlasterProgress);
         }
+
+        [Test]
+        public void TheBlasterWaitTheServerReportsWinsOverTheLocalEstimate()
+        {
+            var match = new MatchSession(TestContent.Catalog(), TestContent.MatchStart(0), 60);
+            match.Update(10.0);
+            var batch = new EventBatch { Tick = 100 };
+            // Courage makes the blaster recharge faster: the shot says 31 ticks instead of 42.
+            batch.Events.Add(TestContent.Event(EventKind.Shot, 100, actor: 0, a: 0, value: 31f));
+            match.OnEvents(batch);
+
+            Assert.AreEqual(31f / 60f, match.OwnShotCooldown, 1e-4f);
+        }
     }
 }

@@ -17,6 +17,12 @@ public final class StatBlock {
     public double healReceivedMultiplier = 1.0;
     /** Extra random aim error in radians (blinded combatants). */
     public double aimSpread;
+    /** Multiplies the damage this combatant deals (courage). */
+    public double damageDealtMultiplier = 1.0;
+    /** Multiplies the blaster's interval between shots (below 1 fires faster). */
+    public double fireIntervalMultiplier = 1.0;
+    /** Multiplies all the damage this combatant takes (courage); elemental resistances stack on top. */
+    public double damageTakenMultiplier = 1.0;
     /** Ignores all damage while true (roll invulnerability frames). */
     public boolean invulnerable;
     /** Cannot move, fire or start moves while true. */
@@ -33,6 +39,9 @@ public final class StatBlock {
         speedMultiplier = 1.0;
         hitboxHeightMultiplier = 1.0;
         healReceivedMultiplier = 1.0;
+        damageDealtMultiplier = 1.0;
+        fireIntervalMultiplier = 1.0;
+        damageTakenMultiplier = 1.0;
         aimSpread = 0;
         invulnerable = false;
         stunned = false;

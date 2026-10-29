@@ -70,6 +70,17 @@ public final class CombatArena {
      * @return the damage effectively absorbed by the target's overshield, shield and health
      */
     public double damage(Combatant source, Combatant target, double amount, Element element, double shieldPierce) {
+        return damage(source, target, amount, element, shieldPierce, false);
+    }
+
+    /**
+     * Deals damage through the pipeline; {@code critical} only marks the {@code DAMAGE} event (b = 1) so clients can
+     * show a headshot, the caller has already scaled the amount.
+     *
+     * @return the damage effectively absorbed by the target's overshield, shield and health
+     */
+    public double damage(Combatant source, Combatant target, double amount, Element element, double shieldPierce,
+            boolean critical) {
         if (!target.alive || !(amount > 0)) {
             return 0;
         }
@@ -85,6 +96,7 @@ public final class CombatArena {
             record.actor = source == null ? -1 : source.id;
             record.subject = target.id;
             record.a = element.ordinal();
+            record.b = critical ? 1 : 0;
             record.value = dealt;
         }
         if (target.vitals.isDefeated()) {

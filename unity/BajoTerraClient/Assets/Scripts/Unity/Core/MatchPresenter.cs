@@ -55,7 +55,7 @@ namespace Bajoterra.Unity
 
             _arena = new ArenaView(_root, _match.Map, _match.Content, _match.YourTeam);
             _combatants = new CombatantViews(_root, _match);
-            _projectiles = new ProjectileViews(_root, _match.Content);
+            _projectiles = new ProjectileViews(_root, _match.Content, _match.Map, audio);
             _vfx = new VfxPlayer(_root, _match.Content, _match.Map, audio, _combatants, _match.YourId, _match.YourTeam,
                 _match.TeamOf);
             _moveMask = new MoveMask(_match.Content, _match.Content.FindCharacter(_match.You.CharacterId));
@@ -65,6 +65,8 @@ namespace Bajoterra.Unity
             _match.EventPlayed += OnEvent;
             _vfx.YouWereHit += _hud.Flash;
             _vfx.YouHitAnEnemy += _hud.HitMarker;
+            _vfx.YouLandedACritical += _hud.Critical;
+            _vfx.YourCourageChanged += OnCourage;
             _vfx.Shake += _camera.Shake;
             _camera.SetAim(_match.Map.Spawns.Length > 0 ? SpawnYaw() : 0f, 0.15f);
             _hud.SetStatsVisible(settings.ShowStats);
@@ -133,6 +135,8 @@ namespace Bajoterra.Unity
             _match.EventPlayed -= OnEvent;
             _vfx.YouWereHit -= _hud.Flash;
             _vfx.YouHitAnEnemy -= _hud.HitMarker;
+            _vfx.YouLandedACritical -= _hud.Critical;
+            _vfx.YourCourageChanged -= OnCourage;
             _vfx.Shake -= _camera.Shake;
             _hud.SetScoreboard(false);
             _hud.SetDefeat(false, null, Color.white, null);
@@ -340,6 +344,15 @@ namespace Bajoterra.Unity
                         _audio.PlayUi(_audio.Loss, 0.5f);
                     }
                     break;
+            }
+        }
+
+        /// <summary>Announces courage when it starts or grows; it ending is shown only by the badge going away.</summary>
+        private void OnCourage(int level, int previous)
+        {
+            if (level > previous)
+            {
+                _hud.Banner(UiText.CourageBanner, Palette.Courage, 2.4f, UiText.CourageDetail(level));
             }
         }
 

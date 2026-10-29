@@ -213,6 +213,13 @@ namespace Bajoterra.Client.Session
 
         private void NoteOwnShot(GameEvent shot)
         {
+            if (shot.Value >= 1f)
+            {
+                // The server says how long the blaster waits (it already includes courage and the slug's delay).
+                OwnShotAt = _lastLocalNow;
+                OwnShotCooldown = Math.Max(1, (int)Math.Round(shot.Value)) / (float)TicksPerSecond;
+                return;
+            }
             float multiplier = 1f;
             if (shot.A >= 0 && shot.A < Content.SlugCount)
             {

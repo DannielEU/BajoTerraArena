@@ -48,6 +48,9 @@ final class Room {
     private GameSimulation sim;
     private long nextEventSequence;
     private int matchesPlayed;
+    /** Where the difficulty director left the bots beside and against the people of this room. */
+    private double allySkill = BotFiller.ALLY_SKILL;
+    private double rivalSkill = BotFiller.RIVAL_SKILL;
 
     Room(String id, Content content, ServerConfig config, Transport transport) {
         this.id = id;
@@ -149,7 +152,8 @@ final class Room {
         MatchConfig.Builder builder = MatchConfig.builder(content.maps().find(config.mapId()) != null
                         ? config.mapId() : content.maps().get(0).id())
                 .seed(seed + matchesPlayed++)
-                .rules(config.rules());
+                .rules(config.rules())
+                .fillerSkills(allySkill, rivalSkill);
         List<SlotConfig> humanSlots = new ArrayList<>();
         for (Session session : ordered) {
             SlotConfig slot = SlotConfig.human(session.team, session.characterId, session.slugIds);
@@ -255,6 +259,7 @@ final class Room {
     }
 
     private void finishMatch() {
+        rememberDifficulty();
         MatchEnd end = MatchEnd.newBuilder()
                 .setWinner(sim.match().winner())
                 .setWinsTeam0(sim.match().wins(0))
@@ -267,6 +272,27 @@ final class Room {
         }
         sim = null;
         broadcastState();
+    }
+
+    /** When everybody played on one side, the next match starts with the bots as strong as this one ended. */
+    private void rememberDifficulty() {
+        int team = members.isEmpty() ? -1 : members.get(0).team;
+        for (Session session : members) {
+            if (session.team != team) {
+                return;
+            }
+        }
+        if (team < 0) {
+            return;
+        }
+        double allies = sim.fillerBotSkill(team);
+        double rivals = sim.fillerBotSkill(1 - team);
+        if (!Double.isNaN(allies)) {
+            allySkill = allies;
+        }
+        if (!Double.isNaN(rivals)) {
+            rivalSkill = rivals;
+        }
     }
 
     // ------------------------------------------------------------------------------------------ messages

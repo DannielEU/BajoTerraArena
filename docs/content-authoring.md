@@ -51,6 +51,7 @@ snapshots se asigna ordenando los ids alfabéticamente.
 | `projectile.speed` | 1–200 m/s | 45 m/s ≈ 100 mph, la velocidad de transformación de la serie |
 | `projectile.gravity` | 0–60 m/s² | 0 = tiro recto, alto = parábola (pasa por encima de coberturas bajas) |
 | `projectile.pierce` | 0–5 | combatientes adicionales que atraviesa tras el primero |
+| `projectile.sticky` / `projectile.fuseSeconds` | `true/false` / segundos (o `fuseTicks`) | **granada**: se pega a lo primero que toca (obstáculo, suelo o un combatiente válido, al que sigue) y a los `fuseSeconds` (1,5 por defecto) ejecuta `onExpire` (la explosión) |
 | `fireDelayMultiplier` | 0.1–5 | multiplica el intervalo entre disparos del blaster tras usarla |
 | `reloadShots` | 0–9 | sobrescribe cuántos tiros debe esperar para volver a usarse (por defecto, el del blaster: 3) |
 | `pierceWorld` | `true/false` | atraviesa obstáculos (por defecto no: toda babosa se detiene en los obstáculos) |
@@ -59,6 +60,18 @@ snapshots se asigna ordenando los ids alfabéticamente.
 | `onExpire` | lista de efectos | donde caduca en vuelo |
 | `onTick` | lista de efectos | cada tick de vuelo (sin objetivo) |
 | `botWeight` | 0.01–10 | cuánto prefieren los bots esta babosa |
+
+**Granada (ejemplo real, `grenuke.json`):** `"projectile": { "speed": 28, "gravity": 14, ..., "sticky": true,
+"fuseSeconds": 1.6 }` y la explosión en `onExpire` con un `area` (su radio es el círculo rojo que dibuja el cliente).
+
+**Golpe crítico:** si el impacto directo de una babosa alcanza el 20 % superior de la caja de un enemigo (la cabeza),
+el daño de sus efectos `damage` sobre esa víctima se multiplica por 1,5 (`CriticalHits`). Solo el impacto directo:
+ni quemaduras, ni cadenas, ni el resto de un área.
+
+**Coraje:** los supervivientes de un equipo con menos combatientes en pie que el otro ganan un nivel de Coraje por
+cada compañero de menos (máx. 2): +35 % de daño, +35 % de cadencia y −20 % de daño recibido por nivel, y cada nivel
+ganado restaura al instante el 50 % del escudo máximo (`Courage`; un `MatchRules` puede desactivarlo con
+`courageLevel`).
 
 **Reglas de 10 babosas:** cada jugador lleva exactamente 10 (se permiten repetidas, máximo 2 copias por defecto). Una
 babosa disparada queda bloqueada durante los **3 tiros siguientes** y vuelve a estar disponible en el cuarto.

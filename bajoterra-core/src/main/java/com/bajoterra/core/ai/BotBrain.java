@@ -22,7 +22,9 @@ import java.util.List;
  *
  * <p>Decisions run at 10 Hz ({@link SimulationConstants#BOT_THINK_INTERVAL_TICKS}) through a behavior tree
  * (heal a wounded ally, else attack a visible enemy, else hunt the last known position, else patrol); aiming,
- * movement and the trigger are updated every tick from those decisions. Nothing here allocates after construction.
+ * movement and the trigger are updated every tick from those decisions. A bot that notices an enemy grenade stuck
+ * next to it runs out of the blast for a moment, whatever the tree chose. Nothing here allocates after
+ * construction.
  */
 public final class BotBrain implements InputSource {
 
@@ -32,8 +34,11 @@ public final class BotBrain implements InputSource {
     private static final double PREFERRED_MIN_RANGE = 7.0;
     private static final double LOW_COVER_HEIGHT = 1.3;
     private static final double MAX_COVER_SEARCH = 26.0;
+    /** Cosine of the half-angle of the cone in which a bot notices incoming slugs (about 75 degrees). */
+    private static final double DODGE_VIEW_COS = 0.26;
 
-    private final BotProfile profile;
+    private BotProfile profile;
+    private double skill;
     private final BotContext context;
     private final BtNode tree;
     private final SlugUtilityScorer scorer = new SlugUtilityScorer();
@@ -43,9 +48,21 @@ public final class BotBrain implements InputSource {
     private double desiredPitch;
 
     public BotBrain(double skill) {
-        this.profile = BotProfile.fromSkill(skill);
-        this.context = new BotContext(profile);
+        this.skill = BotProfile.clampSkill(skill);
+        this.profile = BotProfile.fromSkill(this.skill);
+        this.context = new BotContext();
         this.tree = buildTree();
+    }
+
+    /** How well this bot plays, in [0, 1]. */
+    public double skill() {
+        return skill;
+    }
+
+    /** Changes how well the bot plays from now on (the difficulty director calls it between rounds). */
+    public void setSkill(double newSkill) {
+        skill = BotProfile.clampSkill(newSkill);
+        profile = BotProfile.fromSkill(skill);
     }
 
     @Override
@@ -123,6 +140,51 @@ public final class BotBrain implements InputSource {
         if (tree.tick(context) == Status.FAILURE) {
             context.intent = BotContext.Intent.NONE;
         }
+        avoidGrenades(tick);
+    }
+
+    /**
+     * Notices enemy grenades stuck within their blast radius (each one is judged once, so slow bots sometimes miss
+     * one) and overrides the waypoint to run out of the blast until the danger is gone.
+     */
+    private void avoidGrenades(int tick) {
+        Combatant self = context.self();
+        ProjectilePool pool = context.sim().projectiles();
+        for (int i = 0; i < pool.capacity(); i++) {
+            Projectile p = pool.at(i);
+            if (!p.active || !p.stuck || p.stuckTo == self || p.owner.team == self.team) {
+                continue;
+            }
+            double reach = p.slug.onExpire().areaRadius() + self.hitRadius() + 1.0;
+            double awayX = self.pos.x - p.pos.x;
+            double awayZ = self.pos.z - p.pos.z;
+            double distance = Trig.hypot(awayX, awayZ);
+            if (distance > reach) {
+                continue;
+            }
+            // Projectile ids only grow, so remembering the newest one judged means each grenade is judged once.
+            if (p.id > context.grenadeJudgedId) {
+                context.grenadeJudgedId = p.id;
+                if (context.sim().arena().random().nextDouble() < profile.dodgeChance()) {
+                    context.fleeUntilTick = tick + p.ticksLeft + 6;
+                }
+            }
+            if (tick >= context.fleeUntilTick) {
+                continue;
+            }
+            if (distance < 1e-3) {
+                awayX = -Trig.sin(self.yaw);
+                awayZ = -Trig.cos(self.yaw);
+                distance = 1.0;
+            }
+            context.waypointX = self.pos.x + awayX / distance * (reach + 1.0 - distance);
+            context.waypointZ = self.pos.z + awayZ / distance * (reach + 1.0 - distance);
+            context.hasWaypoint = true;
+            context.moveSpeedFactor = 1.0;
+            context.inCover = false;
+            context.wantCrouch = false;
+            return;
+        }
     }
 
     /** Fills visibility, the chosen target and the ally that needs help. */
@@ -138,6 +200,9 @@ public final class BotBrain implements InputSource {
         for (Combatant other : context.sim().combatants()) {
             boolean seen = other != self && other.alive && world.hasLineOfSight(context.eye.x, context.eye.y,
                     context.eye.z, other.pos.x, other.pos.y + other.hitHeight() * CHEST_FRACTION, other.pos.z);
+            if (seen && !context.visible[other.id]) {
+                context.spottedTick[other.id] = tick;
+            }
             context.visible[other.id] = seen;
             if (seen && other.team == self.team) {
                 double fraction = other.vitals.totalFraction();
@@ -156,7 +221,10 @@ public final class BotBrain implements InputSource {
         }
     }
 
-    /** Looks for an enemy slug that will pass close to the bot and schedules a roll away from it. */
+    /**
+     * Looks for an enemy slug that will pass close to the bot and schedules a roll away from it. Like a player, a bot
+     * only reacts to slugs it can see coming: in front of it, within {@link #DODGE_VIEW_COS} of where it faces.
+     */
     private void detectThreat(int tick) {
         Combatant self = context.self();
         if (context.dodgeTicksLeft > 0 || context.rollSlot < 0 || tick < self.moves.cooldownUntil(context.rollSlot)) {
@@ -166,7 +234,7 @@ public final class BotBrain implements InputSource {
         double centerY = self.centerY();
         for (int i = 0; i < pool.capacity(); i++) {
             Projectile p = pool.at(i);
-            if (!p.active || p.owner.team == self.team) {
+            if (!p.active || p.stuck || p.owner.team == self.team) {
                 continue;
             }
             TargetingRule rule = p.slug.targeting();
@@ -176,6 +244,10 @@ public final class BotBrain implements InputSource {
             double rx = p.pos.x - self.pos.x;
             double ry = p.pos.y - centerY;
             double rz = p.pos.z - self.pos.z;
+            double flat = Trig.hypot(rx, rz);
+            if (flat > 1e-6 && (rx * Trig.sin(self.yaw) + rz * Trig.cos(self.yaw)) / flat < DODGE_VIEW_COS) {
+                continue;
+            }
             double speedSq = p.vel.lengthSq();
             double closestTime = -(rx * p.vel.x + ry * p.vel.y + rz * p.vel.z) / speedSq;
             if (closestTime <= 0 || closestTime > 0.7) {
@@ -419,7 +491,10 @@ public final class BotBrain implements InputSource {
         input.aimYaw = self.yaw;
         input.aimPitch = self.pitch;
         input.hasCamera = false;
-        input.fire = aimed && context.wantFire && remainingYaw < tolerance && remainingPitch < tolerance;
+        // A player needs a moment to react to an enemy that just came into view; so does a bot.
+        boolean reacted = focus == null || context.intent != BotContext.Intent.ATTACK
+                || tick - context.spottedTick[focus.id] >= profile.reactionTicks();
+        input.fire = aimed && reacted && context.wantFire && remainingYaw < tolerance && remainingPitch < tolerance;
         if (aimed && self.loadout.selected() != context.slot && self.loadout.isAvailable(context.slot)) {
             input.selectSlot = context.slot;
         }

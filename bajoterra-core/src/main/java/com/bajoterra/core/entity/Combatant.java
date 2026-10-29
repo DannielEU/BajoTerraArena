@@ -39,6 +39,8 @@ public final class Combatant {
 
     /** First tick at which the next shot is allowed. */
     public int nextFireTick;
+    /** Courage level: how many combatants this one's team is down (0 when it is not outnumbered). */
+    public int courage;
     /** Source that produces this combatant's input each tick; null for network-controlled players. */
     public InputSource brain;
 
@@ -90,5 +92,6 @@ public final class Combatant {
         moves.reset();
         input.reset();
         nextFireTick = 0;
+        courage = 0;
     }
 }

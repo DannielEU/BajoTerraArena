@@ -10,8 +10,8 @@ namespace Bajoterra.Unity
     /// <summary>
     /// One player or bot on screen: the <see cref="ICharacterModel"/> animated from the server's state (the velocity it
     /// is really moving with, crouch from the hitbox, the roll, the defeat fall), a team ring on the floor, a shield
-    /// bubble that follows the shield value and flashes when it is hit, and a name tag with health and shield bars and
-    /// a dot per status. The data that drives it (<see cref="CombatantFrame"/>) does not depend on which model it is.
+    /// bubble that follows the shield value and flashes when it is hit, a golden aura on the floor while the combatant
+    /// has courage (their team is outnumbered), and a name tag with health and shield bars and a dot per status. The data that drives it (<see cref="CombatantFrame"/>) does not depend on which model it is.
     /// </summary>
     public sealed class CombatantView
     {
@@ -26,6 +26,9 @@ namespace Bajoterra.Unity
         private readonly Transform _shieldBubble;
         private readonly Material _shieldMaterial;
         private readonly Transform _ring;
+        private readonly Transform _courage;
+        private readonly Renderer _courageRenderer;
+        private readonly MaterialPropertyBlock _courageBlock = new MaterialPropertyBlock();
         private readonly Transform _tag;
         private readonly TextMesh _nameText;
         private readonly TextMesh _nameShadow;
@@ -91,6 +94,15 @@ namespace Bajoterra.Unity
             _ring.localPosition = Vector3.up * 0.05f;
             _ring.localScale = Vector3.one * (_radius * 4.4f);
             Gfx.NoShadows(ring);
+
+            // Courage aura: a second, golden ring that spins and breathes around the team ring.
+            GameObject aura = Gfx.Make("Courage aura", Billboard.QuadMesh(), _root,
+                MaterialFactory.GlowInstance(Textures.Ring, 2f));
+            _courage = aura.transform;
+            _courageRenderer = aura.GetComponent<Renderer>();
+            _courage.localPosition = Vector3.up * 0.07f;
+            Gfx.NoShadows(aura);
+            aura.SetActive(false);
 
             _tag = new GameObject("Tag").transform;
             _tag.SetParent(_root, false);
@@ -191,6 +203,7 @@ namespace Bajoterra.Unity
 
             UpdateShield(state, alive, deltaTime, lookup);
             UpdateTag(state, alive, camera, lookup);
+            UpdateCourage(state, alive);
             _ring.gameObject.SetActive(alive);
         }
 
@@ -246,6 +259,26 @@ namespace Bajoterra.Unity
             }
             _shieldMaterial.color = color;
             _shieldMaterial.SetFloat("_Rim", 1.2f + _shieldFlash * 3.5f);
+        }
+
+        private void UpdateCourage(CombatantState state, bool alive)
+        {
+            int level = alive && state != null ? (int)state.Courage : 0;
+            bool show = level > 0;
+            if (_courage.gameObject.activeSelf != show)
+            {
+                _courage.gameObject.SetActive(show);
+            }
+            if (!show)
+            {
+                return;
+            }
+            float time = Time.time;
+            float breathe = 1f + 0.08f * Mathf.Sin(time * (4f + 2f * level));
+            _courage.localRotation = Quaternion.Euler(90f, time * 60f, 0f);
+            _courage.localScale = Vector3.one * (_radius * (5.6f + 0.8f * level) * breathe);
+            _courageBlock.SetColor("_Color", Palette.WithAlpha(Palette.Courage, 0.55f + 0.25f * level * breathe));
+            _courageRenderer.SetPropertyBlock(_courageBlock);
         }
 
         private void UpdateTag(CombatantState state, bool alive, Camera camera, ContentLookup lookup)

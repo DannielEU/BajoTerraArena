@@ -104,8 +104,11 @@ seleccionar).
 - `combatants[6]`: posición (pies), yaw/pitch, `hp`, `shield`, `overshield`, `alive`, postura
   (`GROUNDED, AIRBORNE, CROUCHING, ACTION`), `active_move`, `hitbox_height` (se encoge al agacharse), `selected_slot`,
   `slots[10]` (`slug_index` + `shots_until_ready`: **0 = disponible**, 1–3 = tiros que faltan para recuperarla) y
-  `statuses[]` (id, ticks restantes, acumulaciones) para los iconos de estado.
-- `projectiles[]`: id, babosa, dueño, posición y velocidad (para extrapolar entre snapshots).
+  `statuses[]` (id, ticks restantes, acumulaciones) para los iconos de estado y `courage` (nivel de Coraje: cuántos
+  compañeros de menos tiene su equipo, 0 = ninguno).
+- `projectiles[]`: id, babosa, dueño, posición y velocidad (para extrapolar entre snapshots). Las babosas pegajosas
+  (granadas) que ya se pegaron llevan `stuck = true`, `fuse_ticks` (ticks que faltan para la explosión) y `stuck_to`
+  (combatiente al que van pegadas, o -1 si están en el escenario).
 - `pickups[]`: disponibilidad de cada objeto del mapa.
 
 Un snapshot completo de 3v3 ocupa del orden de 1,5–2 KB (≈ 40 KB/s por jugador).
@@ -117,21 +120,22 @@ Sirven para efectos visuales y sonoros (no para el estado, que viene en el snaps
 
 | `kind` | actor | subject | a / b | x,y,z | value |
 |---|---|---|---|---|---|
-| `SHOT` | tirador | | slug_index / ranura | boca del blaster | |
-| `PROJECTILE_HIT` | tirador | víctima | slug_index | punto de impacto | |
+| `SHOT` | tirador | | slug_index / ranura | boca del blaster | ticks hasta el siguiente disparo |
+| `PROJECTILE_HIT` | tirador | víctima | slug_index / 1 si fue a la cabeza (crítico) | punto de impacto | |
 | `PROJECTILE_WORLD_HIT` | tirador | | slug_index | punto de impacto | |
 | `PROJECTILE_EXPIRED` | tirador | | slug_index | posición | |
-| `DAMAGE` | origen o -1 | víctima | elemento (ordinal) | | daño efectivo |
+| `DAMAGE` | origen o -1 | víctima | elemento (ordinal) / 1 si es crítico | | daño efectivo |
 | `HEAL`, `SHIELD_RESTORED`, `OVERSHIELD` | quien cura | objetivo | | | cantidad |
 | `STATUS_APPLIED` / `STATUS_EXPIRED` | origen | objetivo | hash del id | | duración |
 | `DEFEATED` | asesino o -1 | víctima | | posición de la víctima | |
 | `PICKUP_TAKEN` / `PICKUP_RESPAWNED` | | quien lo recoge | índice del objeto | | |
 | `MOVE_STARTED` / `MOVE_ENDED` | combatiente | | índice del movimiento | | |
 | `KNOCKBACK` | | objetivo | | | fuerza |
-| `EXPLOSION` | origen | | | centro | radio |
+| `EXPLOSION` | origen | | slug_index (-1 si no viene de una babosa) | centro | radio |
 | `ROUND_STARTED` | | | ronda | | |
 | `ROUND_ENDED` | | | equipo ganador (-1 empate) / ronda | | |
 | `MATCH_ENDED` | | | equipo ganador (-1 empate) | | |
+| `COURAGE` | | combatiente | nivel nuevo / nivel anterior | | escudo restaurado |
 
 ## Guía para el cliente Unity
 
@@ -152,6 +156,10 @@ La implementación de referencia está en [`unity/`](../unity/README.md). Resume
 6. **Rampas:** `ObstacleInfo.rise` (0 = caja; 1 `+x`, 2 `-x`, 3 `+z`, 4 `-z`) convierte la caja en una cuña cuya
    superficie sube de `min_y` a `max_y` en esa dirección. El cliente la usa para dibujarla, para su colisión (los pies
    siguen la pendiente) y para la cámara; la física es la misma que la del servidor (`Obstacle.topAt`, `World`).
-7. **Recarga del blaster:** `SlugInfo.fire_delay_multiplier` × `CharacterInfo.fire_interval_ticks` es la espera tras
-   disparar esa babosa; el HUD la dibuja como un anillo alrededor de la mira.
+7. **Recarga del blaster:** el `value` del evento `SHOT` propio es la espera exacta en ticks (incluye el Coraje); sin
+   él, `SlugInfo.fire_delay_multiplier` × `CharacterInfo.fire_interval_ticks`. El HUD la dibuja como un anillo
+   alrededor de la mira.
 8. **Cadencia:** un `InputFrame` por tick (60 Hz) con un acumulador de paso fijo; snapshots a 20 Hz.
+9. **Granadas:** `SlugInfo.sticky`, `fuse_ticks` y `blast_radius` describen una babosa pegajosa; mientras está pegada
+   (`ProjectileState.stuck`) el cliente marca en el suelo el círculo de `blast_radius` y avisa si `stuck_to` eres tú.
+   Su explosión llega como `EXPLOSION` con `a` = su `slug_index`.

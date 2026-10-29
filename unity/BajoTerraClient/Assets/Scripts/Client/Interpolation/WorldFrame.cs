@@ -18,7 +18,7 @@ namespace Bajoterra.Client.Interpolation
         public CombatantState State;
     }
 
-    /// <summary>A slug in flight as it should be drawn at the render time.</summary>
+    /// <summary>A slug in flight (or a grenade stuck somewhere) as it should be drawn at the render time.</summary>
     public struct ProjectileFrame
     {
         public uint Id;
@@ -26,6 +26,15 @@ namespace Bajoterra.Client.Interpolation
         public int Owner;
         public Vec3 Position;
         public Vec3 Velocity;
+
+        /// <summary>A sticky slug that landed: it no longer flies and its fuse is burning.</summary>
+        public bool Stuck;
+
+        /// <summary>Stuck slugs: simulation ticks left before the explosion.</summary>
+        public int FuseTicks;
+
+        /// <summary>Stuck slugs: the combatant it clings to, or -1 when it is stuck to the world.</summary>
+        public int StuckTo;
     }
 
     public struct PickupFrame

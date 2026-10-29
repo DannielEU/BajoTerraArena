@@ -102,6 +102,10 @@ namespace Bajoterra.Unity
         private readonly Image[] _belt = new Image[HudModel.SlotCount];
         private readonly UiBar _blaster;
         private readonly Image _slugAccent;
+        private readonly Text _critical;
+        private readonly Image _courageBadge;
+        private readonly Text _courageText;
+        private readonly Text _grenadeWarning;
 
         private MatchSession _bound;
         private int _lastHp = -1;
@@ -117,6 +121,9 @@ namespace Bajoterra.Unity
         private float _flashAlpha;
         private float _deathTime;
         private float _countdownPulse;
+        private float _criticalTime = 99f;
+        private int _lastCourage = -1;
+        private int _lastGrenadeTenths = -1;
         private float _scoreboardTimer;
         private bool _debugVisible;
         private bool _statsVisible;
@@ -168,6 +175,16 @@ namespace Bajoterra.Unity
             UiKit.Place(_countdown.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(600f, 300f), new Vector2(0f, 150f));
             UiKit.Fire(_countdown);
 
+            // ----- around the crosshair: headshots and a grenade stuck to you
+            _critical = UiKit.Label(Root, "Critical", UiText.Critical, 44, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_critical.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(520f, 70f), new Vector2(0f, 86f));
+            UiKit.Painted(_critical, UiKit.Lighter(Palette.Critical, 0.6f), UiKit.Darker(Palette.Critical, 0.25f));
+            _critical.gameObject.SetActive(false);
+            _grenadeWarning = UiKit.Label(Root, "Grenade", string.Empty, 50, TextAnchor.MiddleCenter, Color.white);
+            UiKit.Place(_grenadeWarning.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1000f, 80f), new Vector2(0f, -150f));
+            UiKit.Painted(_grenadeWarning, new Color(1f, 0.75f, 0.6f), Palette.Danger);
+            _grenadeWarning.gameObject.SetActive(false);
+
             // ----- bottom centre: vitals
             _vitals = UiKit.Rect("Vitals", Root);
             UiKit.Place(_vitals, new Vector2(0.5f, 0f), new Vector2(VitalsWidth, 110f), new Vector2(0f, 148f));
@@ -182,6 +199,16 @@ namespace Bajoterra.Unity
             UiKit.Place(_health.Rect, new Vector2(0f, 1f), new Vector2(VitalsWidth, 38f), new Vector2(0f, -68f));
             _shield.SetGhostColor(new Color(0.8f, 0.95f, 1f, 0.6f));
             _health.SetGhostColor(new Color(1f, 0.85f, 0.5f, 0.7f));
+            // Courage: a glowing badge above the hero's name while your team is outnumbered.
+            _courageBadge = UiKit.Card(_vitals, "Courage", Color.white, 8);
+            UiKit.Edge(_courageBadge.transform, UiKit.Ink, 8, 2);
+            UiKit.Gradient(_courageBadge, UiKit.Lighter(Palette.Courage, 0.45f), UiKit.Darker(Palette.Courage, 0.2f));
+            UiKit.Place(_courageBadge.rectTransform, new Vector2(0.5f, 1f), new Vector2(230f, 34f), new Vector2(0f, 46f));
+            _courageText = UiKit.Label(_courageBadge.transform, "Text", string.Empty, 22, TextAnchor.MiddleCenter, Color.white);
+            _courageText.font = UiKit.DisplayFont;
+            UiKit.Strong(_courageText);
+            UiKit.Stretch(_courageText.rectTransform);
+            _courageBadge.gameObject.SetActive(false);
             for (int i = 0; i < MaxChips; i++)
             {
                 Image chip = UiKit.Card(_vitals, "Chip " + i, Color.white, 8);
@@ -345,6 +372,14 @@ namespace Bajoterra.Unity
         public void HitMarker(bool kill)
         {
             _crosshair.Hit(kill);
+        }
+
+        /// <summary>Pops "¡CRÍTICO!" over the crosshair: your slug hit an enemy in the head.</summary>
+        public void Critical()
+        {
+            _criticalTime = 0f;
+            _critical.gameObject.SetActive(true);
+            _crosshair.Critical();
         }
 
         /// <summary>Shows or hides the table that Tab opens.</summary>
@@ -779,6 +814,10 @@ namespace Bajoterra.Unity
             float pulse = 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * (4f + low * 4f));
             _lowHealth.color = new Color(0.9f, 0.05f, 0.05f, low * pulse * 0.7f);
 
+            RefreshCritical(deltaTime);
+            RefreshCourage(model);
+            RefreshGrenade(model);
+
             if (_dead)
             {
                 _deathTime += deltaTime;
@@ -792,6 +831,63 @@ namespace Bajoterra.Unity
             {
                 _deathTint.color = new Color(0.4f, 0f, 0f, 0f);
             }
+        }
+
+        private void RefreshCritical(float deltaTime)
+        {
+            if (_criticalTime > 0.7f)
+            {
+                return;
+            }
+            _criticalTime += deltaTime;
+            float t = Mathf.Clamp01(_criticalTime / 0.7f);
+            float pop = 1f + 0.5f * Mathf.Clamp01(1f - _criticalTime / 0.12f);
+            _critical.rectTransform.localScale = new Vector3(pop, pop, 1f);
+            _critical.rectTransform.anchoredPosition = new Vector2(0f, 86f + 26f * t);
+            _critical.color = new Color(1f, 1f, 1f, 1f - t * t);
+            if (t >= 1f)
+            {
+                _critical.gameObject.SetActive(false);
+            }
+        }
+
+        private void RefreshCourage(HudModel model)
+        {
+            int level = model.Alive ? model.Courage : 0;
+            if (level != _lastCourage)
+            {
+                _lastCourage = level;
+                _courageBadge.gameObject.SetActive(level > 0);
+                _courageText.text = UiText.CourageBadge(level);
+            }
+            if (level > 0)
+            {
+                float beat = 1f + 0.06f * Mathf.Sin(Time.unscaledTime * (5f + 2f * level));
+                _courageBadge.rectTransform.localScale = new Vector3(beat, beat, 1f);
+            }
+        }
+
+        private void RefreshGrenade(HudModel model)
+        {
+            bool show = model.Alive && model.GrenadeOnYou;
+            if (_grenadeWarning.gameObject.activeSelf != show)
+            {
+                _grenadeWarning.gameObject.SetActive(show);
+                _lastGrenadeTenths = -1;
+            }
+            if (!show)
+            {
+                return;
+            }
+            int tenths = Mathf.CeilToInt(model.GrenadeSeconds * 10f);
+            if (tenths != _lastGrenadeTenths)
+            {
+                _lastGrenadeTenths = tenths;
+                _grenadeWarning.text = UiText.GrenadeOnYou(tenths / 10f);
+            }
+            float urgency = Mathf.Lerp(6f, 16f, 1f - Mathf.Clamp01(model.GrenadeSeconds / 1.6f));
+            float pulse = 1f + 0.08f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * urgency));
+            _grenadeWarning.rectTransform.localScale = new Vector3(pulse, pulse, 1f);
         }
 
         // ------------------------------------------------------------------------------------------ building

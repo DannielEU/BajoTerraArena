@@ -4,8 +4,8 @@ import com.bajoterra.core.slug.ElementChart;
 
 /**
  * Ordered chain of {@link DamageModifier}s every hit goes through before reaching the target's vitals
- * (Chain of Responsibility). The standard order is: elemental matchup, status vulnerabilities, invulnerability,
- * friendly fire.
+ * (Chain of Responsibility). The standard order is: elemental matchup, status vulnerabilities, the source's damage
+ * bonus and the target's damage reduction (courage), invulnerability, friendly fire.
  */
 public final class DamagePipeline {
 
@@ -25,6 +25,12 @@ public final class DamagePipeline {
         return new DamagePipeline(
                 event -> event.amount *= chart.multiplier(event.element, event.target.character.affinity()),
                 event -> event.amount *= event.target.stats.elementTakenMultiplier(event.element),
+                event -> {
+                    if (event.source != null) {
+                        event.amount *= event.source.stats.damageDealtMultiplier;
+                    }
+                    event.amount *= event.target.stats.damageTakenMultiplier;
+                },
                 event -> {
                     if (event.target.stats.invulnerable) {
                         event.amount = 0;

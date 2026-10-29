@@ -23,6 +23,8 @@ public final class ProjectilePool {
                 p.hitMask = 0;
                 p.owner = null;
                 p.slug = null;
+                p.stuck = false;
+                p.stuckTo = null;
                 activeCount++;
                 return p;
             }
@@ -35,6 +37,7 @@ public final class ProjectilePool {
             p.active = false;
             p.owner = null;
             p.slug = null;
+            p.stuckTo = null;
             activeCount--;
         }
     }

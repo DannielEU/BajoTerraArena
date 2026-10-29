@@ -43,6 +43,7 @@ public final class AreaEffect implements Effect {
         double originalScale = ctx.scale();
         GameEvent event = ctx.arena().events().begin(EventType.EXPLOSION, ctx.arena().tick());
         event.actor = ctx.source() == null ? -1 : ctx.source().id;
+        event.a = ctx.slug() == null ? -1 : ctx.slug().index();
         event.x = ctx.point().x;
         event.y = ctx.point().y;
         event.z = ctx.point().z;
@@ -65,6 +66,11 @@ public final class AreaEffect implements Effect {
         }
         ctx.setTarget(originalTarget);
         ctx.setScale(originalScale);
+    }
+
+    @Override
+    public double areaRadius() {
+        return radius;
     }
 
     private static double distanceToHitbox(EffectContext ctx, Combatant candidate) {

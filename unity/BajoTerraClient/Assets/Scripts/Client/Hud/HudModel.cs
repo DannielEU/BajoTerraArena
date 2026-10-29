@@ -63,6 +63,15 @@ namespace Bajoterra.Client.Hud
         /// <summary>The selected slot's index, or -1.</summary>
         public int SelectedSlot = -1;
 
+        /// <summary>Your courage level: how many teammates your team is down (0 when it is not outnumbered).</summary>
+        public int Courage;
+
+        /// <summary>True while an enemy grenade is stuck to you.</summary>
+        public bool GrenadeOnYou;
+
+        /// <summary>Seconds left before the grenade stuck to you explodes (the soonest one, if several).</summary>
+        public float GrenadeSeconds;
+
         public bool HasState { get; private set; }
 
         public string CharacterName { get; private set; }
@@ -86,6 +95,8 @@ namespace Bajoterra.Client.Hud
             Shield = you.Shield;
             MaxShield = slot.MaxShield;
             Overshield = you.Overshield;
+            Courage = you.Alive ? (int)you.Courage : 0;
+            RefreshGrenade(latest, match);
 
             ReadySlots = 0;
             SelectedSlot = -1;
@@ -127,6 +138,27 @@ namespace Bajoterra.Client.Hud
             WinsOwnTeam = (int)(team0 ? info2.WinsTeam0 : info2.WinsTeam1);
             WinsOtherTeam = (int)(team0 ? info2.WinsTeam1 : info2.WinsTeam0);
             SecondsLeft = (int)Math.Ceiling(info2.TicksLeft / (double)match.TicksPerSecond);
+        }
+
+        private void RefreshGrenade(Snapshot latest, MatchSession match)
+        {
+            GrenadeOnYou = false;
+            GrenadeSeconds = 0f;
+            int soonest = int.MaxValue;
+            for (int i = 0; i < latest.Projectiles.Count; i++)
+            {
+                ProjectileState p = latest.Projectiles[i];
+                if (p.Stuck && p.StuckTo == match.YourId && match.TeamOf((int)p.Owner) != match.YourTeam
+                    && (int)p.FuseTicks < soonest)
+                {
+                    soonest = (int)p.FuseTicks;
+                }
+            }
+            if (soonest != int.MaxValue)
+            {
+                GrenadeOnYou = true;
+                GrenadeSeconds = soonest / (float)match.TicksPerSecond;
+            }
         }
 
         /// <summary>Formats seconds as m:ss.</summary>

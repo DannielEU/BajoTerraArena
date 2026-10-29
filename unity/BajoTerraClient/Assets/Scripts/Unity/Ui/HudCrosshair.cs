@@ -6,7 +6,7 @@ namespace Bajoterra.Unity
     /// <summary>
     /// The aim marker: four ticks and a dot, a ring around them that fills while the blaster waits for the next shot
     /// (the wait is long now, so the player must be able to see it), and an X that flashes when a slug hits an enemy
-    /// (red when that hit was the last one).
+    /// (gold and wider for a headshot, red when that hit was the last one).
     /// </summary>
     public sealed class HudCrosshair
     {
@@ -18,6 +18,7 @@ namespace Bajoterra.Unity
         private readonly Image[] _marker = new Image[4];
         private float _markerTime;
         private bool _markerKill;
+        private bool _markerCritical;
         private float _readyPulse;
         private bool _wasReady = true;
 
@@ -77,6 +78,14 @@ namespace Bajoterra.Unity
         {
             _markerTime = kill ? 0.45f : 0.22f;
             _markerKill = kill;
+            _markerCritical = false;
+        }
+
+        /// <summary>Turns the current hit marker into a headshot one: gold, wider and longer.</summary>
+        public void Critical()
+        {
+            _markerTime = Mathf.Max(_markerTime, 0.35f);
+            _markerCritical = true;
         }
 
         /// <summary>Updates the ring and the marker; call once per frame.</summary>
@@ -109,13 +118,18 @@ namespace Bajoterra.Unity
             if (_markerTime > 0f)
             {
                 _markerTime -= deltaTime;
-                float fade = Mathf.Clamp01(_markerTime / (_markerKill ? 0.45f : 0.22f));
-                Color color = _markerKill ? new Color(1f, 0.25f, 0.2f, fade) : new Color(1f, 1f, 1f, fade);
-                float length = _markerKill ? 30f : 20f;
-                foreach (Image part in _marker)
+                float fade = Mathf.Clamp01(_markerTime / (_markerKill ? 0.45f : _markerCritical ? 0.35f : 0.22f));
+                Color color = _markerKill ? new Color(1f, 0.25f, 0.2f, fade)
+                    : _markerCritical ? Palette.WithAlpha(Palette.Critical, fade) : new Color(1f, 1f, 1f, fade);
+                float length = _markerKill ? 30f : _markerCritical ? 28f : 20f;
+                for (int i = 0; i < _marker.Length; i++)
                 {
+                    Image part = _marker[i];
                     part.color = color;
-                    part.rectTransform.sizeDelta = new Vector2(length, _markerKill ? 5f : 4f);
+                    part.rectTransform.sizeDelta = new Vector2(length, _markerKill || _markerCritical ? 5f : 4f);
+                    float rad = (45f + i * 90f) * Mathf.Deg2Rad;
+                    part.rectTransform.anchoredPosition = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad))
+                                                          * (_markerCritical ? 27f : 22f);
                 }
             }
             else if (_marker[0].color.a > 0f)

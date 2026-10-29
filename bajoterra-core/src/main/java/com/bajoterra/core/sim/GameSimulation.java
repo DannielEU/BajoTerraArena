@@ -20,6 +20,7 @@ import com.bajoterra.core.move.MovementSystem;
 import com.bajoterra.core.projectile.Projectile;
 import com.bajoterra.core.projectile.ProjectilePool;
 import com.bajoterra.core.projectile.ProjectileSystem;
+import com.bajoterra.core.rules.Courage;
 import com.bajoterra.core.rules.Match;
 import com.bajoterra.core.rules.MatchListener;
 import com.bajoterra.core.slug.SlugDefinition;
@@ -60,6 +61,8 @@ public final class GameSimulation implements MatchListener {
     private final LocomotionStateMachine locomotion = new LocomotionStateMachine();
     private final PickupSystem pickups;
     private final Match match;
+    private final Courage courage;
+    private final BotDirector director;
     private final ArrayDeque<Command> commands = new ArrayDeque<>();
     private final int[] placed = new int[2];
 
@@ -85,6 +88,8 @@ public final class GameSimulation implements MatchListener {
         this.movement = new MovementSystem(world);
         this.pickups = new PickupSystem(arena, createPickups());
         this.match = new Match(config.rules(), this, arena);
+        this.courage = new Courage(config.rules(), arena);
+        this.director = new BotDirector(slots, combatants);
         placeCombatants();
     }
 
@@ -144,6 +149,7 @@ public final class GameSimulation implements MatchListener {
         if (!match.phase().isGameplayActive()) {
             return;
         }
+        courage.update();
         // Rotate the processing order every tick so that no team is systematically resolved first.
         int count = combatants.length;
         int offset = arena.tick() % count;
@@ -160,6 +166,7 @@ public final class GameSimulation implements MatchListener {
                 c.pitch = c.input.aimPitch;
                 c.stats.reset();
                 c.statuses.modify(c.stats);
+                Courage.modify(c);
                 locomotion.update(c, arena);
                 movement.integrate(c);
             }
@@ -184,6 +191,9 @@ public final class GameSimulation implements MatchListener {
 
     @Override
     public void onRoundStart(int roundNumber) {
+        if (roundNumber > 1) {
+            director.afterRound(match.lastRoundWinner(), arena);
+        }
         pool.releaseAll();
         pickups.resetAll();
         placeCombatants();
@@ -196,7 +206,16 @@ public final class GameSimulation implements MatchListener {
 
     @Override
     public void onMatchEnd(int winnerTeam) {
+        director.afterRound(match.lastRoundWinner(), arena);
         pool.releaseAll();
+    }
+
+    /**
+     * Average skill of the filler bots of a team right now (the difficulty director moves it after every round), or
+     * NaN when the team has none. A room passes it on to the next match so the difficulty picks up where it was.
+     */
+    public double fillerBotSkill(int team) {
+        return director.averageSkill(team);
     }
 
     private void placeCombatants() {
@@ -276,6 +295,7 @@ public final class GameSimulation implements MatchListener {
             hash = mix(hash, Double.doubleToLongBits(c.vitals.shield()));
             hash = mix(hash, c.loadout.shotCounter());
             hash = mix(hash, c.alive ? 1 : 0);
+            hash = mix(hash, c.courage);
         }
         for (int i = 0; i < pool.capacity(); i++) {
             Projectile p = pool.at(i);
@@ -283,6 +303,7 @@ public final class GameSimulation implements MatchListener {
                 hash = mix(hash, p.id);
                 hash = mix(hash, Double.doubleToLongBits(p.pos.x));
                 hash = mix(hash, Double.doubleToLongBits(p.pos.z));
+                hash = mix(hash, p.stuck ? p.ticksLeft : -1);
             }
         }
         return mix(hash, arena.events().written());

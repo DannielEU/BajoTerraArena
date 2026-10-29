@@ -384,7 +384,7 @@ namespace Bajoterra.Unity
 
         private static string RoleCaption(SlugInfo slug)
         {
-            return UiText.Role(slug.Role);
+            return slug.Sticky ? UiText.Grenade : UiText.Role(slug.Role);
         }
 
         // ------------------------------------------------------------------------------------------ behaviour

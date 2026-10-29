@@ -15,6 +15,12 @@ namespace Bajoterra.Unity
         public static readonly Color Shield = new Color(0.35f, 0.75f, 1f);
         public static readonly Color Overshield = new Color(0.78f, 0.45f, 1f);
         public static readonly Color Damage = new Color(1f, 0.55f, 0.2f);
+        /// <summary>Headshots: their damage numbers, the crosshair marker and the "¡CRÍTICO!" pop.</summary>
+        public static readonly Color Critical = new Color(1f, 0.86f, 0.18f);
+        /// <summary>Courage (your team is outnumbered): the aura, the HUD badge and the banner.</summary>
+        public static readonly Color Courage = new Color(1f, 0.66f, 0.12f);
+        /// <summary>A lit grenade: its blinking light and the blast circle on the floor.</summary>
+        public static readonly Color Danger = new Color(1f, 0.16f, 0.1f);
 
         public static Color Team(int team, int ownTeam)
         {

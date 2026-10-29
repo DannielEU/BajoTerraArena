@@ -21,6 +21,7 @@ public final class EffectContext {
     private SlugDefinition slug;
     private TargetingRule targeting = TargetingRule.ANY;
     private double scale = 1.0;
+    private Combatant criticalTarget;
 
     /**
      * (Re)initialises the context.
@@ -39,6 +40,7 @@ public final class EffectContext {
         this.slug = newSlug;
         this.targeting = newTargeting;
         this.scale = 1.0;
+        this.criticalTarget = null;
         this.point.set(pointAt);
         if (directionAt != null) {
             this.direction.set(directionAt);
@@ -89,6 +91,16 @@ public final class EffectContext {
 
     public void setScale(double newScale) {
         this.scale = newScale;
+    }
+
+    /** The combatant whose damage from this application is critical (a headshot), or null. */
+    public Combatant criticalTarget() {
+        return criticalTarget;
+    }
+
+    /** Marks the directly hit combatant as struck in the head; reset by every {@link #set}. */
+    public void setCriticalTarget(Combatant newCriticalTarget) {
+        this.criticalTarget = newCriticalTarget;
     }
 
     /** Healing/protection potency of whoever caused the effect (1 when there is no source). */

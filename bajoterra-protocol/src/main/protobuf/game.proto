@@ -129,6 +129,9 @@ message SlugInfo {
   float projectile_radius = 6;
   float projectile_speed = 7;
   float fire_delay_multiplier = 8; // scales the blaster's interval after firing this slug
+  bool sticky = 9;                 // a grenade: sticks where it lands (ProjectileState.stuck) and explodes later
+  uint32 fuse_ticks = 10;          // sticky slugs: ticks between sticking and the explosion
+  float blast_radius = 11;         // radius of the area its explosion reaches (0 when it has none)
 }
 
 message CharacterInfo {
@@ -295,6 +298,7 @@ message CombatantState {
   repeated SlotState slots = 14;   // the ten loadout slots (full detail for you, same for allies and enemies)
   repeated StatusState statuses = 15;
   float hitbox_height = 16;    // current hitbox height (shrinks while crouching)
+  uint32 courage = 17;         // comeback level: how many combatants this one's team is down (0 = none)
 }
 
 message ProjectileState {
@@ -307,6 +311,9 @@ message ProjectileState {
   float vx = 7;
   float vy = 8;
   float vz = 9;
+  bool stuck = 10;             // a sticky slug that landed: it no longer flies and its fuse is burning
+  uint32 fuse_ticks = 11;      // stuck slugs: ticks left before the explosion
+  sint32 stuck_to = 12;        // stuck slugs: combatant it clings to (it moves with them), or -1 for the world
 }
 
 message PickupState {
@@ -360,6 +367,7 @@ enum EventKind {
   ROUND_STARTED = 17;
   ROUND_ENDED = 18;
   MATCH_ENDED = 19;
+  COURAGE = 20;
 }
 
 // Fields a/b/value/x/y/z mean different things per kind; see the Javadoc of EventType in bajoterra-core.

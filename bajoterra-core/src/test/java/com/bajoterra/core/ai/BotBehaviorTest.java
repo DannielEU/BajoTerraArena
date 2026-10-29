@@ -11,10 +11,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.event.EventType;
 import com.bajoterra.core.event.GameEvent;
+import com.bajoterra.core.math.Trig;
+import com.bajoterra.core.projectile.Projectile;
 import com.bajoterra.core.sim.GameSimulation;
 import com.bajoterra.core.sim.MatchConfig;
 import com.bajoterra.core.sim.SlotConfig;
 import com.bajoterra.core.slug.Element;
+import com.bajoterra.core.slug.SlugDefinition;
 import org.junit.jupiter.api.Test;
 
 /** Individual bot behaviours in small hand-made scenarios. */
@@ -195,6 +198,90 @@ class BotBehaviorTest {
     }
 
     @Test
+    void aBotTakesAMomentToReactToAnEnemyThatJustCameIntoView() {
+        GameSimulation sim = sim("test_open", 1,
+                bot(0, "eli", 0.7, "flaringo"), human(1, "kord", "doc"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        place(bot, -10, 0, FACING_PLUS_X);
+        place(sim.combatants()[1], 10, 0, -FACING_PLUS_X);
+        int start = sim.tickCount();
+
+        int firstShot = -1;
+        for (int i = 0; i < 120 && firstShot < 0; i++) {
+            sim.tick();
+            if (bot.shotsFired > 0) {
+                firstShot = sim.tickCount();
+            }
+        }
+
+        assertThat(firstShot).as("it does shoot").isPositive();
+        assertThat(firstShot - start).isGreaterThanOrEqualTo(BotProfile.fromSkill(0.7).reactionTicks());
+    }
+
+    @Test
+    void aBotRunsOutOfTheBlastOfAnEnemyGrenadeStuckNextToIt() {
+        GameSimulation sim = sim("test_open", 5,
+                bot(0, "eli", 1.0, "flaringo"), human(1, "kord", "doc"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        Combatant thrower = sim.combatants()[1];
+        place(bot, -5, 0, FACING_PLUS_X);
+        place(thrower, 15, 8, -FACING_PLUS_X);
+        SlugDefinition grenuke = CONTENT.slugs().require("grenuke");
+        double reach = grenuke.onExpire().areaRadius();
+
+        boolean escaped = false;
+        for (int attempt = 0; attempt < 6 && !escaped; attempt++) {
+            Projectile grenade = sim.projectiles().acquire();
+            grenade.owner = thrower;
+            grenade.slug = grenuke;
+            grenade.pos.set(bot.pos.x + 0.8, 0.3, bot.pos.z);
+            grenade.vel.setZero();
+            grenade.stuck = true;
+            grenade.ticksLeft = 80;
+            ticks(sim, 70);
+            escaped = Trig.hypot(bot.pos.x - grenade.pos.x, bot.pos.z - grenade.pos.z) > reach + bot.hitRadius();
+            ticks(sim, 15); // let it go off before the next attempt
+        }
+
+        assertThat(escaped).as("the bot left the blast radius").isTrue();
+    }
+
+    @Test
+    void aBotOnlyDodgesSlugsItCanSeeComing() {
+        assertThat(dodgesASlugFrom(FACING_PLUS_X)).as("slug coming at its face").isTrue();
+        assertThat(dodgesASlugFrom(-FACING_PLUS_X)).as("slug coming at its back").isFalse();
+    }
+
+    /** Puts an enemy slug 6 m in front of (+x) a bot that faces {@code yaw}, flying straight at it. */
+    private static boolean dodgesASlugFrom(double yaw) {
+        GameSimulation sim = sim("test_open", 7,
+                bot(0, "eli", 1.0, "doc"), human(1, "kord", "flaringo"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        Combatant shooter = sim.combatants()[1];
+        place(bot, 0, 0, yaw);
+        bot.yaw = yaw;
+        place(shooter, 15, 9, 0);
+        BotBrain brain = (BotBrain) bot.brain;
+        for (int attempt = 0; attempt < 12; attempt++) {
+            Projectile slug = sim.projectiles().acquire();
+            slug.owner = shooter;
+            slug.slug = CONTENT.slugs().require("flaringo");
+            slug.pos.set(6, bot.centerY(), 0);
+            slug.vel.set(-30, 0, 0);
+            slug.ticksLeft = 100;
+            brain.planNow(sim, bot);
+            sim.projectiles().release(slug);
+            if (brain.context().dodgeTicksLeft > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
     void skillValuesTranslateToMonotonicProfiles() {
         BotProfile novice = BotProfile.fromSkill(0);
         BotProfile expert = BotProfile.fromSkill(1);
@@ -206,5 +293,6 @@ class BotBehaviorTest {
         assertThat(novice.leadsTargets()).isFalse();
         assertThat(BotProfile.fromSkill(5).dodgeChance()).isEqualTo(expert.dodgeChance());
         assertThat(BotProfile.fromSkill(-5).aimNoise()).isEqualTo(novice.aimNoise());
+        assertThat(expert.reactionTicks()).isLessThan(novice.reactionTicks());
     }
 }

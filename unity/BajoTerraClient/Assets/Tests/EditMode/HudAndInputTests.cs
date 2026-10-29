@@ -112,6 +112,42 @@ namespace Bajoterra.Client.Tests
         }
 
         [Test]
+        public void TheHudShowsCourageAndWarnsAboutAnEnemyGrenadeStuckToYou()
+        {
+            MatchSession match = Session(you: 4); // team 1
+            CombatantState you = TestContent.Combatant(4, 0f, 0f);
+            you.Courage = 2;
+            var enemyGrenade = new ProjectileState { Id = 9, Owner = 0, Stuck = true, StuckTo = 4, FuseTicks = 30 };
+            var laterGrenade = new ProjectileState { Id = 10, Owner = 1, Stuck = true, StuckTo = 4, FuseTicks = 80 };
+            var allyGrenade = new ProjectileState { Id = 11, Owner = 3, Stuck = true, StuckTo = 4, FuseTicks = 6 };
+            match.OnSnapshot(TestContent.Snapshot(300, new[] { you },
+                projectiles: new[] { laterGrenade, enemyGrenade, allyGrenade }), 1.0);
+            var hud = new HudModel();
+
+            hud.Refresh(match, 0);
+
+            Assert.AreEqual(2, hud.Courage);
+            Assert.IsTrue(hud.GrenadeOnYou);
+            Assert.AreEqual(0.5f, hud.GrenadeSeconds, 1e-4f, "the soonest enemy grenade; a teammate's does not hurt you");
+        }
+
+        [Test]
+        public void NoGrenadeWarningForAGrenadeStuckSomewhereElse()
+        {
+            MatchSession match = Session(you: 4);
+            var onTheWall = new ProjectileState { Id = 9, Owner = 0, Stuck = true, StuckTo = -1, FuseTicks = 30 };
+            var onSomeoneElse = new ProjectileState { Id = 10, Owner = 0, Stuck = true, StuckTo = 5, FuseTicks = 30 };
+            match.OnSnapshot(TestContent.Snapshot(300, new[] { TestContent.Combatant(4, 0f, 0f) },
+                projectiles: new[] { onTheWall, onSomeoneElse }), 1.0);
+            var hud = new HudModel();
+
+            hud.Refresh(match, 0);
+
+            Assert.IsFalse(hud.GrenadeOnYou);
+            Assert.AreEqual(0, hud.Courage);
+        }
+
+        [Test]
         public void TheHudHasNoStateBeforeTheFirstSnapshot()
         {
             var hud = new HudModel();

@@ -2,7 +2,7 @@
 
 > Generado por `ContentCatalogPrinter`; no editar a mano. Los números son valores iniciales de balance y se ajustan en los JSON de `bajoterra-core/src/main/resources/content/`.
 
-## Babosas (14)
+## Babosas (15)
 
 | índice | id | elemento | rol | objetivo | velocidad | gravedad | retardo | efectos al impactar |
 |---|---|---|---|---|---|---|---|---|
@@ -13,13 +13,14 @@
 | 4 | `doc` | ENERGY | SUPPORT | ALLIES | 40 m/s | 2 | ×1.0 | cura 35 |
 | 5 | `flaringo` | FIRE | DAMAGE | ENEMIES | 55 m/s | 2 | ×0.6 | daño 14 |
 | 6 | `frostfang` | ICE | CONTROL | ENEMIES | 45 m/s | 3 | ×1.0 | daño 8 + congela (1.5 s) |
-| 7 | `hop_rock` | FIRE | DAMAGE | ENEMIES | 35 m/s | 10 | ×1.2 | área r=3.0 [daño 25 + empuje 8]; al chocar con un obstáculo: área r=3.0 [daño 25 + empuje 8]; al caducar: área r=3.0 [daño 25 + empuje 8] |
-| 8 | `infurnus` | FIRE | DAMAGE | ENEMIES | 45 m/s | 4 | ×1.0 | daño 18 + quemadura 4/s (3 s) |
-| 9 | `phosphoro` | LIGHT | CONTROL | ENEMIES | 50 m/s | 2 | ×1.0 | daño 5 + ciega (3 s) |
-| 10 | `rammstone` | EARTH | DAMAGE | ENEMIES | 30 m/s | 6 | ×1.5 | daño 35 + empuje 4 |
-| 11 | `tazerling` | ENERGY | CONTROL | ENEMIES | 55 m/s | 1 | ×1.0 | daño 12 + aturde (0.8 s) + cadena 1× [daño 12 + aturde (0.8 s)] |
-| 12 | `thresher` | METAL | DAMAGE | ENEMIES | 50 m/s | 1 | ×1.0 | daño 22 (ignora 50% escudo); atraviesa 1 |
-| 13 | `tormato` | AIR | CONTROL | ENEMIES | 40 m/s | 2 | ×1.0 | daño 10 + empuje 14 |
+| 7 | `grenuke` | FIRE | DAMAGE | ENEMIES | 28 m/s | 14 | ×1.3 | se pega donde choca y a los 1.6 s explota: área r=3.5 [daño 34 + empuje 9] |
+| 8 | `hop_rock` | FIRE | DAMAGE | ENEMIES | 35 m/s | 10 | ×1.2 | área r=3.0 [daño 25 + empuje 8]; al chocar con un obstáculo: área r=3.0 [daño 25 + empuje 8]; al caducar: área r=3.0 [daño 25 + empuje 8] |
+| 9 | `infurnus` | FIRE | DAMAGE | ENEMIES | 45 m/s | 4 | ×1.0 | daño 18 + quemadura 4/s (3 s) |
+| 10 | `phosphoro` | LIGHT | CONTROL | ENEMIES | 50 m/s | 2 | ×1.0 | daño 5 + ciega (3 s) |
+| 11 | `rammstone` | EARTH | DAMAGE | ENEMIES | 30 m/s | 6 | ×1.5 | daño 35 + empuje 4 |
+| 12 | `tazerling` | ENERGY | CONTROL | ENEMIES | 55 m/s | 1 | ×1.0 | daño 12 + aturde (0.8 s) + cadena 1× [daño 12 + aturde (0.8 s)] |
+| 13 | `thresher` | METAL | DAMAGE | ENEMIES | 50 m/s | 1 | ×1.0 | daño 22 (ignora 50% escudo); atraviesa 1 |
+| 14 | `tormato` | AIR | CONTROL | ENEMIES | 40 m/s | 2 | ×1.0 | daño 10 + empuje 14 |
 
 ## Personajes (4)
 

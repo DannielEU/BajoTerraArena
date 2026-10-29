@@ -7,8 +7,8 @@ namespace Bajoterra.Unity
 {
     /// <summary>
     /// Turns the server's gameplay events into what the player sees and hears: muzzle flashes, impacts with sparks
-    /// and shock rings, explosions, floating damage and healing numbers, defeat bursts, hit markers and screen
-    /// shake, plus the sound. It owns pools of particle systems, flashes, rings, bubbles and text meshes, so
+    /// and shock rings, explosions (a grenade's is bigger and louder), floating damage and healing numbers (gold with
+    /// a "!" for headshots), defeat bursts, courage auras, hit markers and screen shake, plus the sound. It owns pools of particle systems, flashes, rings, bubbles and text meshes, so
     /// firefights allocate nothing per event. The events say where and how much; this class only decides how it
     /// looks.
     /// </summary>
@@ -88,6 +88,12 @@ namespace Bajoterra.Unity
         /// <summary>Raised when a slug of the local player hits an enemy; the flag says it was the last hit.</summary>
         public event Action<bool> YouHitAnEnemy;
 
+        /// <summary>Raised when a slug of the local player hits an enemy in the head.</summary>
+        public event Action YouLandedACritical;
+
+        /// <summary>Raised with (new level, previous level) when the local player's courage changes (0 = it ended).</summary>
+        public event Action<int, int> YourCourageChanged;
+
         /// <summary>Raised with a strength in metres when the camera should shake.</summary>
         public event Action<float> Shake;
 
@@ -149,6 +155,13 @@ namespace Bajoterra.Unity
                 case EventKind.ProjectileWorldHit:
                     {
                         Color color = Color.Lerp(SlugColor(e.A), new Color(0.8f, 0.8f, 0.85f), 0.5f);
+                        if (IsSticky(e.A))
+                        {
+                            // A grenade does not burst on landing: it splats and sticks.
+                            Burst(position, color, 10, 2f, 0.1f);
+                            _audio.PlayAt(_audio.Stick, position, 0.8f, Random(0.9f, 1.1f));
+                            break;
+                        }
                         Burst(position, color, 18, 3.8f, 0.12f);
                         ShockRing(position, color, 0.9f, 0.22f);
                         FlashAt(position, SlugColor(e.A), 1.6f, 0.1f, 1.4f);
@@ -159,7 +172,14 @@ namespace Bajoterra.Unity
                     Burst(position, SlugColor(e.A), 10, 1.6f, 0.1f);
                     break;
                 case EventKind.Explosion:
-                    Explode(position, e.Value);
+                    if (IsSticky(e.A))
+                    {
+                        GrenadeBlast(position, e.Value);
+                    }
+                    else
+                    {
+                        Explode(position, e.Value);
+                    }
                     break;
                 case EventKind.Damage:
                     OnDamage(e);
@@ -184,6 +204,9 @@ namespace Bajoterra.Unity
                     break;
                 case EventKind.MoveStarted:
                     OnMove(e);
+                    break;
+                case EventKind.Courage:
+                    OnCourage(e);
                     break;
                 case EventKind.RoundStarted:
                     _audio.PlayUi(_audio.GoBeep, 0.8f);
@@ -222,20 +245,65 @@ namespace Bajoterra.Unity
         private void OnProjectileHit(GameEvent e, Vector3 position)
         {
             Color color = SlugColor(e.A);
-            Burst(position, color, 30, 5.5f, 0.15f);
-            ShockRing(position, color, 1.3f, 0.28f);
-            FlashAt(position, color, 2.4f, 0.12f, 2.2f);
-            _audio.PlayAt(_audio.Hit, position, 0.8f, Random(0.9f, 1.1f));
+            bool critical = e.B == 1;
+            if (IsSticky(e.A))
+            {
+                Burst(position, color, 12, 2.4f, 0.1f);
+                _audio.PlayAt(_audio.Stick, position, 0.9f, Random(0.9f, 1.1f));
+            }
+            else
+            {
+                Burst(position, critical ? Palette.Critical : color, critical ? 44 : 30, 5.5f, 0.15f);
+                ShockRing(position, color, 1.3f, 0.28f);
+                FlashAt(position, color, 2.4f, 0.12f, 2.2f);
+                _audio.PlayAt(_audio.Hit, position, 0.8f, Random(0.9f, 1.1f));
+            }
+            if (critical)
+            {
+                ShockRing(position, Palette.Critical, 0.8f, 0.2f);
+                _audio.PlayAt(_audio.Critical, position, 0.75f, Random(0.97f, 1.03f));
+            }
             if (e.Actor == _yourId && e.Subject != _yourId && _teamOf(e.Subject) != _yourTeam)
             {
                 YouHitAnEnemy?.Invoke(false);
                 _audio.PlayUi(_audio.HitMarker, 0.7f);
+                if (critical)
+                {
+                    YouLandedACritical?.Invoke();
+                    _audio.PlayUi(_audio.Critical, 0.6f);
+                }
+            }
+        }
+
+        private void OnCourage(GameEvent e)
+        {
+            bool gained = e.A > e.B;
+            if (gained && _views.TryGetCenter(e.Subject, out Vector3 center))
+            {
+                Burst(center, Palette.Courage, 40, 4f, 0.16f);
+                ShockRing(center - Vector3.up * (center.y - 0.1f), Palette.Courage, 2.6f, 0.5f);
+                FlashAt(center, Palette.Courage, 3f, 0.25f, 2.5f);
+            }
+            if (e.Subject == _yourId)
+            {
+                if (gained)
+                {
+                    _audio.PlayUi(_audio.Courage, 0.75f);
+                }
+                YourCourageChanged?.Invoke(e.A, e.B);
             }
         }
 
         private void OnDamage(GameEvent e)
         {
-            Amount(e.Subject, e.Value, Palette.Damage, null);
+            if (e.B == 1)
+            {
+                Amount(e.Subject, e.Value, Palette.Critical, null, true);
+            }
+            else
+            {
+                Amount(e.Subject, e.Value, Palette.Damage, null);
+            }
             if (e.Subject == _yourId)
             {
                 YouWereHit?.Invoke(e.Value);
@@ -302,7 +370,7 @@ namespace Bajoterra.Unity
             }
         }
 
-        private void Amount(int subject, float value, Color color, AudioClip sound)
+        private void Amount(int subject, float value, Color color, AudioClip sound, bool critical = false)
         {
             if (value < 0.5f || !_views.TryGetHead(subject, out Vector3 head))
             {
@@ -314,8 +382,8 @@ namespace Bajoterra.Unity
             number.Life = 0.95f + Mathf.Clamp01(value / 80f) * 0.35f;
             number.Start = head + new Vector3(Random(-0.35f, 0.35f), 0f, Random(-0.35f, 0.35f));
             number.Color = color;
-            string text = Mathf.RoundToInt(value).ToString();
-            float size = 0.075f + Mathf.Clamp01(value / 90f) * 0.07f;
+            string text = Mathf.RoundToInt(value) + (critical ? "!" : string.Empty);
+            float size = (0.075f + Mathf.Clamp01(value / 90f) * 0.07f) * (critical ? 1.45f : 1f);
             number.Text.text = text;
             number.Shadow.text = text;
             number.Text.characterSize = size;
@@ -345,6 +413,35 @@ namespace Bajoterra.Unity
             _audio.PlayAt(_audio.Explosion, center, 1f, Random(0.9f, 1.05f));
             float distance = Vector3.Distance(center, _cameraPosition);
             Shake?.Invoke(0.4f * Mathf.Clamp01(1f - distance / 28f));
+        }
+
+        /// <summary>
+        /// A grenade going off: a much bigger fireball than a slug's area hit, two waves of sparks, a grey puff of
+        /// smoke, a wide shock ring, the heavy blast sound and a strong shake when it is close to the camera.
+        /// </summary>
+        private void GrenadeBlast(Vector3 center, float radius)
+        {
+            Explosion explosion = _explosions[_nextExplosion];
+            _nextExplosion = (_nextExplosion + 1) % ExplosionPoolSize;
+            explosion.Age = 0f;
+            explosion.Radius = Mathf.Max(0.8f, radius * 0.85f);
+            explosion.Color = new Color(1f, 0.5f, 0.15f);
+            explosion.Root.position = center;
+            explosion.Root.gameObject.SetActive(true);
+            Burst(center, new Color(1f, 0.55f, 0.15f), 110, radius * 3.2f, 0.34f);
+            Burst(center, new Color(1f, 0.92f, 0.55f), 40, radius * 1.6f, 0.5f);
+            Burst(center, new Color(0.35f, 0.33f, 0.32f), 36, radius * 0.9f, 0.7f);
+            ShockRing(center, explosion.Color, radius * 1.15f, 0.5f);
+            ShockRing(center, Palette.Danger, radius * 0.7f, 0.3f);
+            FlashAt(center, explosion.Color, radius * 4f, 0.35f, 5f);
+            _audio.PlayAt(_audio.GrenadeBlast, center, 1f, Random(0.94f, 1.04f));
+            float distance = Vector3.Distance(center, _cameraPosition);
+            Shake?.Invoke(0.6f * Mathf.Clamp01(1f - distance / 32f));
+        }
+
+        private bool IsSticky(int slugIndex)
+        {
+            return slugIndex >= 0 && slugIndex < _content.SlugCount && _content.Slug(slugIndex).Sticky;
         }
 
         private Color SlugColor(int slugIndex)

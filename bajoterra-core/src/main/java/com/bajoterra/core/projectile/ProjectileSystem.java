@@ -1,6 +1,7 @@
 package com.bajoterra.core.projectile;
 
 import com.bajoterra.core.combat.CombatArena;
+import com.bajoterra.core.combat.CriticalHits;
 import com.bajoterra.core.effect.Effect;
 import com.bajoterra.core.effect.EffectContext;
 import com.bajoterra.core.entity.Combatant;
@@ -16,6 +17,10 @@ import com.bajoterra.core.world.World;
  * Moves projectiles and resolves their impacts. Each tick a projectile travels along a swept sphere, so even the
  * fastest slugs cannot tunnel through thin walls or combatants; the earliest impact along the path wins, which
  * means an obstacle in front of a combatant shields that combatant.
+ *
+ * <p>Sticky slugs (grenades) stop at their first impact instead: they cling to the obstacle or to the combatant
+ * they touched, follow that combatant around, and run their expiry effects when the fuse burns out. A direct hit on
+ * the top of an enemy's hitbox is a headshot ({@link CriticalHits}).
  */
 public final class ProjectileSystem {
 
@@ -70,6 +75,10 @@ public final class ProjectileSystem {
     }
 
     private void step(Projectile p) {
+        if (p.stuck) {
+            burnFuse(p);
+            return;
+        }
         SlugDefinition slug = p.slug;
         ProjectileSpec spec = slug.projectile();
         double dt = SimulationConstants.TICK_SECONDS;
@@ -110,32 +119,76 @@ public final class ProjectileSystem {
             if (hit != null) {
                 p.hitMask |= 1 << hit.id;
                 hitCombatant(p, hit);
+                if (spec.sticky()) {
+                    stick(p, hit);
+                    return;
+                }
                 if (p.pierceLeft-- <= 0) {
                     pool.release(p);
                     return;
                 }
             } else {
                 hitWorld(p);
+                if (spec.sticky()) {
+                    stick(p, null);
+                    return;
+                }
                 pool.release(p);
                 return;
             }
         }
         if (--p.ticksLeft <= 0) {
+            // A blast has no travel direction: someone standing right on it is thrown straight up.
+            travelDirection.set(0, 1, 0);
             expire(p);
         }
     }
 
     private void hitCombatant(Projectile p, Combatant victim) {
         p.owner.shotsHit++;
+        boolean critical = victim.team != p.owner.team && CriticalHits.isHeadshot(victim, impactPoint.y);
         GameEvent event = arena.events().begin(EventType.PROJECTILE_HIT, arena.tick());
         event.actor = p.owner.id;
         event.subject = victim.id;
         event.a = p.slug.index();
+        event.b = critical ? 1 : 0;
         event.x = impactPoint.x;
         event.y = impactPoint.y;
         event.z = impactPoint.z;
         context.set(arena, p.owner, victim, p.slug, p.slug.targeting(), impactPoint, travelDirection);
+        if (critical) {
+            context.setCriticalTarget(victim);
+        }
         p.slug.onHit().apply(context);
+    }
+
+    /** Stops a sticky slug where it touched and lights its fuse; it clings to {@code victim} when there is one. */
+    private void stick(Projectile p, Combatant victim) {
+        p.stuck = true;
+        p.vel.setZero();
+        p.ticksLeft = p.slug.projectile().fuseTicks();
+        p.stuckTo = victim;
+        if (victim != null) {
+            p.stuckOffset.set(p.pos).sub(victim.pos);
+        }
+    }
+
+    /** A stuck slug rides along with the combatant it clings to and detonates when the fuse runs out. */
+    private void burnFuse(Projectile p) {
+        Combatant carrier = p.stuckTo;
+        if (carrier != null) {
+            if (carrier.alive) {
+                // Crouching lowers the head, and a grenade on the head comes down with it.
+                p.pos.set(carrier.pos.x + p.stuckOffset.x,
+                        carrier.pos.y + Math.min(p.stuckOffset.y, carrier.hitHeight()),
+                        carrier.pos.z + p.stuckOffset.z);
+            } else {
+                p.stuckTo = null;
+            }
+        }
+        if (--p.ticksLeft <= 0) {
+            expire(p);
+        }
     }
 
     private void hitWorld(Projectile p) {

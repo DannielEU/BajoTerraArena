@@ -19,8 +19,9 @@ public final class BotContext {
 
     private static final int MAX_COMBATANTS = 32;
 
-    final BotProfile profile;
     final boolean[] visible = new boolean[MAX_COMBATANTS];
+    /** Tick at which each combatant last came into view; the bot holds fire for its reaction time after it. */
+    final int[] spottedTick = new int[MAX_COMBATANTS];
     final Vec3 eye = new Vec3();
     final Vec3 scratch = new Vec3();
 
@@ -54,6 +55,10 @@ public final class BotContext {
     double dodgeX;
     double dodgeZ;
 
+    /** Id of the newest stuck grenade the bot already decided about (it reacts to each grenade only once). */
+    int grenadeJudgedId;
+    int fleeUntilTick;
+
     double noiseYaw;
     double noisePitch;
     int noiseUntilTick;
@@ -69,8 +74,8 @@ public final class BotContext {
     int crouchSlot = -1;
     int jumpSlot = -1;
 
-    BotContext(BotProfile profile) {
-        this.profile = profile;
+    BotContext() {
+        // filled by bind() and the planning cycle
     }
 
     void bind(GameSimulation newSim, Combatant newSelf) {
@@ -91,6 +96,8 @@ public final class BotContext {
         coverIndex = -1;
         inCover = false;
         dodgeTicksLeft = 0;
+        grenadeJudgedId = 0;
+        fleeUntilTick = 0;
         unstickUntilTick = 0;
         damageTakenAtLastPlan = 0;
         lastHurtTick = Integer.MIN_VALUE / 2;

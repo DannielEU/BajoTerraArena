@@ -60,104 +60,107 @@ namespace Bajoterra.Protocol {
             "bHMSJQoFc2x1Z3MYASADKAsyFi5iYWpvdGVycmEudjEuU2x1Z0luZm8SLwoK",
             "Y2hhcmFjdGVycxgCIAMoCzIbLmJham90ZXJyYS52MS5DaGFyYWN0ZXJJbmZv",
             "EiUKBW1vdmVzGAMgAygLMhYuYmFqb3RlcnJhLnYxLk1vdmVJbmZvEikKB3Bp",
-            "Y2t1cHMYBCADKAsyGC5iYWpvdGVycmEudjEuUGlja3VwSW5mbyLDAQoIU2x1",
+            "Y2t1cHMYBCADKAsyGC5iYWpvdGVycmEudjEuUGlja3VwSW5mbyL9AQoIU2x1",
             "Z0luZm8SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIPCgdlbGVtZW50GAMg",
             "ASgNEioKCXRhcmdldGluZxgEIAEoDjIXLmJham90ZXJyYS52MS5UYXJnZXRp",
             "bmcSDAoEcm9sZRgFIAEoCRIZChFwcm9qZWN0aWxlX3JhZGl1cxgGIAEoAhIY",
             "ChBwcm9qZWN0aWxlX3NwZWVkGAcgASgCEh0KFWZpcmVfZGVsYXlfbXVsdGlw",
-            "bGllchgIIAEoAiLfAQoNQ2hhcmFjdGVySW5mbxIKCgJpZBgBIAEoCRIMCgRu",
-            "YW1lGAIgASgJEg4KBm1heF9ocBgDIAEoAhISCgptYXhfc2hpZWxkGAQgASgC",
-            "Eg0KBXNwZWVkGAUgASgCEhIKCmhpdF9yYWRpdXMYBiABKAISEgoKaGl0X2hl",
-            "aWdodBgHIAEoAhIUCgxtb3ZlX2luZGljZXMYCCADKA0SGwoTZmlyZV9pbnRl",
-            "cnZhbF90aWNrcxgJIAEoDRIUCgxyZWxvYWRfc2hvdHMYCiABKA0SEAoIYWZm",
-            "aW5pdHkYCyABKA0ivgMKCE1vdmVJbmZvEgoKAmlkGAEgASgJEhYKDmR1cmF0",
-            "aW9uX3RpY2tzGAIgASgNEhYKDmNvb2xkb3duX3RpY2tzGAMgASgNEhAKCGhv",
-            "bGRhYmxlGAQgASgIEg4KBnN0YW5jZRgFIAEoCBIVCg1pbnRlcnJ1cHRpYmxl",
-            "GAYgASgIEhUKDWJsb2Nrc19maXJpbmcYByABKAgSGQoRYWxsb3dlZF9mcm9t",
-            "X21hc2sYCCABKA0SGAoQc3BlZWRfbXVsdGlwbGllchgJIAEoAhIgChhoaXRi",
-            "b3hfaGVpZ2h0X211bHRpcGxpZXIYCiABKAISHgoWaW52dWxuZXJhYmxlX2Zy",
-            "b21fdGljaxgLIAEoDRIcChRpbnZ1bG5lcmFibGVfdG9fdGljaxgMIAEoDRIV",
-            "Cg1iZWhhdmlvcl90eXBlGA0gASgJEkMKD2JlaGF2aW9yX3BhcmFtcxgOIAMo",
-            "CzIqLmJham90ZXJyYS52MS5Nb3ZlSW5mby5CZWhhdmlvclBhcmFtc0VudHJ5",
-            "GjUKE0JlaGF2aW9yUGFyYW1zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVl",
-            "GAIgASgCOgI4ASI2CgpQaWNrdXBJbmZvEgoKAmlkGAEgASgJEgwKBG5hbWUY",
-            "AiABKAkSDgoGcmFkaXVzGAMgASgCIr8BCgRTbG90EhQKDGNvbWJhdGFudF9p",
-            "ZBgBIAEoDRIMCgR0ZWFtGAIgASgREhQKDGNoYXJhY3Rlcl9pZBgDIAEoCRIM",
-            "CgRuYW1lGAQgASgJEgsKA2JvdBgFIAEoCBINCgVyZWFkeRgGIAEoCBILCgN5",
-            "b3UYByABKAgSDgoGbWF4X2hwGAggASgCEhIKCm1heF9zaGllbGQYCSABKAIS",
-            "EAoIbW92ZV9pZHMYCiADKAkSEAoIc2x1Z19pZHMYCyADKAkiVgoJUm9vbVN0",
-            "YXRlEg8KB3Jvb21faWQYASABKAkSIQoFc2xvdHMYAiADKAsyEi5iYWpvdGVy",
-            "cmEudjEuU2xvdBIVCg1tYXRjaF9ydW5uaW5nGAMgASgIIn4KCk1hdGNoU3Rh",
-            "cnQSDgoGbWFwX2lkGAEgASgJEhkKEXlvdXJfY29tYmF0YW50X2lkGAIgASgN",
-            "EiEKBXNsb3RzGAMgAygLMhIuYmFqb3RlcnJhLnYxLlNsb3QSIgoDbWFwGAQg",
-            "ASgLMhUuYmFqb3RlcnJhLnYxLk1hcERhdGEi7QEKB01hcERhdGESDAoEbmFt",
-            "ZRgBIAEoCRINCgVtaW5feBgCIAEoAhINCgVtYXhfeBgDIAEoAhINCgVtaW5f",
-            "ehgEIAEoAhINCgVtYXhfehgFIAEoAhIQCghncm91bmRfeRgGIAEoAhItCglv",
-            "YnN0YWNsZXMYByADKAsyGi5iYWpvdGVycmEudjEuT2JzdGFjbGVJbmZvEi4K",
-            "B3BpY2t1cHMYCCADKAsyHS5iYWpvdGVycmEudjEuUGlja3VwUGxhY2VtZW50",
-            "EicKBnNwYXducxgJIAMoCzIXLmJham90ZXJyYS52MS5TcGF3bkluZm8i1QEK",
-            "DE9ic3RhY2xlSW5mbxIKCgJpZBgBIAEoCRINCgVtaW5feBgCIAEoAhINCgVt",
-            "aW5feRgDIAEoAhINCgVtaW5fehgEIAEoAhINCgVtYXhfeBgFIAEoAhINCgVt",
-            "YXhfeRgGIAEoAhINCgVtYXhfehgHIAEoAhIaChJibG9ja3NfcHJvamVjdGls",
-            "ZXMYCCABKAgSFwoPYmxvY2tzX21vdmVtZW50GAkgASgIEhwKFGJsb2Nrc19s",
-            "aW5lX29mX3NpZ2h0GAogASgIEgwKBHJpc2UYCyABKA0iSAoPUGlja3VwUGxh",
-            "Y2VtZW50EhQKDHBpY2t1cF9pbmRleBgBIAEoDRIJCgF4GAIgASgCEgkKAXkY",
-            "AyABKAISCQoBehgEIAEoAiJHCglTcGF3bkluZm8SDAoEdGVhbRgBIAEoERIJ",
-            "CgF4GAIgASgCEgkKAXkYAyABKAISCQoBehgEIAEoAhILCgN5YXcYBSABKAIi",
-            "qgEKCU1hdGNoSW5mbxInCgVwaGFzZRgBIAEoDjIYLmJham90ZXJyYS52MS5N",
-            "YXRjaFBoYXNlEhIKCnRpY2tzX2xlZnQYAiABKA0SDQoFcm91bmQYAyABKA0S",
-            "EgoKd2luc190ZWFtMBgEIAEoDRISCgp3aW5zX3RlYW0xGAUgASgNEhkKEWxh",
-            "c3Rfcm91bmRfd2lubmVyGAYgASgREg4KBndpbm5lchgHIAEoESI6CglTbG90",
-            "U3RhdGUSEgoKc2x1Z19pbmRleBgBIAEoDRIZChFzaG90c191bnRpbF9yZWFk",
-            "eRgCIAEoDSJCCgtTdGF0dXNTdGF0ZRIKCgJpZBgBIAEoCRIXCg9yZW1haW5p",
-            "bmdfdGlja3MYAiABKA0SDgoGc3RhY2tzGAMgASgNItgCCg5Db21iYXRhbnRT",
-            "dGF0ZRIKCgJpZBgBIAEoDRIJCgF4GAIgASgCEgkKAXkYAyABKAISCQoBehgE",
-            "IAEoAhILCgN5YXcYBSABKAISDQoFcGl0Y2gYBiABKAISCgoCaHAYByABKAIS",
-            "DgoGc2hpZWxkGAggASgCEhIKCm92ZXJzaGllbGQYCSABKAISDQoFYWxpdmUY",
-            "CiABKAgSJgoHcG9zdHVyZRgLIAEoDjIVLmJham90ZXJyYS52MS5Qb3N0dXJl",
-            "EhMKC2FjdGl2ZV9tb3ZlGAwgASgREhUKDXNlbGVjdGVkX3Nsb3QYDSABKA0S",
-            "JgoFc2xvdHMYDiADKAsyFy5iYWpvdGVycmEudjEuU2xvdFN0YXRlEisKCHN0",
-            "YXR1c2VzGA8gAygLMhkuYmFqb3RlcnJhLnYxLlN0YXR1c1N0YXRlEhUKDWhp",
-            "dGJveF9oZWlnaHQYECABKAIihQEKD1Byb2plY3RpbGVTdGF0ZRIKCgJpZBgB",
-            "IAEoDRISCgpzbHVnX2luZGV4GAIgASgNEg0KBW93bmVyGAMgASgNEgkKAXgY",
-            "BCABKAISCQoBeRgFIAEoAhIJCgF6GAYgASgCEgoKAnZ4GAcgASgCEgoKAnZ5",
-            "GAggASgCEgoKAnZ6GAkgASgCIi8KC1BpY2t1cFN0YXRlEg0KBWluZGV4GAEg",
-            "ASgNEhEKCWF2YWlsYWJsZRgCIAEoCCKRAgoIU25hcHNob3QSDAoEdGljaxgB",
-            "IAEoDRIUCgxhY2tfc2VxdWVuY2UYAiABKA0SJgoFbWF0Y2gYAyABKAsyFy5i",
-            "YWpvdGVycmEudjEuTWF0Y2hJbmZvEjAKCmNvbWJhdGFudHMYBCADKAsyHC5i",
-            "YWpvdGVycmEudjEuQ29tYmF0YW50U3RhdGUSMgoLcHJvamVjdGlsZXMYBSAD",
-            "KAsyHS5iYWpvdGVycmEudjEuUHJvamVjdGlsZVN0YXRlEioKB3BpY2t1cHMY",
-            "BiADKAsyGS5iYWpvdGVycmEudjEuUGlja3VwU3RhdGUSJwoFbG9jYWwYByAB",
-            "KAsyGC5iYWpvdGVycmEudjEuTG9jYWxTdGF0ZSLiAQoKTG9jYWxTdGF0ZRIN",
-            "CgV2ZWxfeRgBIAEoAhIPCgdrbm9ja194GAIgASgCEg8KB2tub2NrX3oYAyAB",
-            "KAISEAoIZ3JvdW5kZWQYBCABKAgSHwoXc3RhdHVzX3NwZWVkX211bHRpcGxp",
-            "ZXIYBSABKAISDwoHc3R1bm5lZBgGIAEoCBIaChJtb3ZlX2VsYXBzZWRfdGlj",
-            "a3MYByABKA0SEgoKbW92ZV9kaXJfeBgIIAEoAhISCgptb3ZlX2Rpcl96GAkg",
-            "ASgCEhsKE21vdmVfY29vbGRvd25fdGlja3MYCiADKA0ipgEKCUdhbWVFdmVu",
-            "dBIlCgRraW5kGAEgASgOMhcuYmFqb3RlcnJhLnYxLkV2ZW50S2luZBIMCgR0",
-            "aWNrGAIgASgNEg0KBWFjdG9yGAMgASgREg8KB3N1YmplY3QYBCABKBESCQoB",
-            "YRgFIAEoERIJCgFiGAYgASgREgkKAXgYByABKAISCQoBeRgIIAEoAhIJCgF6",
-            "GAkgASgCEg0KBXZhbHVlGAogASgCIkMKCkV2ZW50QmF0Y2gSDAoEdGljaxgB",
-            "IAEoDRInCgZldmVudHMYAiADKAsyFy5iYWpvdGVycmEudjEuR2FtZUV2ZW50",
-            "IkIKCE1hdGNoRW5kEg4KBndpbm5lchgBIAEoERISCgp3aW5zX3RlYW0wGAIg",
-            "ASgNEhIKCndpbnNfdGVhbTEYAyABKA0iLAoLU2VydmVyRXJyb3ISDAoEY29k",
-            "ZRgBIAEoDRIPCgdtZXNzYWdlGAIgASgJIjAKBFBvbmcSEwoLY2xpZW50X3Rp",
-            "bWUYASABKAQSEwoLc2VydmVyX3RpY2sYAiABKA0qQgoJVGFyZ2V0aW5nEgsK",
-            "B0VORU1JRVMQABIKCgZBTExJRVMQARITCg9BTExJRVNfQU5EX1NFTEYQAhIH",
-            "CgNBTlkQAypWCgpNYXRjaFBoYXNlEgkKBUxPQkJZEAASDQoJQ09VTlRET1dO",
-            "EAESEAoMUk9VTkRfQUNUSVZFEAISDQoJUk9VTkRfRU5EEAMSDQoJTUFUQ0hf",
-            "RU5EEAQqQAoHUG9zdHVyZRIMCghHUk9VTkRFRBAAEgwKCEFJUkJPUk5FEAES",
-            "DQoJQ1JPVUNISU5HEAISCgoGQUNUSU9OEAMq6QIKCUV2ZW50S2luZBIICgRT",
-            "SE9UEAASEgoOUFJPSkVDVElMRV9ISVQQARIYChRQUk9KRUNUSUxFX1dPUkxE",
-            "X0hJVBACEhYKElBST0pFQ1RJTEVfRVhQSVJFRBADEgoKBkRBTUFHRRAEEggK",
-            "BEhFQUwQBRITCg9TSElFTERfUkVTVE9SRUQQBhIOCgpPVkVSU0hJRUxEEAcS",
-            "EgoOU1RBVFVTX0FQUExJRUQQCBISCg5TVEFUVVNfRVhQSVJFRBAJEgwKCERF",
-            "RkVBVEVEEAoSEAoMUElDS1VQX1RBS0VOEAsSFAoQUElDS1VQX1JFU1BBV05F",
-            "RBAMEhAKDE1PVkVfU1RBUlRFRBANEg4KCk1PVkVfRU5ERUQQDhINCglLTk9D",
-            "S0JBQ0sQDxINCglFWFBMT1NJT04QEBIRCg1ST1VORF9TVEFSVEVEEBESDwoL",
-            "Uk9VTkRfRU5ERUQQEhIPCgtNQVRDSF9FTkRFRBATQjkKIGNvbS5iYWpvdGVy",
-            "cmEucHJvdG9jb2wuZ2VuZXJhdGVkUAGqAhJCYWpvdGVycmEuUHJvdG9jb2xi",
-            "BnByb3RvMw=="));
+            "bGllchgIIAEoAhIOCgZzdGlja3kYCSABKAgSEgoKZnVzZV90aWNrcxgKIAEo",
+            "DRIUCgxibGFzdF9yYWRpdXMYCyABKAIi3wEKDUNoYXJhY3RlckluZm8SCgoC",
+            "aWQYASABKAkSDAoEbmFtZRgCIAEoCRIOCgZtYXhfaHAYAyABKAISEgoKbWF4",
+            "X3NoaWVsZBgEIAEoAhINCgVzcGVlZBgFIAEoAhISCgpoaXRfcmFkaXVzGAYg",
+            "ASgCEhIKCmhpdF9oZWlnaHQYByABKAISFAoMbW92ZV9pbmRpY2VzGAggAygN",
+            "EhsKE2ZpcmVfaW50ZXJ2YWxfdGlja3MYCSABKA0SFAoMcmVsb2FkX3Nob3Rz",
+            "GAogASgNEhAKCGFmZmluaXR5GAsgASgNIr4DCghNb3ZlSW5mbxIKCgJpZBgB",
+            "IAEoCRIWCg5kdXJhdGlvbl90aWNrcxgCIAEoDRIWCg5jb29sZG93bl90aWNr",
+            "cxgDIAEoDRIQCghob2xkYWJsZRgEIAEoCBIOCgZzdGFuY2UYBSABKAgSFQoN",
+            "aW50ZXJydXB0aWJsZRgGIAEoCBIVCg1ibG9ja3NfZmlyaW5nGAcgASgIEhkK",
+            "EWFsbG93ZWRfZnJvbV9tYXNrGAggASgNEhgKEHNwZWVkX211bHRpcGxpZXIY",
+            "CSABKAISIAoYaGl0Ym94X2hlaWdodF9tdWx0aXBsaWVyGAogASgCEh4KFmlu",
+            "dnVsbmVyYWJsZV9mcm9tX3RpY2sYCyABKA0SHAoUaW52dWxuZXJhYmxlX3Rv",
+            "X3RpY2sYDCABKA0SFQoNYmVoYXZpb3JfdHlwZRgNIAEoCRJDCg9iZWhhdmlv",
+            "cl9wYXJhbXMYDiADKAsyKi5iYWpvdGVycmEudjEuTW92ZUluZm8uQmVoYXZp",
+            "b3JQYXJhbXNFbnRyeRo1ChNCZWhhdmlvclBhcmFtc0VudHJ5EgsKA2tleRgB",
+            "IAEoCRINCgV2YWx1ZRgCIAEoAjoCOAEiNgoKUGlja3VwSW5mbxIKCgJpZBgB",
+            "IAEoCRIMCgRuYW1lGAIgASgJEg4KBnJhZGl1cxgDIAEoAiK/AQoEU2xvdBIU",
+            "Cgxjb21iYXRhbnRfaWQYASABKA0SDAoEdGVhbRgCIAEoERIUCgxjaGFyYWN0",
+            "ZXJfaWQYAyABKAkSDAoEbmFtZRgEIAEoCRILCgNib3QYBSABKAgSDQoFcmVh",
+            "ZHkYBiABKAgSCwoDeW91GAcgASgIEg4KBm1heF9ocBgIIAEoAhISCgptYXhf",
+            "c2hpZWxkGAkgASgCEhAKCG1vdmVfaWRzGAogAygJEhAKCHNsdWdfaWRzGAsg",
+            "AygJIlYKCVJvb21TdGF0ZRIPCgdyb29tX2lkGAEgASgJEiEKBXNsb3RzGAIg",
+            "AygLMhIuYmFqb3RlcnJhLnYxLlNsb3QSFQoNbWF0Y2hfcnVubmluZxgDIAEo",
+            "CCJ+CgpNYXRjaFN0YXJ0Eg4KBm1hcF9pZBgBIAEoCRIZChF5b3VyX2NvbWJh",
+            "dGFudF9pZBgCIAEoDRIhCgVzbG90cxgDIAMoCzISLmJham90ZXJyYS52MS5T",
+            "bG90EiIKA21hcBgEIAEoCzIVLmJham90ZXJyYS52MS5NYXBEYXRhIu0BCgdN",
+            "YXBEYXRhEgwKBG5hbWUYASABKAkSDQoFbWluX3gYAiABKAISDQoFbWF4X3gY",
+            "AyABKAISDQoFbWluX3oYBCABKAISDQoFbWF4X3oYBSABKAISEAoIZ3JvdW5k",
+            "X3kYBiABKAISLQoJb2JzdGFjbGVzGAcgAygLMhouYmFqb3RlcnJhLnYxLk9i",
+            "c3RhY2xlSW5mbxIuCgdwaWNrdXBzGAggAygLMh0uYmFqb3RlcnJhLnYxLlBp",
+            "Y2t1cFBsYWNlbWVudBInCgZzcGF3bnMYCSADKAsyFy5iYWpvdGVycmEudjEu",
+            "U3Bhd25JbmZvItUBCgxPYnN0YWNsZUluZm8SCgoCaWQYASABKAkSDQoFbWlu",
+            "X3gYAiABKAISDQoFbWluX3kYAyABKAISDQoFbWluX3oYBCABKAISDQoFbWF4",
+            "X3gYBSABKAISDQoFbWF4X3kYBiABKAISDQoFbWF4X3oYByABKAISGgoSYmxv",
+            "Y2tzX3Byb2plY3RpbGVzGAggASgIEhcKD2Jsb2Nrc19tb3ZlbWVudBgJIAEo",
+            "CBIcChRibG9ja3NfbGluZV9vZl9zaWdodBgKIAEoCBIMCgRyaXNlGAsgASgN",
+            "IkgKD1BpY2t1cFBsYWNlbWVudBIUCgxwaWNrdXBfaW5kZXgYASABKA0SCQoB",
+            "eBgCIAEoAhIJCgF5GAMgASgCEgkKAXoYBCABKAIiRwoJU3Bhd25JbmZvEgwK",
+            "BHRlYW0YASABKBESCQoBeBgCIAEoAhIJCgF5GAMgASgCEgkKAXoYBCABKAIS",
+            "CwoDeWF3GAUgASgCIqoBCglNYXRjaEluZm8SJwoFcGhhc2UYASABKA4yGC5i",
+            "YWpvdGVycmEudjEuTWF0Y2hQaGFzZRISCgp0aWNrc19sZWZ0GAIgASgNEg0K",
+            "BXJvdW5kGAMgASgNEhIKCndpbnNfdGVhbTAYBCABKA0SEgoKd2luc190ZWFt",
+            "MRgFIAEoDRIZChFsYXN0X3JvdW5kX3dpbm5lchgGIAEoERIOCgZ3aW5uZXIY",
+            "ByABKBEiOgoJU2xvdFN0YXRlEhIKCnNsdWdfaW5kZXgYASABKA0SGQoRc2hv",
+            "dHNfdW50aWxfcmVhZHkYAiABKA0iQgoLU3RhdHVzU3RhdGUSCgoCaWQYASAB",
+            "KAkSFwoPcmVtYWluaW5nX3RpY2tzGAIgASgNEg4KBnN0YWNrcxgDIAEoDSLp",
+            "AgoOQ29tYmF0YW50U3RhdGUSCgoCaWQYASABKA0SCQoBeBgCIAEoAhIJCgF5",
+            "GAMgASgCEgkKAXoYBCABKAISCwoDeWF3GAUgASgCEg0KBXBpdGNoGAYgASgC",
+            "EgoKAmhwGAcgASgCEg4KBnNoaWVsZBgIIAEoAhISCgpvdmVyc2hpZWxkGAkg",
+            "ASgCEg0KBWFsaXZlGAogASgIEiYKB3Bvc3R1cmUYCyABKA4yFS5iYWpvdGVy",
+            "cmEudjEuUG9zdHVyZRITCgthY3RpdmVfbW92ZRgMIAEoERIVCg1zZWxlY3Rl",
+            "ZF9zbG90GA0gASgNEiYKBXNsb3RzGA4gAygLMhcuYmFqb3RlcnJhLnYxLlNs",
+            "b3RTdGF0ZRIrCghzdGF0dXNlcxgPIAMoCzIZLmJham90ZXJyYS52MS5TdGF0",
+            "dXNTdGF0ZRIVCg1oaXRib3hfaGVpZ2h0GBAgASgCEg8KB2NvdXJhZ2UYESAB",
+            "KA0iugEKD1Byb2plY3RpbGVTdGF0ZRIKCgJpZBgBIAEoDRISCgpzbHVnX2lu",
+            "ZGV4GAIgASgNEg0KBW93bmVyGAMgASgNEgkKAXgYBCABKAISCQoBeRgFIAEo",
+            "AhIJCgF6GAYgASgCEgoKAnZ4GAcgASgCEgoKAnZ5GAggASgCEgoKAnZ6GAkg",
+            "ASgCEg0KBXN0dWNrGAogASgIEhIKCmZ1c2VfdGlja3MYCyABKA0SEAoIc3R1",
+            "Y2tfdG8YDCABKBEiLwoLUGlja3VwU3RhdGUSDQoFaW5kZXgYASABKA0SEQoJ",
+            "YXZhaWxhYmxlGAIgASgIIpECCghTbmFwc2hvdBIMCgR0aWNrGAEgASgNEhQK",
+            "DGFja19zZXF1ZW5jZRgCIAEoDRImCgVtYXRjaBgDIAEoCzIXLmJham90ZXJy",
+            "YS52MS5NYXRjaEluZm8SMAoKY29tYmF0YW50cxgEIAMoCzIcLmJham90ZXJy",
+            "YS52MS5Db21iYXRhbnRTdGF0ZRIyCgtwcm9qZWN0aWxlcxgFIAMoCzIdLmJh",
+            "am90ZXJyYS52MS5Qcm9qZWN0aWxlU3RhdGUSKgoHcGlja3VwcxgGIAMoCzIZ",
+            "LmJham90ZXJyYS52MS5QaWNrdXBTdGF0ZRInCgVsb2NhbBgHIAEoCzIYLmJh",
+            "am90ZXJyYS52MS5Mb2NhbFN0YXRlIuIBCgpMb2NhbFN0YXRlEg0KBXZlbF95",
+            "GAEgASgCEg8KB2tub2NrX3gYAiABKAISDwoHa25vY2tfehgDIAEoAhIQCghn",
+            "cm91bmRlZBgEIAEoCBIfChdzdGF0dXNfc3BlZWRfbXVsdGlwbGllchgFIAEo",
+            "AhIPCgdzdHVubmVkGAYgASgIEhoKEm1vdmVfZWxhcHNlZF90aWNrcxgHIAEo",
+            "DRISCgptb3ZlX2Rpcl94GAggASgCEhIKCm1vdmVfZGlyX3oYCSABKAISGwoT",
+            "bW92ZV9jb29sZG93bl90aWNrcxgKIAMoDSKmAQoJR2FtZUV2ZW50EiUKBGtp",
+            "bmQYASABKA4yFy5iYWpvdGVycmEudjEuRXZlbnRLaW5kEgwKBHRpY2sYAiAB",
+            "KA0SDQoFYWN0b3IYAyABKBESDwoHc3ViamVjdBgEIAEoERIJCgFhGAUgASgR",
+            "EgkKAWIYBiABKBESCQoBeBgHIAEoAhIJCgF5GAggASgCEgkKAXoYCSABKAIS",
+            "DQoFdmFsdWUYCiABKAIiQwoKRXZlbnRCYXRjaBIMCgR0aWNrGAEgASgNEicK",
+            "BmV2ZW50cxgCIAMoCzIXLmJham90ZXJyYS52MS5HYW1lRXZlbnQiQgoITWF0",
+            "Y2hFbmQSDgoGd2lubmVyGAEgASgREhIKCndpbnNfdGVhbTAYAiABKA0SEgoK",
+            "d2luc190ZWFtMRgDIAEoDSIsCgtTZXJ2ZXJFcnJvchIMCgRjb2RlGAEgASgN",
+            "Eg8KB21lc3NhZ2UYAiABKAkiMAoEUG9uZxITCgtjbGllbnRfdGltZRgBIAEo",
+            "BBITCgtzZXJ2ZXJfdGljaxgCIAEoDSpCCglUYXJnZXRpbmcSCwoHRU5FTUlF",
+            "UxAAEgoKBkFMTElFUxABEhMKD0FMTElFU19BTkRfU0VMRhACEgcKA0FOWRAD",
+            "KlYKCk1hdGNoUGhhc2USCQoFTE9CQlkQABINCglDT1VOVERPV04QARIQCgxS",
+            "T1VORF9BQ1RJVkUQAhINCglST1VORF9FTkQQAxINCglNQVRDSF9FTkQQBCpA",
+            "CgdQb3N0dXJlEgwKCEdST1VOREVEEAASDAoIQUlSQk9STkUQARINCglDUk9V",
+            "Q0hJTkcQAhIKCgZBQ1RJT04QAyr2AgoJRXZlbnRLaW5kEggKBFNIT1QQABIS",
+            "Cg5QUk9KRUNUSUxFX0hJVBABEhgKFFBST0pFQ1RJTEVfV09STERfSElUEAIS",
+            "FgoSUFJPSkVDVElMRV9FWFBJUkVEEAMSCgoGREFNQUdFEAQSCAoESEVBTBAF",
+            "EhMKD1NISUVMRF9SRVNUT1JFRBAGEg4KCk9WRVJTSElFTEQQBxISCg5TVEFU",
+            "VVNfQVBQTElFRBAIEhIKDlNUQVRVU19FWFBJUkVEEAkSDAoIREVGRUFURUQQ",
+            "ChIQCgxQSUNLVVBfVEFLRU4QCxIUChBQSUNLVVBfUkVTUEFXTkVEEAwSEAoM",
+            "TU9WRV9TVEFSVEVEEA0SDgoKTU9WRV9FTkRFRBAOEg0KCUtOT0NLQkFDSxAP",
+            "Eg0KCUVYUExPU0lPThAQEhEKDVJPVU5EX1NUQVJURUQQERIPCgtST1VORF9F",
+            "TkRFRBASEg8KC01BVENIX0VOREVEEBMSCwoHQ09VUkFHRRAUQjkKIGNvbS5i",
+            "YWpvdGVycmEucHJvdG9jb2wuZ2VuZXJhdGVkUAGqAhJCYWpvdGVycmEuUHJv",
+            "dG9jb2xiBnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Bajoterra.Protocol.Targeting), typeof(global::Bajoterra.Protocol.MatchPhase), typeof(global::Bajoterra.Protocol.Posture), typeof(global::Bajoterra.Protocol.EventKind), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -172,7 +175,7 @@ namespace Bajoterra.Protocol {
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.Welcome), global::Bajoterra.Protocol.Welcome.Parser, new[]{ "ProtocolVersion", "ConnectionId", "TickRate", "SnapshotRate", "Content", "Details" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.ContentManifest), global::Bajoterra.Protocol.ContentManifest.Parser, new[]{ "SlugIds", "CharacterIds", "MoveIds", "MapIds", "PickupIds", "ElementIds" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.ContentDetails), global::Bajoterra.Protocol.ContentDetails.Parser, new[]{ "Slugs", "Characters", "Moves", "Pickups" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.SlugInfo), global::Bajoterra.Protocol.SlugInfo.Parser, new[]{ "Id", "Name", "Element", "Targeting", "Role", "ProjectileRadius", "ProjectileSpeed", "FireDelayMultiplier" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.SlugInfo), global::Bajoterra.Protocol.SlugInfo.Parser, new[]{ "Id", "Name", "Element", "Targeting", "Role", "ProjectileRadius", "ProjectileSpeed", "FireDelayMultiplier", "Sticky", "FuseTicks", "BlastRadius" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.CharacterInfo), global::Bajoterra.Protocol.CharacterInfo.Parser, new[]{ "Id", "Name", "MaxHp", "MaxShield", "Speed", "HitRadius", "HitHeight", "MoveIndices", "FireIntervalTicks", "ReloadShots", "Affinity" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.MoveInfo), global::Bajoterra.Protocol.MoveInfo.Parser, new[]{ "Id", "DurationTicks", "CooldownTicks", "Holdable", "Stance", "Interruptible", "BlocksFiring", "AllowedFromMask", "SpeedMultiplier", "HitboxHeightMultiplier", "InvulnerableFromTick", "InvulnerableToTick", "BehaviorType", "BehaviorParams" }, null, null, null, new pbr::GeneratedClrTypeInfo[] { null, }),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.PickupInfo), global::Bajoterra.Protocol.PickupInfo.Parser, new[]{ "Id", "Name", "Radius" }, null, null, null, null),
@@ -186,8 +189,8 @@ namespace Bajoterra.Protocol {
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.MatchInfo), global::Bajoterra.Protocol.MatchInfo.Parser, new[]{ "Phase", "TicksLeft", "Round", "WinsTeam0", "WinsTeam1", "LastRoundWinner", "Winner" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.SlotState), global::Bajoterra.Protocol.SlotState.Parser, new[]{ "SlugIndex", "ShotsUntilReady" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.StatusState), global::Bajoterra.Protocol.StatusState.Parser, new[]{ "Id", "RemainingTicks", "Stacks" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.CombatantState), global::Bajoterra.Protocol.CombatantState.Parser, new[]{ "Id", "X", "Y", "Z", "Yaw", "Pitch", "Hp", "Shield", "Overshield", "Alive", "Posture", "ActiveMove", "SelectedSlot", "Slots", "Statuses", "HitboxHeight" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.ProjectileState), global::Bajoterra.Protocol.ProjectileState.Parser, new[]{ "Id", "SlugIndex", "Owner", "X", "Y", "Z", "Vx", "Vy", "Vz" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.CombatantState), global::Bajoterra.Protocol.CombatantState.Parser, new[]{ "Id", "X", "Y", "Z", "Yaw", "Pitch", "Hp", "Shield", "Overshield", "Alive", "Posture", "ActiveMove", "SelectedSlot", "Slots", "Statuses", "HitboxHeight", "Courage" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.ProjectileState), global::Bajoterra.Protocol.ProjectileState.Parser, new[]{ "Id", "SlugIndex", "Owner", "X", "Y", "Z", "Vx", "Vy", "Vz", "Stuck", "FuseTicks", "StuckTo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.PickupState), global::Bajoterra.Protocol.PickupState.Parser, new[]{ "Index", "Available" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.Snapshot), global::Bajoterra.Protocol.Snapshot.Parser, new[]{ "Tick", "AckSequence", "Match", "Combatants", "Projectiles", "Pickups", "Local" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Bajoterra.Protocol.LocalState), global::Bajoterra.Protocol.LocalState.Parser, new[]{ "VelY", "KnockX", "KnockZ", "Grounded", "StatusSpeedMultiplier", "Stunned", "MoveElapsedTicks", "MoveDirX", "MoveDirZ", "MoveCooldownTicks" }, null, null, null, null),
@@ -245,6 +248,7 @@ namespace Bajoterra.Protocol {
     [pbr::OriginalName("ROUND_STARTED")] RoundStarted = 17,
     [pbr::OriginalName("ROUND_ENDED")] RoundEnded = 18,
     [pbr::OriginalName("MATCH_ENDED")] MatchEnded = 19,
+    [pbr::OriginalName("COURAGE")] Courage = 20,
   }
 
   #endregion
@@ -4190,6 +4194,9 @@ namespace Bajoterra.Protocol {
       projectileRadius_ = other.projectileRadius_;
       projectileSpeed_ = other.projectileSpeed_;
       fireDelayMultiplier_ = other.fireDelayMultiplier_;
+      sticky_ = other.sticky_;
+      fuseTicks_ = other.fuseTicks_;
+      blastRadius_ = other.blastRadius_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -4304,6 +4311,51 @@ namespace Bajoterra.Protocol {
       }
     }
 
+    /// <summary>Field number for the "sticky" field.</summary>
+    public const int StickyFieldNumber = 9;
+    private bool sticky_;
+    /// <summary>
+    /// a grenade: sticks where it lands (ProjectileState.stuck) and explodes later
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Sticky {
+      get { return sticky_; }
+      set {
+        sticky_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "fuse_ticks" field.</summary>
+    public const int FuseTicksFieldNumber = 10;
+    private uint fuseTicks_;
+    /// <summary>
+    /// sticky slugs: ticks between sticking and the explosion
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint FuseTicks {
+      get { return fuseTicks_; }
+      set {
+        fuseTicks_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "blast_radius" field.</summary>
+    public const int BlastRadiusFieldNumber = 11;
+    private float blastRadius_;
+    /// <summary>
+    /// radius of the area its explosion reaches (0 when it has none)
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public float BlastRadius {
+      get { return blastRadius_; }
+      set {
+        blastRadius_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -4327,6 +4379,9 @@ namespace Bajoterra.Protocol {
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(ProjectileRadius, other.ProjectileRadius)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(ProjectileSpeed, other.ProjectileSpeed)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(FireDelayMultiplier, other.FireDelayMultiplier)) return false;
+      if (Sticky != other.Sticky) return false;
+      if (FuseTicks != other.FuseTicks) return false;
+      if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(BlastRadius, other.BlastRadius)) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -4342,6 +4397,9 @@ namespace Bajoterra.Protocol {
       if (ProjectileRadius != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(ProjectileRadius);
       if (ProjectileSpeed != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(ProjectileSpeed);
       if (FireDelayMultiplier != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(FireDelayMultiplier);
+      if (Sticky != false) hash ^= Sticky.GetHashCode();
+      if (FuseTicks != 0) hash ^= FuseTicks.GetHashCode();
+      if (BlastRadius != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(BlastRadius);
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -4392,6 +4450,18 @@ namespace Bajoterra.Protocol {
         output.WriteRawTag(69);
         output.WriteFloat(FireDelayMultiplier);
       }
+      if (Sticky != false) {
+        output.WriteRawTag(72);
+        output.WriteBool(Sticky);
+      }
+      if (FuseTicks != 0) {
+        output.WriteRawTag(80);
+        output.WriteUInt32(FuseTicks);
+      }
+      if (BlastRadius != 0F) {
+        output.WriteRawTag(93);
+        output.WriteFloat(BlastRadius);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -4434,6 +4504,18 @@ namespace Bajoterra.Protocol {
         output.WriteRawTag(69);
         output.WriteFloat(FireDelayMultiplier);
       }
+      if (Sticky != false) {
+        output.WriteRawTag(72);
+        output.WriteBool(Sticky);
+      }
+      if (FuseTicks != 0) {
+        output.WriteRawTag(80);
+        output.WriteUInt32(FuseTicks);
+      }
+      if (BlastRadius != 0F) {
+        output.WriteRawTag(93);
+        output.WriteFloat(BlastRadius);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -4466,6 +4548,15 @@ namespace Bajoterra.Protocol {
         size += 1 + 4;
       }
       if (FireDelayMultiplier != 0F) {
+        size += 1 + 4;
+      }
+      if (Sticky != false) {
+        size += 1 + 1;
+      }
+      if (FuseTicks != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(FuseTicks);
+      }
+      if (BlastRadius != 0F) {
         size += 1 + 4;
       }
       if (_unknownFields != null) {
@@ -4503,6 +4594,15 @@ namespace Bajoterra.Protocol {
       }
       if (other.FireDelayMultiplier != 0F) {
         FireDelayMultiplier = other.FireDelayMultiplier;
+      }
+      if (other.Sticky != false) {
+        Sticky = other.Sticky;
+      }
+      if (other.FuseTicks != 0) {
+        FuseTicks = other.FuseTicks;
+      }
+      if (other.BlastRadius != 0F) {
+        BlastRadius = other.BlastRadius;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -4555,6 +4655,18 @@ namespace Bajoterra.Protocol {
             FireDelayMultiplier = input.ReadFloat();
             break;
           }
+          case 72: {
+            Sticky = input.ReadBool();
+            break;
+          }
+          case 80: {
+            FuseTicks = input.ReadUInt32();
+            break;
+          }
+          case 93: {
+            BlastRadius = input.ReadFloat();
+            break;
+          }
         }
       }
     #endif
@@ -4604,6 +4716,18 @@ namespace Bajoterra.Protocol {
           }
           case 69: {
             FireDelayMultiplier = input.ReadFloat();
+            break;
+          }
+          case 72: {
+            Sticky = input.ReadBool();
+            break;
+          }
+          case 80: {
+            FuseTicks = input.ReadUInt32();
+            break;
+          }
+          case 93: {
+            BlastRadius = input.ReadFloat();
             break;
           }
         }
@@ -9935,6 +10059,7 @@ namespace Bajoterra.Protocol {
       slots_ = other.slots_.Clone();
       statuses_ = other.statuses_.Clone();
       hitboxHeight_ = other.hitboxHeight_;
+      courage_ = other.courage_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -10146,6 +10271,21 @@ namespace Bajoterra.Protocol {
       }
     }
 
+    /// <summary>Field number for the "courage" field.</summary>
+    public const int CourageFieldNumber = 17;
+    private uint courage_;
+    /// <summary>
+    /// comeback level: how many combatants this one's team is down (0 = none)
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Courage {
+      get { return courage_; }
+      set {
+        courage_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -10177,6 +10317,7 @@ namespace Bajoterra.Protocol {
       if(!slots_.Equals(other.slots_)) return false;
       if(!statuses_.Equals(other.statuses_)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(HitboxHeight, other.HitboxHeight)) return false;
+      if (Courage != other.Courage) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -10200,6 +10341,7 @@ namespace Bajoterra.Protocol {
       hash ^= slots_.GetHashCode();
       hash ^= statuses_.GetHashCode();
       if (HitboxHeight != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(HitboxHeight);
+      if (Courage != 0) hash ^= Courage.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -10276,6 +10418,10 @@ namespace Bajoterra.Protocol {
         output.WriteRawTag(133, 1);
         output.WriteFloat(HitboxHeight);
       }
+      if (Courage != 0) {
+        output.WriteRawTag(136, 1);
+        output.WriteUInt32(Courage);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -10344,6 +10490,10 @@ namespace Bajoterra.Protocol {
         output.WriteRawTag(133, 1);
         output.WriteFloat(HitboxHeight);
       }
+      if (Courage != 0) {
+        output.WriteRawTag(136, 1);
+        output.WriteUInt32(Courage);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -10397,6 +10547,9 @@ namespace Bajoterra.Protocol {
       size += statuses_.CalculateSize(_repeated_statuses_codec);
       if (HitboxHeight != 0F) {
         size += 2 + 4;
+      }
+      if (Courage != 0) {
+        size += 2 + pb::CodedOutputStream.ComputeUInt32Size(Courage);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -10453,6 +10606,9 @@ namespace Bajoterra.Protocol {
       statuses_.Add(other.statuses_);
       if (other.HitboxHeight != 0F) {
         HitboxHeight = other.HitboxHeight;
+      }
+      if (other.Courage != 0) {
+        Courage = other.Courage;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -10535,6 +10691,10 @@ namespace Bajoterra.Protocol {
           }
           case 133: {
             HitboxHeight = input.ReadFloat();
+            break;
+          }
+          case 136: {
+            Courage = input.ReadUInt32();
             break;
           }
         }
@@ -10620,6 +10780,10 @@ namespace Bajoterra.Protocol {
             HitboxHeight = input.ReadFloat();
             break;
           }
+          case 136: {
+            Courage = input.ReadUInt32();
+            break;
+          }
         }
       }
     }
@@ -10671,6 +10835,9 @@ namespace Bajoterra.Protocol {
       vx_ = other.vx_;
       vy_ = other.vy_;
       vz_ = other.vz_;
+      stuck_ = other.stuck_;
+      fuseTicks_ = other.fuseTicks_;
+      stuckTo_ = other.stuckTo_;
       _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
     }
 
@@ -10788,6 +10955,51 @@ namespace Bajoterra.Protocol {
       }
     }
 
+    /// <summary>Field number for the "stuck" field.</summary>
+    public const int StuckFieldNumber = 10;
+    private bool stuck_;
+    /// <summary>
+    /// a sticky slug that landed: it no longer flies and its fuse is burning
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Stuck {
+      get { return stuck_; }
+      set {
+        stuck_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "fuse_ticks" field.</summary>
+    public const int FuseTicksFieldNumber = 11;
+    private uint fuseTicks_;
+    /// <summary>
+    /// stuck slugs: ticks left before the explosion
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint FuseTicks {
+      get { return fuseTicks_; }
+      set {
+        fuseTicks_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "stuck_to" field.</summary>
+    public const int StuckToFieldNumber = 12;
+    private int stuckTo_;
+    /// <summary>
+    /// stuck slugs: combatant it clings to (it moves with them), or -1 for the world
+    /// </summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int StuckTo {
+      get { return stuckTo_; }
+      set {
+        stuckTo_ = value;
+      }
+    }
+
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override bool Equals(object other) {
@@ -10812,6 +11024,9 @@ namespace Bajoterra.Protocol {
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(Vx, other.Vx)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(Vy, other.Vy)) return false;
       if (!pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.Equals(Vz, other.Vz)) return false;
+      if (Stuck != other.Stuck) return false;
+      if (FuseTicks != other.FuseTicks) return false;
+      if (StuckTo != other.StuckTo) return false;
       return Equals(_unknownFields, other._unknownFields);
     }
 
@@ -10828,6 +11043,9 @@ namespace Bajoterra.Protocol {
       if (Vx != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(Vx);
       if (Vy != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(Vy);
       if (Vz != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(Vz);
+      if (Stuck != false) hash ^= Stuck.GetHashCode();
+      if (FuseTicks != 0) hash ^= FuseTicks.GetHashCode();
+      if (StuckTo != 0) hash ^= StuckTo.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -10882,6 +11100,18 @@ namespace Bajoterra.Protocol {
         output.WriteRawTag(77);
         output.WriteFloat(Vz);
       }
+      if (Stuck != false) {
+        output.WriteRawTag(80);
+        output.WriteBool(Stuck);
+      }
+      if (FuseTicks != 0) {
+        output.WriteRawTag(88);
+        output.WriteUInt32(FuseTicks);
+      }
+      if (StuckTo != 0) {
+        output.WriteRawTag(96);
+        output.WriteSInt32(StuckTo);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(output);
       }
@@ -10928,6 +11158,18 @@ namespace Bajoterra.Protocol {
         output.WriteRawTag(77);
         output.WriteFloat(Vz);
       }
+      if (Stuck != false) {
+        output.WriteRawTag(80);
+        output.WriteBool(Stuck);
+      }
+      if (FuseTicks != 0) {
+        output.WriteRawTag(88);
+        output.WriteUInt32(FuseTicks);
+      }
+      if (StuckTo != 0) {
+        output.WriteRawTag(96);
+        output.WriteSInt32(StuckTo);
+      }
       if (_unknownFields != null) {
         _unknownFields.WriteTo(ref output);
       }
@@ -10964,6 +11206,15 @@ namespace Bajoterra.Protocol {
       }
       if (Vz != 0F) {
         size += 1 + 4;
+      }
+      if (Stuck != false) {
+        size += 1 + 1;
+      }
+      if (FuseTicks != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(FuseTicks);
+      }
+      if (StuckTo != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeSInt32Size(StuckTo);
       }
       if (_unknownFields != null) {
         size += _unknownFields.CalculateSize();
@@ -11003,6 +11254,15 @@ namespace Bajoterra.Protocol {
       }
       if (other.Vz != 0F) {
         Vz = other.Vz;
+      }
+      if (other.Stuck != false) {
+        Stuck = other.Stuck;
+      }
+      if (other.FuseTicks != 0) {
+        FuseTicks = other.FuseTicks;
+      }
+      if (other.StuckTo != 0) {
+        StuckTo = other.StuckTo;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
     }
@@ -11059,6 +11319,18 @@ namespace Bajoterra.Protocol {
             Vz = input.ReadFloat();
             break;
           }
+          case 80: {
+            Stuck = input.ReadBool();
+            break;
+          }
+          case 88: {
+            FuseTicks = input.ReadUInt32();
+            break;
+          }
+          case 96: {
+            StuckTo = input.ReadSInt32();
+            break;
+          }
         }
       }
     #endif
@@ -11112,6 +11384,18 @@ namespace Bajoterra.Protocol {
           }
           case 77: {
             Vz = input.ReadFloat();
+            break;
+          }
+          case 80: {
+            Stuck = input.ReadBool();
+            break;
+          }
+          case 88: {
+            FuseTicks = input.ReadUInt32();
+            break;
+          }
+          case 96: {
+            StuckTo = input.ReadSInt32();
             break;
           }
         }

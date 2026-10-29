@@ -88,7 +88,7 @@ class ToolsTest {
             assertThat(catalog).contains("`" + slug.id() + "`");
         }
         assertThat(catalog).contains("`roll`", "`caverna`", "`health_pack`", "`eli`");
-        assertThat(catalog).contains("quemadura 4/s", "cura 35", "área r=3.0");
+        assertThat(catalog).contains("quemadura 4/s", "cura 35", "área r=3.0", "se pega donde choca");
         assertThat(catalog).contains("| FIRE | ICE | ×1.25 |");
     }
 

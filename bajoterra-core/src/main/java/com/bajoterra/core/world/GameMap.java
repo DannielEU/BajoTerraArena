@@ -24,6 +24,7 @@ public final class GameMap implements Identified {
     private final List<Obstacle> obstacleList;
     private final List<List<SpawnPoint>> spawns;
     private final List<PickupSpawn> pickups;
+    private final List<WaterPool> water;
     private final double navCellSize;
     private final SpatialGrid grid;
     private final NavGraph nav;
@@ -38,6 +39,17 @@ public final class GameMap implements Identified {
     public GameMap(String id, int index, String name, double minX, double maxX, double minZ, double maxZ,
             List<Obstacle> obstacles, List<List<SpawnPoint>> spawns, List<PickupSpawn> pickups,
             double navCellSize) {
+        this(id, index, name, minX, maxX, minZ, maxZ, obstacles, spawns, pickups, List.of(), navCellSize);
+    }
+
+    /**
+     * @param spawns one list of spawn points per team
+     * @param water decorative pools on the floor (no effect on the simulation)
+     * @param navCellSize spacing of the generated navigation lattice
+     */
+    public GameMap(String id, int index, String name, double minX, double maxX, double minZ, double maxZ,
+            List<Obstacle> obstacles, List<List<SpawnPoint>> spawns, List<PickupSpawn> pickups,
+            List<WaterPool> water, double navCellSize) {
         this.id = id;
         this.index = index;
         this.name = name;
@@ -53,6 +65,7 @@ public final class GameMap implements Identified {
         }
         this.spawns = List.copyOf(copy);
         this.pickups = List.copyOf(pickups);
+        this.water = List.copyOf(water);
         this.navCellSize = navCellSize;
         this.grid = new SpatialGrid(obstacleList, minX, minZ, maxX, maxZ, GRID_CELL);
         this.nav = NavGraph.generate(obstacleList, minX, minZ, maxX, maxZ, navCellSize);
@@ -68,7 +81,14 @@ public final class GameMap implements Identified {
     }
 
     public GameMap withIndex(int newIndex) {
-        return new GameMap(id, newIndex, name, minX, maxX, minZ, maxZ, obstacleList, spawns, pickups, navCellSize);
+        return new GameMap(id, newIndex, name, minX, maxX, minZ, maxZ, obstacleList, spawns, pickups, water,
+                navCellSize);
+    }
+
+    /** The same arena with these decorative pools instead of its own. */
+    public GameMap withWater(List<WaterPool> newWater) {
+        return new GameMap(id, index, name, minX, maxX, minZ, maxZ, obstacleList, spawns, pickups, newWater,
+                navCellSize);
     }
 
     @Override
@@ -128,6 +148,11 @@ public final class GameMap implements Identified {
 
     public List<PickupSpawn> pickups() {
         return pickups;
+    }
+
+    /** Decorative pools of water on the floor. */
+    public List<WaterPool> water() {
+        return water;
     }
 
     public NavGraph nav() {

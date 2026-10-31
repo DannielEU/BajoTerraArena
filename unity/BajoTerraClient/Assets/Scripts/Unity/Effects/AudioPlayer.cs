@@ -19,6 +19,17 @@ namespace Bajoterra.Unity
         public readonly AudioClip Fuse = ProceduralAudio.FuseLoop();
         public readonly AudioClip FuseBeep = ProceduralAudio.FuseBeep();
         public readonly AudioClip Stick = ProceduralAudio.Stick();
+        public readonly AudioClip FlashCharge = ProceduralAudio.FlashCharge();
+        public readonly AudioClip FlashBang = ProceduralAudio.FlashBang();
+        public readonly AudioClip Tinnitus = ProceduralAudio.Tinnitus();
+        public readonly AudioClip Splash = ProceduralAudio.Splash();
+        public readonly AudioClip Splish = ProceduralAudio.Splish();
+        public readonly AudioClip Plop = ProceduralAudio.Plop();
+        public readonly AudioClip IceForm = ProceduralAudio.IceForm();
+        public readonly AudioClip IceCrack = ProceduralAudio.IceCrack();
+        public readonly AudioClip IceShatter = ProceduralAudio.IceShatter();
+        public readonly AudioClip FireLoop = ProceduralAudio.FireLoop();
+        public readonly AudioClip FireWhoosh = ProceduralAudio.FireWhoosh();
         public readonly AudioClip Critical = ProceduralAudio.Critical();
         public readonly AudioClip Courage = ProceduralAudio.Courage();
         public readonly AudioClip Heal = ProceduralAudio.Heal();
@@ -37,12 +48,36 @@ namespace Bajoterra.Unity
         public readonly AudioClip Loss = ProceduralAudio.Loss();
 
         private readonly AudioSource _ambience;
+        private float _master = 1f;
+        private float _muffle;
 
         /// <summary>Master volume of the whole game, 0 to 1.</summary>
         public float MasterVolume
         {
-            get { return AudioListener.volume; }
-            set { AudioListener.volume = Mathf.Clamp01(value); }
+            get { return _master; }
+            set
+            {
+                _master = Mathf.Clamp01(value);
+                ApplyVolume();
+            }
+        }
+
+        /// <summary>
+        /// How dulled your hearing is, 0 to 1: a flash that blinds you also leaves your ears ringing, and the rest of
+        /// the world sounds far away until it wears off.
+        /// </summary>
+        public float Muffle
+        {
+            get { return _muffle; }
+            set
+            {
+                float clamped = Mathf.Clamp01(value);
+                if (Mathf.Abs(clamped - _muffle) > 0.001f)
+                {
+                    _muffle = clamped;
+                    ApplyVolume();
+                }
+            }
         }
 
         /// <summary>Volume of the cavern drone, 0 to 1.</summary>
@@ -99,6 +134,11 @@ namespace Bajoterra.Unity
             source.loop = true;
             source.spatialBlend = 1f;
             return source;
+        }
+
+        private void ApplyVolume()
+        {
+            AudioListener.volume = _master * (1f - 0.65f * _muffle);
         }
 
         private static void ConfigureWorldVoice(AudioSource source)

@@ -132,6 +132,42 @@ namespace Bajoterra.Client.Tests
         }
 
         [Test]
+        public void AStuckFlashIsNoGrenadeWarningAndItsBlindnessWhitensTheScreen()
+        {
+            ContentDetails details = TestContent.Details();
+            details.Slugs.Add(new SlugInfo
+            {
+                Id = "phosphoro", Name = "Phosphoro", Element = 8, Targeting = Targeting.Enemies, Role = "CONTROL",
+                ProjectileRadius = 0.3f, ProjectileSpeed = 20f, Sticky = true, FuseTicks = 90, FlashRadius = 26f
+            });
+            var match = new MatchSession(new ContentCatalog(TestContent.ManifestFor(details), details),
+                TestContent.MatchStart(4), 60);
+            CombatantState you = TestContent.Combatant(4, 0f, 0f);
+            you.Statuses.Add(new StatusState { Id = "blind", RemainingTicks = 180 });
+            var flash = new ProjectileState { Id = 9, SlugIndex = 2, Owner = 0, Stuck = true, StuckTo = 4, FuseTicks = 30 };
+            match.OnSnapshot(TestContent.Snapshot(300, new[] { you }, projectiles: new[] { flash }), 1.0);
+            var hud = new HudModel();
+
+            hud.Refresh(match, 0);
+
+            Assert.IsFalse(hud.GrenadeOnYou, "a flash blinds, it does not blow up");
+            Assert.AreEqual(1f, hud.BlindLevel, 1e-4f, "fully blinded until the last second");
+        }
+
+        [Test]
+        public void BlindnessFadesOverItsLastSecondAndEndsWithIt()
+        {
+            CombatantState state = TestContent.Combatant(4, 0f, 0f);
+            Assert.AreEqual(0f, HudModel.Blindness(state, 60));
+            state.Statuses.Add(new StatusState { Id = "slow", RemainingTicks = 200 });
+            state.Statuses.Add(new StatusState { Id = "blind", RemainingTicks = 30 });
+
+            Assert.AreEqual(0.5f, HudModel.Blindness(state, 60), 1e-4f);
+            state.Statuses[1].RemainingTicks = 240;
+            Assert.AreEqual(1f, HudModel.Blindness(state, 60), 1e-4f);
+        }
+
+        [Test]
         public void NoGrenadeWarningForAGrenadeStuckSomewhereElse()
         {
             MatchSession match = Session(you: 4);

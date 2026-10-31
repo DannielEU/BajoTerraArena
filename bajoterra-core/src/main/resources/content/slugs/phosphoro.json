@@ -5,23 +5,33 @@
   "role": "CONTROL",
   "targeting": "ENEMIES",
   "projectile": {
-    "speed": 50,
-    "gravity": 2,
-    "radius": 0.25,
-    "lifetimeSeconds": 2.5,
-    "pierce": 0
+    "speed": 20,
+    "gravity": 9,
+    "radius": 0.3,
+    "lifetimeSeconds": 3,
+    "pierce": 0,
+    "sticky": true,
+    "fuseSeconds": 1.5,
+    "proximity": 3.5
   },
-  "fireDelayMultiplier": 1.0,
-  "botWeight": 0.8,
-  "onHit": [
+  "fireDelayMultiplier": 1.4,
+  "botWeight": 0.7,
+  "onExpire": [
     {
-      "type": "damage",
-      "amount": 5
-    },
-    {
-      "type": "blind",
-      "spread": 0.3,
-      "durationSeconds": 3
+      "type": "flash",
+      "radius": 26,
+      "viewAngle": 55,
+      "beamAngle": 100,
+      "minScale": 0.3,
+      "effects": [
+        {
+          "type": "blind",
+          "spread": 0.4,
+          "durationSeconds": 4,
+          "scaleDuration": true,
+          "stacking": "LONGEST"
+        }
+      ]
     }
   ]
 }

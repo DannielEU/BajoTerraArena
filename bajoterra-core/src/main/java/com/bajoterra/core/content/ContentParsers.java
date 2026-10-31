@@ -14,11 +14,13 @@ import com.bajoterra.core.slug.Element;
 import com.bajoterra.core.slug.ElementChart;
 import com.bajoterra.core.slug.ProjectileSpec;
 import com.bajoterra.core.slug.SlugDefinition;
+import com.bajoterra.core.slug.TrailSpec;
 import com.bajoterra.core.slug.SlugRole;
 import com.bajoterra.core.slug.TargetingRule;
 import com.bajoterra.core.world.GameMap;
 import com.bajoterra.core.world.Obstacle;
 import com.bajoterra.core.world.PickupSpawn;
+import com.bajoterra.core.world.WaterPool;
 import com.bajoterra.core.world.SpawnPoint;
 import java.util.ArrayList;
 import java.util.List;
@@ -140,8 +142,10 @@ final class ContentParsers {
         Spec flight = spec.optObject("projectile");
         if (flight != null) {
             int fuse = 0;
+            double proximity = 0;
             if (flight.optBoolean("sticky", false)) {
                 fuse = Math.max(1, ticks(flight, "fuse", 90));
+                proximity = flight.optDouble("proximity", 0, 0, 20);
             }
             projectile = new ProjectileSpec(
                     flight.optDouble("speed", 45, 1, 200),
@@ -149,7 +153,7 @@ final class ContentParsers {
                     flight.optDouble("radius", 0.25, 0.05, 2),
                     Math.max(1, ticks(flight, "lifetime", 120)),
                     flight.optInt("pierce", 0, 0, 5),
-                    fuse);
+                    fuse, proximity);
         }
         return SlugDefinition.builder(id)
                 .name(spec.optString("name", id))
@@ -165,7 +169,29 @@ final class ContentParsers {
                 .onWorldHit(effects.createAll(spec.list("onWorldHit")))
                 .onTick(effects.createAll(spec.list("onTick")))
                 .onExpire(effects.createAll(spec.list("onExpire")))
+                .trail(trail(spec.optObject("trail"), effects))
                 .build();
+    }
+
+    /** The wall of fire a slug leaves under its flight ({@code "trail"}), or {@link TrailSpec#NONE}. */
+    private static TrailSpec trail(Spec spec, EffectRegistry effects) {
+        if (spec == null) {
+            return TrailSpec.NONE;
+        }
+        var effectSpecs = spec.list("effects");
+        if (effectSpecs.isEmpty()) {
+            throw spec.fail("effects", "a trail needs at least one effect");
+        }
+        return new TrailSpec(
+                spec.optDouble("spacing", 0.9, 0.3, 5),
+                spec.optDouble("maxHeight", 2.2, 0.2, 10),
+                spec.optDouble("radius", 0.6, 0.2, 3),
+                spec.optDouble("height", 1.4, 0.2, 5),
+                Math.max(1, ticks(spec, "duration", 210)),
+                Math.max(1, ticks(spec, "period", 30)),
+                spec.optDouble("maxLength", 14, 0.5, 100),
+                spec.optDouble("startAfter", 1.2, 0, 20),
+                effects.createAll(effectSpecs));
     }
 
     static GameMap map(Spec spec) {
@@ -204,11 +230,17 @@ final class ContentParsers {
             double[] pos = p.requireVector("pos", 3);
             pickups.add(new PickupSpawn(p.requireString("item"), pos[0], pos[1], pos[2]));
         }
+        List<WaterPool> water = new ArrayList<>();
+        for (Spec w : spec.list("water")) {
+            double[] pos = w.requireVector("pos", 2);
+            water.add(new WaterPool(pos[0], pos[1], w.requireDouble("radius", WaterPool.MIN_RADIUS,
+                    WaterPool.MAX_RADIUS)));
+        }
         Spec nav = spec.optObject("nav");
         double navCell = nav == null ? 3.0 : nav.optDouble("cellSize", 3.0, 1.0, 10.0);
         return new GameMap(id, 0, spec.optString("name", id),
                 bounds.requireDouble("minX", -1000, 1000), bounds.requireDouble("maxX", -1000, 1000),
                 bounds.requireDouble("minZ", -1000, 1000), bounds.requireDouble("maxZ", -1000, 1000),
-                obstacles, spawns, pickups, navCell);
+                obstacles, spawns, pickups, water, navCell);
     }
 }

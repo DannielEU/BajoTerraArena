@@ -11,9 +11,14 @@ import com.bajoterra.core.combat.DamagePipeline;
 import com.bajoterra.core.content.Content;
 import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.event.EventBuffer;
+import com.bajoterra.core.event.EventType;
+import com.bajoterra.core.event.GameEvent;
+import com.bajoterra.core.hazard.Hazard;
+import com.bajoterra.core.hazard.HazardSystem;
 import com.bajoterra.core.item.Pickup;
 import com.bajoterra.core.item.PickupDefinition;
 import com.bajoterra.core.item.PickupSystem;
+import com.bajoterra.core.mapgen.ArenaGenerator;
 import com.bajoterra.core.math.Vec3;
 import com.bajoterra.core.move.LocomotionStateMachine;
 import com.bajoterra.core.move.MovementSystem;
@@ -24,6 +29,7 @@ import com.bajoterra.core.rules.Courage;
 import com.bajoterra.core.rules.Match;
 import com.bajoterra.core.rules.MatchListener;
 import com.bajoterra.core.slug.SlugDefinition;
+import com.bajoterra.core.world.Barrier;
 import com.bajoterra.core.world.GameMap;
 import com.bajoterra.core.world.PickupSpawn;
 import com.bajoterra.core.world.SpawnPoint;
@@ -56,6 +62,7 @@ public final class GameSimulation implements MatchListener {
     private final CombatArena arena;
     private final ProjectilePool pool;
     private final ProjectileSystem projectiles;
+    private final HazardSystem hazards;
     private final FireController fireController;
     private final MovementSystem movement;
     private final LocomotionStateMachine locomotion = new LocomotionStateMachine();
@@ -70,7 +77,7 @@ public final class GameSimulation implements MatchListener {
     public GameSimulation(Content content, MatchConfig config) {
         this.content = content;
         this.config = config;
-        this.map = content.maps().require(config.mapId());
+        this.map = resolveMap(content, config);
         this.world = new World(map);
         this.slots = BotFiller.fill(config, content);
         SplittableRandom loadoutRandom = new SplittableRandom(config.seed() ^ 0xA5A5A5A5L);
@@ -82,8 +89,11 @@ public final class GameSimulation implements MatchListener {
         this.arena = new CombatArena(combatants,
                 DamagePipeline.standard(content.elementChart(), config.friendlyFire()),
                 new EventBuffer(EVENT_CAPACITY), config.seed());
+        arena.setSight(world::hasLineOfSight);
+        arena.setStructures(this::raiseWall);
         this.pool = new ProjectilePool(MAX_PROJECTILES);
-        this.projectiles = new ProjectileSystem(arena, world, pool);
+        this.hazards = new HazardSystem(arena);
+        this.projectiles = new ProjectileSystem(arena, world, pool, hazards);
         this.fireController = new FireController(arena, world, projectiles, SlotSelectionPolicy.MANUAL);
         this.movement = new MovementSystem(world);
         this.pickups = new PickupSystem(arena, createPickups());
@@ -122,6 +132,22 @@ public final class GameSimulation implements MatchListener {
             list.add(new Pickup(list.size(), definition, new Vec3(spawn.x(), spawn.y(), spawn.z())));
         }
         return list;
+    }
+
+    /**
+     * The arena of a match: a map from the content, or a new generated one ({@link ArenaGenerator#MAP_ID}) made from
+     * the match seed, so every match with its own seed gets its own arena.
+     */
+    public static GameMap resolveMap(Content content, MatchConfig config) {
+        if (ArenaGenerator.MAP_ID.equals(config.mapId()) && content.maps().find(config.mapId()) == null) {
+            return ArenaGenerator.generate(config.seed(), content);
+        }
+        return content.maps().require(config.mapId());
+    }
+
+    /** True when matches can be played on {@code mapId}: a map of the content or the generated arena. */
+    public static boolean isPlayableMap(Content content, String mapId) {
+        return ArenaGenerator.MAP_ID.equals(mapId) || content.maps().find(mapId) != null;
     }
 
     // ---------------------------------------------------------------------------------------- control
@@ -178,6 +204,8 @@ public final class GameSimulation implements MatchListener {
             }
         }
         projectiles.step();
+        hazards.step();
+        meltBarriers();
         for (Combatant c : combatants) {
             if (c.alive) {
                 c.statuses.tick(c, arena);
@@ -195,6 +223,8 @@ public final class GameSimulation implements MatchListener {
             director.afterRound(match.lastRoundWinner(), arena);
         }
         pool.releaseAll();
+        world.clearBarriers();
+        hazards.clear();
         pickups.resetAll();
         placeCombatants();
         for (Combatant c : combatants) {
@@ -208,6 +238,57 @@ public final class GameSimulation implements MatchListener {
     public void onMatchEnd(int winnerTeam) {
         director.afterRound(match.lastRoundWinner(), arena);
         pool.releaseAll();
+        world.clearBarriers();
+        hazards.clear();
+    }
+
+    /**
+     * Raises a wall (an ice wall) standing on the surface under (x, y, z), across the horizontal direction it was
+     * thrown in. Walls are boxes aligned with the arena, so the direction is snapped to the nearer axis; the wall is
+     * kept inside the arena.
+     */
+    private boolean raiseWall(Combatant owner, int slugIndex, double x, double y, double z, double dirX, double dirZ,
+            double width, double height, double thickness, int hits, int ticks) {
+        double halfLong = width * 0.5;
+        double halfThin = thickness * 0.5;
+        boolean acrossX = Math.abs(dirX) >= Math.abs(dirZ);
+        double halfX = acrossX ? halfThin : halfLong;
+        double halfZ = acrossX ? halfLong : halfThin;
+        double cx = Math.min(Math.max(x, map.minX() + halfX), map.maxX() - halfX);
+        double cz = Math.min(Math.max(z, map.minZ() + halfZ), map.maxZ() - halfZ);
+        double base = world.groundHeightAt(cx, cz, y + 0.05, 0.1);
+        Barrier barrier = world.raiseBarrier(cx - halfX, base, cz - halfZ, cx + halfX, base + height, cz + halfZ,
+                hits, ticks, owner == null ? -1 : owner.id, slugIndex);
+        GameEvent event = arena.events().begin(EventType.BARRIER_RAISED, arena.tick());
+        event.actor = owner == null ? -1 : owner.id;
+        event.a = slugIndex;
+        event.b = barrier.id;
+        event.x = cx;
+        event.y = base;
+        event.z = cz;
+        event.value = hits;
+        return true;
+    }
+
+    /** Barriers melt away when their time is up. */
+    private void meltBarriers() {
+        for (Barrier barrier : world.barriers()) {
+            if (barrier.active && --barrier.ticksLeft <= 0) {
+                barrier.active = false;
+                GameEvent event = arena.events().begin(EventType.BARRIER_GONE, arena.tick());
+                event.actor = barrier.ownerId;
+                event.a = 0;
+                event.b = barrier.id;
+                event.x = (barrier.minX + barrier.maxX) * 0.5;
+                event.y = barrier.minY;
+                event.z = (barrier.minZ + barrier.maxZ) * 0.5;
+            }
+        }
+    }
+
+    /** The walls of fire burning on the floor. */
+    public HazardSystem hazards() {
+        return hazards;
     }
 
     /**
@@ -296,6 +377,19 @@ public final class GameSimulation implements MatchListener {
             hash = mix(hash, c.loadout.shotCounter());
             hash = mix(hash, c.alive ? 1 : 0);
             hash = mix(hash, c.courage);
+        }
+        for (Barrier barrier : world.barriers()) {
+            if (barrier.active) {
+                hash = mix(hash, barrier.id);
+                hash = mix(hash, barrier.hitsLeft);
+                hash = mix(hash, barrier.ticksLeft);
+            }
+        }
+        for (Hazard hazard : hazards.hazards()) {
+            if (hazard.active) {
+                hash = mix(hash, hazard.id);
+                hash = mix(hash, hazard.ticksLeft);
+            }
         }
         for (int i = 0; i < pool.capacity(); i++) {
             Projectile p = pool.at(i);

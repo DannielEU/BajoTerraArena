@@ -132,6 +132,11 @@ message SlugInfo {
   bool sticky = 9;                 // a grenade: sticks where it lands (ProjectileState.stuck) and explodes later
   uint32 fuse_ticks = 10;          // sticky slugs: ticks between sticking and the explosion
   float blast_radius = 11;         // radius of the area its explosion reaches (0 when it has none)
+  float flash_radius = 12;         // a blinding slug (Phosphoro): how far its flash can be seen (0 when it has none)
+  bool raises_wall = 13;           // it raises a wall where it lands (Frostcrawler's ice wall)
+  float trail_radius = 14;         // the wall of fire it leaves under its flight (Infurnus): radius of each patch
+  float trail_height = 15;         //   how tall the flames are
+  uint32 trail_ticks = 16;         //   how long a patch burns (0 when it leaves no trail)
 }
 
 message CharacterInfo {
@@ -211,6 +216,14 @@ message MapData {
   repeated ObstacleInfo obstacles = 7;
   repeated PickupPlacement pickups = 8;   // list position == PickupState.index
   repeated SpawnInfo spawns = 9;
+  repeated WaterPool water = 10;          // decorative puddles: no gameplay, only splashes and ripples
+}
+
+// A small round pool of shallow water lying on the floor. Purely decorative: the server simulates nothing in it.
+message WaterPool {
+  float x = 1;
+  float z = 2;
+  float radius = 3;
 }
 
 message ObstacleInfo {
@@ -316,6 +329,33 @@ message ProjectileState {
   sint32 stuck_to = 12;        // stuck slugs: combatant it clings to (it moves with them), or -1 for the world
 }
 
+// A wall raised during the round (an ice wall): solid for movement, slugs and sight until broken or melted.
+message BarrierState {
+  uint32 id = 1;
+  float min_x = 2;
+  float min_y = 3;
+  float min_z = 4;
+  float max_x = 5;
+  float max_y = 6;
+  float max_z = 7;
+  uint32 hits_left = 8;
+  uint32 ticks_left = 9;
+  uint32 life_ticks = 10;
+  sint32 slug_index = 11;
+  sint32 owner = 12;
+}
+
+// A patch of a wall of fire burning on the floor (see SlugInfo.trail_*).
+message HazardState {
+  uint32 id = 1;
+  uint32 slug_index = 2;
+  sint32 owner = 3;
+  float x = 4;
+  float y = 5;
+  float z = 6;
+  uint32 ticks_left = 7;
+}
+
 message PickupState {
   uint32 index = 1;
   bool available = 2;
@@ -329,6 +369,8 @@ message Snapshot {
   repeated ProjectileState projectiles = 5;
   repeated PickupState pickups = 6;
   LocalState local = 7;          // only in the snapshot sent to the player it describes
+  repeated BarrierState barriers = 8;
+  repeated HazardState hazards = 9;
 }
 
 // What the receiving player's client needs, besides CombatantState, to continue the movement simulation from the
@@ -368,6 +410,10 @@ enum EventKind {
   ROUND_ENDED = 18;
   MATCH_ENDED = 19;
   COURAGE = 20;
+  FLASH = 21;
+  BARRIER_RAISED = 22;
+  BARRIER_HIT = 23;
+  BARRIER_GONE = 24;
 }
 
 // Fields a/b/value/x/y/z mean different things per kind; see the Javadoc of EventType in bajoterra-core.

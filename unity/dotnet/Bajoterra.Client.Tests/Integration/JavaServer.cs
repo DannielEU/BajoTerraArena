@@ -39,7 +39,8 @@ namespace Bajoterra.Client.Integration
                 }
                 Assert.Ignore(message);
             }
-            var start = new ProcessStartInfo(JavaExecutable(), "-jar \"" + jar + "\" --port 0")
+            // The ramp tests walk Caverna's hills, so these tests always play the hand-made map.
+            var start = new ProcessStartInfo(JavaExecutable(), "-jar \"" + jar + "\" --port 0 --map caverna")
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,

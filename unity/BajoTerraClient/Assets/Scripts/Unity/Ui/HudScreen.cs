@@ -29,6 +29,7 @@ namespace Bajoterra.Unity
             public RectTransform Holder;
             public Image Background;
             public Image Sheen;
+            public RawImage Face;
             public Image Border;
             public Text Key;
             public Text Name;
@@ -86,6 +87,8 @@ namespace Bajoterra.Unity
         private readonly Text _countdown;
         private readonly Text _debug;
         private readonly Image _flash;
+        private readonly Image _blind;
+        private readonly Image _blindBurn;
         private readonly Image _lowHealth;
         private readonly RectTransform _spectateBar;
         private readonly Text _spectateText;
@@ -119,6 +122,7 @@ namespace Bajoterra.Unity
         private float _bannerTime;
         private float _bannerTotal = 1f;
         private float _flashAlpha;
+        private float _blindShown;
         private float _deathTime;
         private float _countdownPulse;
         private float _criticalTime = 99f;
@@ -326,6 +330,21 @@ namespace Bajoterra.Unity
             UiKit.Fire(boardTitle);
             _scoreboard = new HudScoreboard(_scoreboardLayer);
             _scoreboardLayer.gameObject.SetActive(false);
+
+            // ----- blinded by a flash: everything goes white, with a burnt-in glow that lingers as it fades
+            _blind = UiKit.Panel(Root, "Blind", new Color(1f, 0.98f, 0.92f, 0f));
+            UiKit.Stretch(_blind.rectTransform);
+            _blind.raycastTarget = false;
+            _blindBurn = UiKit.Panel(Root, "BlindBurn", new Color(1f, 0.93f, 0.62f, 0f));
+            _blindBurn.sprite = UiSprites.Glow();
+            UiKit.Place(_blindBurn.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1400f, 1100f), Vector2.zero);
+            _blindBurn.raycastTarget = false;
+        }
+
+        /// <summary>How white the screen is right now because of a flash (0 none, 1 blinded); for tests.</summary>
+        public float BlindShown
+        {
+            get { return _blindShown; }
         }
 
         // ------------------------------------------------------------------------------------------ public
@@ -627,6 +646,9 @@ namespace Bajoterra.Unity
                     w.Sheen.color = new Color(Mathf.Lerp(element.r, 1f, 0.4f), Mathf.Lerp(element.g, 1f, 0.4f),
                         Mathf.Lerp(element.b, 1f, 0.4f), 0.5f);
                     w.Name.text = view.Name;
+                    Texture2D portrait = view.Id == null ? null : SlugPortraits.Get(view.Id);
+                    w.Face.texture = portrait;
+                    w.Face.enabled = portrait != null;
                 }
                 if (view.ShotsUntilReady != w.LastShots)
                 {
@@ -801,6 +823,22 @@ namespace Bajoterra.Unity
             }
         }
 
+        /// <summary>
+        /// The white-out of a flash: it snaps to white the moment you are blinded and eases out with the blindness,
+        /// the last of it a warm afterglow in the middle of the view, the way a bright light burns into your eyes.
+        /// </summary>
+        private void RefreshBlind(HudModel model, float deltaTime)
+        {
+            float target = model.BlindLevel;
+            _blindShown = target > _blindShown ? target : Mathf.MoveTowards(_blindShown, target, deltaTime * 2.5f);
+            float white = Mathf.Clamp01(_blindShown * 1.15f);
+            _blind.color = new Color(1f, 0.98f, 0.92f, white * white * 0.985f);
+            float burn = Mathf.Clamp01(_blindShown * 2.2f) * (1f - white * white * 0.6f);
+            _blindBurn.color = new Color(1f, 0.93f, 0.62f, burn * 0.75f);
+            _blindBurn.enabled = burn > 0.001f;
+            _blind.enabled = white > 0.001f;
+        }
+
         private void RefreshOverlays(HudModel model, float deltaTime)
         {
             if (_flashAlpha > 0f)
@@ -817,6 +855,7 @@ namespace Bajoterra.Unity
             RefreshCritical(deltaTime);
             RefreshCourage(model);
             RefreshGrenade(model);
+            RefreshBlind(model, deltaTime);
 
             if (_dead)
             {
@@ -975,6 +1014,12 @@ namespace Bajoterra.Unity
                 UiKit.Gradient(w.Sheen, Color.white, new Color(1f, 1f, 1f, 0f));
                 UiKit.Inset(w.Sheen.rectTransform, 4f, 0f, 4f, 4f);
                 w.Sheen.rectTransform.anchorMin = new Vector2(0f, 0.45f);
+                // The slug itself, its 3D model photographed for the tile.
+                w.Face = new GameObject("Face", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+                w.Face.transform.SetParent(w.Background.transform, false);
+                UiKit.Place(w.Face.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(70f, 70f), new Vector2(4f, 8f));
+                w.Face.raycastTarget = false;
+                w.Face.enabled = false;
                 w.Border = UiKit.Edge(w.Background.transform, Palette.WithAlpha(UiKit.Ink, 0.95f), 12, 4);
                 w.Key = UiKit.Label(w.Background.transform, "Key", ((i + 1) % 10).ToString(), 24, TextAnchor.UpperLeft,
                     new Color(1f, 1f, 1f, 0.9f));

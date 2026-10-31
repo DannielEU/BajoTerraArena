@@ -19,16 +19,21 @@ import com.bajoterra.core.sim.SimulationConstants;
 import com.bajoterra.core.slug.Element;
 import com.bajoterra.core.slug.SlugDefinition;
 import com.bajoterra.core.stats.StatBlock;
+import com.bajoterra.core.hazard.Hazard;
+import com.bajoterra.core.world.Barrier;
 import com.bajoterra.core.world.GameMap;
 import com.bajoterra.core.world.Obstacle;
 import com.bajoterra.core.world.PickupSpawn;
 import com.bajoterra.core.world.SpawnPoint;
+import com.bajoterra.core.world.WaterPool;
+import com.bajoterra.protocol.generated.BarrierState;
 import com.bajoterra.protocol.generated.CharacterInfo;
 import com.bajoterra.protocol.generated.CombatantState;
 import com.bajoterra.protocol.generated.ContentDetails;
 import com.bajoterra.protocol.generated.ContentManifest;
 import com.bajoterra.protocol.generated.EventBatch;
 import com.bajoterra.protocol.generated.EventKind;
+import com.bajoterra.protocol.generated.HazardState;
 import com.bajoterra.protocol.generated.LocalState;
 import com.bajoterra.protocol.generated.MapData;
 import com.bajoterra.protocol.generated.MatchInfo;
@@ -89,7 +94,13 @@ public final class SnapshotBuilder {
                     .setFireDelayMultiplier((float) slug.fireDelayMultiplier())
                     .setSticky(slug.projectile().sticky())
                     .setFuseTicks(slug.projectile().fuseTicks())
-                    .setBlastRadius((float) slug.onExpire().areaRadius()));
+                    .setBlastRadius((float) slug.onExpire().areaRadius())
+                    .setFlashRadius((float) slug.onExpire().flashRadius())
+                    .setRaisesWall(slug.onHit().raisesWall() || slug.onWorldHit().raisesWall()
+                            || slug.onExpire().raisesWall())
+                    .setTrailRadius((float) slug.trail().radius())
+                    .setTrailHeight((float) slug.trail().height())
+                    .setTrailTicks(slug.trail().exists() ? slug.trail().durationTicks() : 0));
         }
         for (var character : content.characters().all()) {
             CharacterInfo.Builder info = CharacterInfo.newBuilder().setId(character.id()).setName(character.name())
@@ -149,6 +160,10 @@ public final class SnapshotBuilder {
                     .setPickupIndex(content.pickups().require(spawn.pickupId()).index())
                     .setX((float) spawn.x()).setY((float) spawn.y()).setZ((float) spawn.z()));
         }
+        for (WaterPool pool : map.water()) {
+            builder.addWater(com.bajoterra.protocol.generated.WaterPool.newBuilder().setX((float) pool.x())
+                    .setZ((float) pool.z()).setRadius((float) pool.radius()));
+        }
         List<List<SpawnPoint>> spawns = map.spawns();
         for (int team = 0; team < spawns.size(); team++) {
             for (SpawnPoint spawn : spawns.get(team)) {
@@ -200,6 +215,23 @@ public final class SnapshotBuilder {
         }
         for (Pickup pickup : sim.pickups()) {
             builder.addPickups(PickupState.newBuilder().setIndex(pickup.index).setAvailable(pickup.available));
+        }
+        for (Barrier b : sim.world().barriers()) {
+            if (b.active) {
+                builder.addBarriers(BarrierState.newBuilder().setId(b.id)
+                        .setMinX((float) b.minX).setMinY((float) b.minY).setMinZ((float) b.minZ)
+                        .setMaxX((float) b.maxX).setMaxY((float) b.maxY).setMaxZ((float) b.maxZ)
+                        .setHitsLeft(Math.max(0, b.hitsLeft)).setTicksLeft(Math.max(0, b.ticksLeft))
+                        .setLifeTicks(b.lifeTicks).setSlugIndex(b.slugIndex).setOwner(b.ownerId));
+            }
+        }
+        for (Hazard h : sim.hazards().hazards()) {
+            if (h.active) {
+                builder.addHazards(HazardState.newBuilder().setId(h.id).setSlugIndex(h.slug.index())
+                        .setOwner(h.owner == null ? -1 : h.owner.id)
+                        .setX((float) h.x).setY((float) h.y).setZ((float) h.z)
+                        .setTicksLeft(Math.max(0, h.ticksLeft)));
+            }
         }
         return builder.build();
     }

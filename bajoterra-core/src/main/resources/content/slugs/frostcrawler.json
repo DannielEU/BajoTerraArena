@@ -1,0 +1,40 @@
+{
+  "id": "frostcrawler",
+  "name": "Frostcrawler",
+  "element": "ICE",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 32,
+    "gravity": 12,
+    "radius": 0.28,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.2,
+  "botWeight": 0.8,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 6
+    },
+    {
+      "type": "ice_wall",
+      "width": 3.2,
+      "height": 2.2,
+      "thickness": 0.5,
+      "hits": 2,
+      "durationSeconds": 8
+    }
+  ],
+  "onWorldHit": [
+    {
+      "type": "ice_wall",
+      "width": 3.2,
+      "height": 2.2,
+      "thickness": 0.5,
+      "hits": 2,
+      "durationSeconds": 8
+    }
+  ]
+}

@@ -260,6 +260,16 @@ namespace Bajoterra.Client.Prediction
         {
             double feet = body.Y;
             double top = feet + body.HitHeightNow;
+            // Walls raised during the round first, as the server does.
+            ObstacleBox[] barriers = map.Barriers;
+            for (int i = 0; i < map.BarrierCount; i++)
+            {
+                ObstacleBox b = barriers[i];
+                if (b.MaxY - feet > StepHeight && b.MinY < top)
+                {
+                    PushOut(body, b, radius);
+                }
+            }
             ObstacleBox[] obstacles = map.Obstacles;
             for (int i = 0; i < obstacles.Length; i++)
             {

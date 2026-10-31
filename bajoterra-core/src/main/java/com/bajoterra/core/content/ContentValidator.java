@@ -10,6 +10,7 @@ import com.bajoterra.core.world.NavGraph;
 import com.bajoterra.core.world.Obstacle;
 import com.bajoterra.core.world.PickupSpawn;
 import com.bajoterra.core.world.SpawnPoint;
+import com.bajoterra.core.world.WaterPool;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +18,7 @@ import java.util.List;
  * Semantic checks that need several definitions at once (the per-field checks live in the parsers): slugs must do
  * something and match their role, and maps must be playable (valid spawns, reachable teams, sane obstacles).
  */
-final class ContentValidator {
+public final class ContentValidator {
 
     /** Minimum spawn points per team (3v3). */
     static final int MIN_SPAWNS_PER_TEAM = 3;
@@ -26,6 +27,9 @@ final class ContentValidator {
 
     /** Steepest ramp that can be walked up (rise over run); a combatant climbs far less than a step each tick. */
     static final double MAX_RAMP_SLOPE = 0.7;
+
+    /** Free floor kept between a pool of water and any solid or the outer walls (room for its rim of stones). */
+    static final double WATER_CLEARANCE = 0.4;
 
     /** How far below an obstacle's surface a point may be and still count as standing on it. */
     private static final double SURFACE_TOLERANCE = 0.05;
@@ -71,6 +75,16 @@ final class ContentValidator {
         }
     }
 
+    /**
+     * What makes a map unplayable (bad bounds, thin or too steep obstacles, spawns or pickups inside solids, no path
+     * between the teams); empty when it is fine. Used for authored maps at load time and for generated ones.
+     */
+    public static List<String> mapProblems(GameMap map, Content content) {
+        List<String> problems = new ArrayList<>();
+        validateMap(map, content, problems);
+        return problems;
+    }
+
     private static void validateMap(GameMap map, Content content, List<String> problems) {
         String where = "map '" + map.id() + "'";
         if (!(map.maxX() > map.minX()) || !(map.maxZ() > map.minZ())) {
@@ -113,6 +127,9 @@ final class ContentValidator {
                 problems.add(where + ": pickup '" + pickup.pickupId() + "' is inside an obstacle");
             }
         }
+        for (WaterPool pool : map.water()) {
+            validateWater(map, pool, where, problems);
+        }
         NavGraph nav = map.nav();
         if (nav.size() == 0) {
             problems.add(where + ": navigation graph is empty");
@@ -123,6 +140,29 @@ final class ContentValidator {
             int to = nav.nearestNode(b.x(), b.z());
             if (nav.pathLength(from, to) == Float.POSITIVE_INFINITY) {
                 problems.add(where + ": there is no walkable path between the two teams' spawns");
+            }
+        }
+    }
+
+    /**
+     * A pool lies on open floor inside the arena: no solid stands in it (the water is drawn on the floor, so it would
+     * poke through a crate or a ramp) and it keeps clear of the outer walls.
+     */
+    private static void validateWater(GameMap map, WaterPool pool, String where, List<String> problems) {
+        String what = where + ": water at (" + pool.x() + ", " + pool.z() + ")";
+        double r = pool.radius();
+        if (pool.x() - r < map.minX() + WATER_CLEARANCE || pool.x() + r > map.maxX() - WATER_CLEARANCE
+                || pool.z() - r < map.minZ() + WATER_CLEARANCE || pool.z() + r > map.maxZ() - WATER_CLEARANCE) {
+            problems.add(what + " reaches the edge of the arena");
+        }
+        for (Obstacle o : map.obstacleList()) {
+            double nearestX = Math.max(o.minX(), Math.min(pool.x(), o.maxX()));
+            double nearestZ = Math.max(o.minZ(), Math.min(pool.z(), o.maxZ()));
+            double dx = pool.x() - nearestX;
+            double dz = pool.z() - nearestZ;
+            double reach = r + WATER_CLEARANCE;
+            if (o.minY() < 0.5 && dx * dx + dz * dz < reach * reach) {
+                problems.add(what + " runs under obstacle '" + o.id() + "'");
             }
         }
     }

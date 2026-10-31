@@ -440,10 +440,11 @@ def lips(H, acc, x0, x1, u_line, up, low, mat, bow=.25, line_mat='Mouth', line_w
 
 
 def open_mouth(H, acc, x0, x1, u_top, u_bot, mat='Mouth', curve=.0, smile=.0, teeth_up=None, teeth_low=None,
-               lip_mat=None, depth=.0012, teeth_mat='Tooth', smirk=0.0):
+               lip_mat=None, depth=.0012, teeth_mat='Tooth', smirk=0.0, pointed=False):
     """An open grin between x0 and x1: the top edge at u_top (bowed down in the middle by `curve`, corners raised by
     `smile`, the left corner raised `smirk` more), the bottom edge reaching u_bot in the middle. teeth_up / teeth_low:
-    (count, height in u, gap in m) for rows of teeth along the top / bottom edge."""
+    (count, height in u, gap in m) for rows of teeth along the top / bottom edge; pointed=True makes them sharp
+    triangles (fangs, a shark's grin) instead of rounded blocks."""
     def top(s):
         t = 2 * s - 1
         return u_top - curve * (1 - t * t) + smile * t * t + smirk * max(0.0, t) ** 2
@@ -469,7 +470,7 @@ def open_mouth(H, acc, x0, x1, u_top, u_bot, mat='Mouth', curve=.0, smile=.0, te
                 x = x0 + (x1 - x0) * ss
                 e = edge(ss)
                 lim = bot(ss) if sign < 0 else top(ss)
-                far = e + sign * h * (1 - .25 * (2 * s - 1) ** 2)
+                far = e + sign * h * ((1 - abs(2 * s - 1)) if pointed else (1 - .25 * (2 * s - 1) ** 2))
                 if sign < 0:
                     far = max(far, lim)
                 else:

@@ -107,6 +107,23 @@ namespace Bajoterra.Unity
             _ready = false;
         }
 
+        /// <summary>A TCP port nothing is listening on right now, or -1.</summary>
+        public static int FreePort()
+        {
+            try
+            {
+                var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+                listener.Start();
+                int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+                listener.Stop();
+                return port;
+            }
+            catch (System.Exception)
+            {
+                return -1;
+            }
+        }
+
         private static string JavaExecutable()
         {
             string home = System.Environment.GetEnvironmentVariable("JAVA_HOME");
@@ -118,6 +135,8 @@ namespace Bajoterra.Unity
             return File.Exists(candidate) ? candidate : "java";
         }
 #else
+        public static int FreePort() { return -1; }
+
         public bool Ready { get { return false; } }
 
         public bool Exited { get { return false; } }

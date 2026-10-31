@@ -14,14 +14,14 @@ HERE = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() els
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
-import bt_lib, bt_face, bt_slugs, bt_heads, bt_weapons, bt_rig, bt_chars  # noqa: E402
+import bt_lib, bt_face, bt_slugs, bt_slug_models, bt_heads, bt_weapons, bt_rig, bt_chars  # noqa: E402
 
 OUT = os.path.normpath(os.path.join(HERE, '..', '..', 'BajoTerraClient', 'Assets', 'Resources', 'Models'))
 NAMES = ('eli', 'trixie', 'kord', 'pronto')
 
 
 def reload_all():
-    for m in (bt_lib, bt_face, bt_slugs, bt_heads, bt_weapons, bt_rig, bt_chars):   # dependencies first
+    for m in (bt_lib, bt_face, bt_slugs, bt_slug_models, bt_heads, bt_weapons, bt_rig, bt_chars):   # dependencies first
         importlib.reload(m)
 
 
@@ -57,8 +57,23 @@ def export(name):
     return path, info
 
 
+SLUG_OUT = os.path.join(OUT, 'Slugs')
+
+
+def export_slug(kind):
+    """One of the fifteen fired slugs (bt_slug_models) to Resources/Models/Slugs/<id>.fbx."""
+    return bt_slug_models.export(kind, SLUG_OUT)
+
+
 if __name__ == '__main__' and '--' in sys.argv:
     which = sys.argv[sys.argv.index('--') + 1:]
     for n in (NAMES if which == ['all'] else which):
+        if n == 'slugs':
+            for kind in bt_slug_models.IDS:
+                print('exported', export_slug(kind))
+            continue
+        if n.startswith('slug:'):
+            print('exported', export_slug(n[5:]))
+            continue
         bt_lib.clear_scene()
         print('exported', export(n))

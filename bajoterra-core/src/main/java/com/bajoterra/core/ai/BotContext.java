@@ -59,6 +59,24 @@ public final class BotContext {
     int grenadeJudgedId;
     int fleeUntilTick;
 
+    /** Id of the newest blinding slug the bot already decided about (it reacts to each flash only once). */
+    int flashJudgedId;
+    /** Until this tick the bot keeps its eyes off a flash about to go off at (lookAwayX, lookAwayZ). */
+    int lookAwayUntilTick;
+    double lookAwayX;
+    double lookAwayZ;
+    /** While blinded the bot staggers about; it picks a new direction to stagger in at this tick. */
+    int stumbleUntilTick;
+
+    /** Raising an ice wall for cover: the slot, the spot on the floor to throw it at, until when it tries. */
+    int wallSlot = -1;
+    double wallX;
+    double wallZ;
+    int wallUntilTick;
+    int wallShots;
+    /** No new wall before this tick. */
+    int nextWallTick;
+
     double noiseYaw;
     double noisePitch;
     int noiseUntilTick;
@@ -98,6 +116,12 @@ public final class BotContext {
         dodgeTicksLeft = 0;
         grenadeJudgedId = 0;
         fleeUntilTick = 0;
+        flashJudgedId = 0;
+        lookAwayUntilTick = 0;
+        stumbleUntilTick = 0;
+        wallSlot = -1;
+        wallUntilTick = 0;
+        nextWallTick = 0;
         unstickUntilTick = 0;
         damageTakenAtLastPlan = 0;
         lastHurtTick = Integer.MIN_VALUE / 2;

@@ -114,6 +114,9 @@ namespace Bajoterra.Unity.Tests
             Photo("5b-balcony", new Vector3(2f, 5f, 4f), new Vector3(0f, 2f, 18f));
             Photo("5c-middle", new Vector3(-6f, 3.5f, -3f), new Vector3(4f, 1f, 3f));
             Photo("5d-ramp-up-close", new Vector3(-20f, 2.2f, 1f), new Vector3(-15.5f, 1.4f, -4f));
+            // Every match has a new arena: two views from under the ceiling show the whole of this one.
+            Photo("5e-overview-end", new Vector3(-27f, 12f, 0f), new Vector3(8f, 0f, 0f));
+            Photo("5f-overview-side", new Vector3(0f, 12.5f, -18f), new Vector3(0f, 0f, 4f));
 
             // The Tab table, the pause menu and the end-of-match screen, driven through the game's own code.
             object presenter = Private(GameApp.Instance, "_presenter");

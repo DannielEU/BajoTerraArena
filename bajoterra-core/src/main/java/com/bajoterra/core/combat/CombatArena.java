@@ -19,6 +19,8 @@ public final class CombatArena {
     private final EventBuffer events;
     private final SplittableRandom random;
     private final DamageEvent scratch = new DamageEvent();
+    private SightLine sight = SightLine.OPEN;
+    private Structures structures = Structures.NONE;
     private int tick;
 
     public CombatArena(Combatant[] combatants, DamagePipeline pipeline, EventBuffer events, long seed) {
@@ -51,6 +53,24 @@ public final class CombatArena {
 
     public SplittableRandom random() {
         return random;
+    }
+
+    /** What blocks sight in the arena; open ground until the simulation plugs its world in. */
+    public SightLine sight() {
+        return sight;
+    }
+
+    public void setSight(SightLine newSight) {
+        this.sight = newSight == null ? SightLine.OPEN : newSight;
+    }
+
+    /** What can be built in the arena (ice walls); nothing until the simulation plugs its world in. */
+    public Structures structures() {
+        return structures;
+    }
+
+    public void setStructures(Structures newStructures) {
+        this.structures = newStructures == null ? Structures.NONE : newStructures;
     }
 
     /** Number of alive combatants in a team. */

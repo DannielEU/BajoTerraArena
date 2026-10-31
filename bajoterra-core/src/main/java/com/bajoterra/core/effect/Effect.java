@@ -18,4 +18,22 @@ public interface Effect {
     default double areaRadius() {
         return 0;
     }
+
+    /** Radius in metres within which this effect's blinding flash can be seen (0 when it has none). */
+    default double flashRadius() {
+        return 0;
+    }
+
+    /**
+     * Cosine of the half-angle of the beam a flash shines in, around the way its slug faced (-1 = all around). Only
+     * meaningful when {@link #flashRadius()} is positive.
+     */
+    default double flashBeamCos() {
+        return -1;
+    }
+
+    /** True when this effect raises a wall (an ice wall), a slug used for cover rather than to hit somebody. */
+    default boolean raisesWall() {
+        return false;
+    }
 }

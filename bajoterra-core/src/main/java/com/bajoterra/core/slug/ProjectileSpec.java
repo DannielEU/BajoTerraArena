@@ -11,16 +11,24 @@ package com.bajoterra.core.slug;
  * @param fuseTicks 0 for a normal slug; otherwise the slug is sticky: it stops and sticks to whatever it touches
  *     first (an obstacle, the ground or a combatant it can affect) and expires this many ticks later, which runs
  *     its {@code onExpire} effects (a grenade's explosion)
+ * @param proximity sticky slugs only: metres from a combatant it can affect at which it stops where it is, hovering,
+ *     and lights its fuse (0 = only on touching something)
  */
 public record ProjectileSpec(double speed, double gravity, double radius, int lifetimeTicks, int pierce,
-        int fuseTicks) {
+        int fuseTicks, double proximity) {
 
     public ProjectileSpec {
-        if (!(speed > 0) || !(gravity >= 0) || !(radius > 0) || lifetimeTicks <= 0 || pierce < 0 || fuseTicks < 0) {
+        if (!(speed > 0) || !(gravity >= 0) || !(radius > 0) || lifetimeTicks <= 0 || pierce < 0 || fuseTicks < 0
+                || !(proximity >= 0)) {
             throw new IllegalArgumentException("Invalid projectile spec: speed=" + speed + " gravity=" + gravity
                     + " radius=" + radius + " lifetimeTicks=" + lifetimeTicks + " pierce=" + pierce
-                    + " fuseTicks=" + fuseTicks);
+                    + " fuseTicks=" + fuseTicks + " proximity=" + proximity);
         }
+    }
+
+    /** A slug without a proximity fuse. */
+    public ProjectileSpec(double speed, double gravity, double radius, int lifetimeTicks, int pierce, int fuseTicks) {
+        this(speed, gravity, radius, lifetimeTicks, pierce, fuseTicks, 0);
     }
 
     /** A slug that does not stick. */

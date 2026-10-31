@@ -131,7 +131,7 @@ class EffectsTest {
 
     @Test
     void blindAddsAimSpread() {
-        apply(arena, effect("{\"type\":\"blind\",\"spread\":0.3,\"durationTicks\":30}"), caster, enemy);
+        apply(arena, effect("{\"type\":\"blind\",\"spread\":0.3,\"durationTicks\":120}"), caster, enemy);
         enemy.stats.reset();
         enemy.statuses.modify(enemy.stats);
 

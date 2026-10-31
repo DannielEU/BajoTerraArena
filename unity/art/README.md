@@ -45,6 +45,41 @@ panza clara en forma de llama, ceño fruncido), Trixie una babosa verde menta co
 capucha roja con cresta azul (Rammstone, boca abierta con dos dientes) y Pronto una azul. Usan la misma maquinaria de
 caras que los héroes.
 
+### Las 16 babosas que se disparan (`bt_slug_models.py`)
+
+Cada babosa del juego tiene su modelo 3D, sacado de su arte oficial de protoforma (las fichas de *Slug Arsenal* de
+Disney y la serie), con la misma maquinaria de cuerpo esculpido, ojos y bocas: el cuerpo blando y erguido que a la vez
+es la cabeza, pie ensanchado con cola, aletitas, ojos grandes en la cara y la corona, marcas y boca de cada especie.
+
+| babosa | cómo se lee |
+|---|---|
+| Grenuke | cuerpo tostado bajo un caparazón verde oliva **segmentado como una granada**, dos antenitas, párpados caídos y dientes apretados |
+| Phosphoro | turquesa pálido con una capucha azul oscuro por la espalda, tres puntos de luz en la frente, ojos azules mirando arriba; la panza **brilla sola** |
+| Infurnus | Burpy: naranja con llamas amarillas en la cabeza y la espalda, panza clara en forma de llama, ceño fruncido |
+| Flaringo | rojo anaranjado con cara y panza blancas, antenas y aletas en forma de llama con puntas amarillas |
+| Hop Rock | gris claro bajo un casco de roca ámbar con manchas rojas, párpados caídos y sonrisa ancha |
+| Tazerling | azul con babero celeste, antenas y cejas de **rayo** amarillas, semillas amarillas en la panza y tres dientes |
+| Frostcrawler | celeste que aclara hacia el pie, **un solo ojo violeta** bajo un párpado pesado, dos cuernitos de hielo y una sonrisa pícara con un colmillo (levanta muros de hielo) |
+| Frostfang | azul marino con máscara y cuernos verde pálido, **un solo ojo rojo** y dientes de aguja |
+| Arachnet | morada con panza verde pálido, **racimo de ojitos negros** en la frente, antenas enroscadas y dos paletas |
+| Armashelt | celeste bajo un **casco naranja con gema amarilla**, mancha naranja en la panza y sonrisa con dientes |
+| AquaBeek | azul profundo con panza más clara, cabeza ancha y plana, ojos muy separados y dos brillos blancos |
+| Boon Doc | verde menta con costados verde oscuro, **un solo ojo** bajo una ceja gruesa y sonrisa de lado |
+| Doc | el Boon Doc albino: blanco perla con costados rosas y ojo rosa |
+| Rammstone | tostada con capucha roja que se abre sobre las mejillas, cresta azul y boca abierta con dos dientes |
+| Thresher | turquesa con panza menta, **aletas de tiburón** en las mejillas y el lomo y una sonrisa llena de dientes en punta |
+| Tormato | rojo anaranjado con pecas oscuras, babero amarillo, dos **cuernos amarillos con anillos** y dos paletas |
+
+Se exportan sin esqueleto (`Resources/Models/Slugs/<id>.fbx`, de pie, mirando a +Z) y el cliente las carga con
+`SlugModels`: escala cada una a una unidad de alto y cambia sus materiales por los del juego (algo brillantes, como
+baba, con un poco de luz propia para que se vean en la cueva; los `Glow` brillan solos). En vuelo van inclinadas hacia
+delante, de cabeza, con un leve bamboleo; las pegajosas se ponen de pie donde caen.
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender -b -P unity/art/blender/bt_build.py -- slugs          # las 16
+/Applications/Blender.app/Contents/MacOS/Blender -b -P unity/art/blender/bt_build.py -- slug:grenuke   # una
+```
+
 Kord y Pronto se cambiaron también en el servidor (`content/characters/kord.json` y `pronto.json`), así que lo que se ve
 es donde las babosas pegan. Si cambias una medida: edita el JSON, la altura en `bt_chars.SPECS` y en
 `RiggedCharacterModel.AuthoredHeights`, y vuelve a exportar (el modelo se escala a la altura real del servidor, pero
@@ -88,6 +123,7 @@ para verlo; `bt_build.export('eli')` lo exporta. Los archivos:
 | `bt_face.py` | cabezas esculpidas por código y rasgos sobre su superficie (ojos, cejas, bocas, labios, dientes), mechones de pelo |
 | `bt_heads.py` | la cabeza, la cara y el pelo de cada héroe |
 | `bt_slugs.py` | las babosas de los hombros |
+| `bt_slug_models.py` | las 16 babosas que se disparan, una malla por babosa |
 | `bt_weapons.py` | los cuatro blasters |
 | `bt_chars.py` | proporciones (`SPECS`), ropa y accesorios de cada héroe, colocación del arma sin atravesar el cuerpo e IK de brazos |
 | `bt_rig.py` | esqueleto, solver de poses (IK de piernas), los clips y la exportación FBX |

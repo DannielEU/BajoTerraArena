@@ -27,6 +27,34 @@ public final class CompositeEffect implements Effect {
         return largest;
     }
 
+    @Override
+    public double flashRadius() {
+        double largest = 0;
+        for (Effect child : children) {
+            largest = Math.max(largest, child.flashRadius());
+        }
+        return largest;
+    }
+
+    @Override
+    public double flashBeamCos() {
+        double narrowest = -1;
+        for (Effect child : children) {
+            narrowest = Math.max(narrowest, child.flashBeamCos());
+        }
+        return narrowest;
+    }
+
+    @Override
+    public boolean raisesWall() {
+        for (Effect child : children) {
+            if (child.raisesWall()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public int size() {
         return children.length;
     }

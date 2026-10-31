@@ -32,6 +32,22 @@ namespace Bajoterra.Client.Content
         public readonly bool BlocksLineOfSight;
         public readonly RampDirection Rise;
 
+        /// <summary>A plain box raised during the round (an ice wall): it blocks movement, slugs and sight.</summary>
+        public ObstacleBox(string id, float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
+        {
+            Id = id;
+            MinX = minX;
+            MinY = minY;
+            MinZ = minZ;
+            MaxX = maxX;
+            MaxY = maxY;
+            MaxZ = maxZ;
+            BlocksProjectiles = true;
+            BlocksMovement = true;
+            BlocksLineOfSight = true;
+            Rise = RampDirection.None;
+        }
+
         public ObstacleBox(ObstacleInfo info)
         {
             Id = info.Id;
@@ -215,6 +231,30 @@ namespace Bajoterra.Client.Content
         }
     }
 
+    /// <summary>A decorative pool of shallow water on the floor (it changes nothing in the game, it only splashes).</summary>
+    public readonly struct WaterSpot
+    {
+        public readonly float X;
+        public readonly float Z;
+        public readonly float Radius;
+
+        public WaterSpot(float x, float z, float radius)
+        {
+            X = x;
+            Z = z;
+            Radius = radius;
+        }
+
+        /// <summary>True when (x, z) lies on the water, allowing <paramref name="margin"/> metres beyond its edge.</summary>
+        public bool Contains(float x, float z, float margin)
+        {
+            float dx = x - X;
+            float dz = z - Z;
+            float r = Radius + margin;
+            return dx * dx + dz * dz <= r * r;
+        }
+    }
+
     /// <summary>
     /// The arena exactly as the server simulates it. The client draws these boxes, collides its own predicted body
     /// with them and keeps its camera out of them.
@@ -250,6 +290,12 @@ namespace Bajoterra.Client.Content
                 SpawnInfo s = data.Spawns[i];
                 Spawns[i] = new SpawnPoint(s.Team, new Vec3(s.X, s.Y, s.Z), s.Yaw);
             }
+            Water = new WaterSpot[data.Water.Count];
+            for (int i = 0; i < Water.Length; i++)
+            {
+                WaterPool w = data.Water[i];
+                Water[i] = new WaterSpot(w.X, w.Z, w.Radius);
+            }
         }
 
         public string Name { get; }
@@ -270,6 +316,38 @@ namespace Bajoterra.Client.Content
 
         public SpawnPoint[] Spawns { get; }
 
+        /// <summary>The decorative pools of water (none on old maps).</summary>
+        public WaterSpot[] Water { get; }
+
+        /// <summary>Most walls raised during a round that the client keeps track of at once.</summary>
+        public const int MaxBarriers = 16;
+
+        private readonly ObstacleBox[] _barriers = new ObstacleBox[MaxBarriers];
+
+        /// <summary>
+        /// Walls raised during the round (ice walls), as the latest snapshot listed them. They are solid for the
+        /// client's own movement prediction and camera, like the map's boxes.
+        /// </summary>
+        public ObstacleBox[] Barriers
+        {
+            get { return _barriers; }
+        }
+
+        /// <summary>How many entries of <see cref="Barriers"/> are in use.</summary>
+        public int BarrierCount { get; private set; }
+
+        /// <summary>Replaces the raised walls with those of a snapshot.</summary>
+        public void SetBarriers(Google.Protobuf.Collections.RepeatedField<BarrierState> barriers)
+        {
+            int count = Math.Min(barriers.Count, MaxBarriers);
+            for (int i = 0; i < count; i++)
+            {
+                BarrierState b = barriers[i];
+                _barriers[i] = new ObstacleBox("barrier", b.MinX, b.MinY, b.MinZ, b.MaxX, b.MaxY, b.MaxZ);
+            }
+            BarrierCount = count;
+        }
+
         /// <summary>
         /// Distance along a unit direction to the first obstacle that blocks sight, or
         /// <paramref name="maxDistance"/> when the way is clear. Used to keep the third-person camera out of walls.
@@ -284,6 +362,14 @@ namespace Bajoterra.Client.Content
                     continue;
                 }
                 float t = Obstacles[i].RayDistance(origin, direction, best, radius);
+                if (t >= 0f && t < best)
+                {
+                    best = t;
+                }
+            }
+            for (int i = 0; i < BarrierCount; i++)
+            {
+                float t = _barriers[i].RayDistance(origin, direction, best, radius);
                 if (t >= 0f && t < best)
                 {
                     best = t;

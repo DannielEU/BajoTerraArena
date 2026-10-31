@@ -9,22 +9,29 @@ using UnityEngine.Rendering;
 namespace Bajoterra.Unity
 {
     /// <summary>
-    /// Draws the slugs in flight. Each server projectile id gets a little slug (a round body with eyes) wrapped in a
-    /// glow of its element's colour, a streaming trail and a small light that colours the walls it passes. Sticky
-    /// slugs (Grenuke) also carry a dark band and a lit fuse; once stuck they blink faster and faster, mark their
-    /// blast on the floor with a red circle and hiss, beeping as the fuse burns down. Visuals are pooled, so a busy
-    /// fight allocates nothing per frame.
+    /// Draws the slugs in flight. Each server projectile id gets the 3D model of its slug (<see cref="SlugModels"/>)
+    /// leaning into its flight with a little wobble, wrapped in a glow of its element's colour, with a streaming trail
+    /// and a small light that colours the walls it passes; a slug without a model falls back to a round body with
+    /// eyes. Sticky slugs stand up where they land. A Grenuke blinks faster and faster, marks its blast on the floor
+    /// with a red circle and hisses, beeping as the fuse burns down. A Phosphoro is the loudest thing in the cavern
+    /// on purpose: it glows white in flight, and once stuck it charges up, its light swelling and pulsing faster
+    /// with a rising whine, so everybody has a fair warning to look away before it flashes. Visuals are pooled, so a
+    /// busy fight allocates nothing per frame.
     /// </summary>
     public sealed class ProjectileViews
     {
         private const int MaxLights = 10;
+        /// <summary>How far a flying slug leans forwards, head first, from standing (degrees).</summary>
+        private const float FlightLean = 55f;
         private static readonly Color GrenadeBody = new Color(0.95f, 0.26f, 0.1f);
         private static readonly Color Spark = new Color(1f, 0.9f, 0.45f);
+        private static readonly Color FlashGlow = new Color(0.82f, 1f, 1f);
 
         private sealed class Visual
         {
             public Transform Root;
             public Transform Body;
+            public Transform Ball;
             public TrailRenderer Trail;
             public Renderer BodyRenderer;
             public Transform Halo;
@@ -32,17 +39,26 @@ namespace Bajoterra.Unity
             public Light Light;
             public GameObject GrenadeParts;
             public Transform Spark;
+            public Transform Flare;
+            public Renderer FlareRenderer;
+            public Billboard FlareSpin;
             public Transform BlastRing;
             public Renderer BlastRingRenderer;
             public Transform BlastFill;
             public Renderer BlastFillRenderer;
             public AudioSource FuseSound;
+            public readonly Dictionary<int, Transform> Models = new Dictionary<int, Transform>();
+            public Transform Model;
             public int Stamp;
             public bool Sticky;
+            public bool Flash;
             public bool Stuck;
             public int FuseTicks;
             public float BlastRadius;
             public float NextBeep;
+            public float ModelHeight;
+            public float Phase;
+            public Quaternion Facing = Quaternion.identity;
             public Color Color;
         }
 
@@ -66,6 +82,28 @@ namespace Bajoterra.Unity
             _audio = audio;
         }
 
+        /// <summary>How many slugs are drawn right now (tests).</summary>
+        public int ActiveCount
+        {
+            get { return _active.Count; }
+        }
+
+        /// <summary>True when every slug drawn right now uses its 3D model (tests).</summary>
+        public bool AllModelled
+        {
+            get
+            {
+                foreach (KeyValuePair<uint, Visual> entry in _active)
+                {
+                    if (entry.Value.Model == null)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
         public void Apply(WorldFrame frame, float time)
         {
             _stamp++;
@@ -83,20 +121,31 @@ namespace Bajoterra.Unity
                 visual.Root.position = p.Position.ToUnity();
                 float pulse = 1f + 0.12f * Mathf.Sin(time * 25f + p.Id);
                 float size = BallSize(p);
-                // A stuck grenade keeps the facing it landed with.
+                // A stuck slug keeps the facing it landed with.
                 if (!p.Stuck && p.Velocity.X * p.Velocity.X + p.Velocity.Z * p.Velocity.Z + p.Velocity.Y * p.Velocity.Y > 1e-4f)
                 {
                     visual.Body.localRotation = Quaternion.LookRotation(p.Velocity.ToUnity());
+                    Vector3 flat = new Vector3(p.Velocity.X, 0f, p.Velocity.Z);
+                    if (flat.sqrMagnitude > 1e-4f)
+                    {
+                        visual.Facing = Quaternion.LookRotation(flat);
+                    }
                 }
-                visual.Body.localScale = Vector3.one * (size * pulse);
-                visual.Halo.localScale = Vector3.one * (size * 2.6f * pulse);
-                bool lit = lights < MaxLights || p.Stuck;
+                visual.Ball.localScale = Vector3.one * (size * pulse);
+                PoseModel(visual, p, time);
+                float halo = visual.Model != null ? 1.9f : 2.6f;
+                visual.Halo.localScale = Vector3.one * (size * halo * pulse);
+                bool lit = lights < MaxLights || p.Stuck || visual.Flash;
                 visual.Light.enabled = lit;
                 if (lit)
                 {
                     lights++;
                 }
-                if (visual.Sticky)
+                if (visual.Flash)
+                {
+                    AnimateFlash(visual, p, size, time);
+                }
+                else if (visual.Sticky)
                 {
                     AnimateGrenade(visual, p, size, time);
                 }
@@ -129,42 +178,111 @@ namespace Bajoterra.Unity
             return _content.Slug(p.SlugIndex).ProjectileRadius * 2.4f;
         }
 
+        /// <summary>
+        /// In flight the slug leans head first into its path, wobbling and stretched by the speed; once stuck it
+        /// stands up on its foot, facing the way it came.
+        /// </summary>
+        private void PoseModel(Visual visual, ProjectileFrame p, float time)
+        {
+            Transform model = visual.Model;
+            if (model == null)
+            {
+                return;
+            }
+            float h = visual.ModelHeight;
+            if (p.Stuck)
+            {
+                model.rotation = visual.Facing;
+                model.localPosition = Vector3.zero;
+                float radius = _content.Slug(p.SlugIndex).ProjectileRadius;
+                Vector3 at = visual.Root.position;
+                float below = p.StuckTo >= 0 ? 0f : _map.SightDistance(new Vec3(at.x, at.y, at.z), new Vec3(0f, -1f, 0f), 3f, 0f);
+                if (below > radius + 0.25f)
+                {
+                    // Stopped in mid-air by its proximity fuse: it hovers, bobbing, facing whoever it caught.
+                    model.position = at + Vector3.up * (0.06f * Mathf.Sin(time * 3.2f + visual.Phase));
+                }
+                else
+                {
+                    // The server keeps the centre of the slug's ball one radius off the surface: put the foot there.
+                    model.position = at + Vector3.up * (h * 0.5f - radius);
+                }
+                float breathe = 1f + 0.05f * Mathf.Sin(time * 6f + visual.Phase);
+                model.localScale = new Vector3(h * breathe, h / breathe, h * breathe);
+                return;
+            }
+            float wobble = Mathf.Sin(time * 13f + visual.Phase) * 9f;
+            model.localPosition = Vector3.zero;
+            model.localRotation = Quaternion.Euler(FlightLean, 0f, wobble);
+            model.localScale = new Vector3(h * 0.9f, h * 1.12f, h * 0.9f);
+        }
+
         private void Configure(Visual visual, ProjectileFrame p)
         {
             SlugInfo info = _content.Slug(p.SlugIndex);
-            Color color = Palette.Element(_content.ElementName((int)info.Element));
+            bool flash = info.FlashRadius > 0f;
+            Color color = flash ? FlashGlow : Palette.Element(_content.ElementName((int)info.Element));
             // Slugs that help allies glow whiter, so they read differently from attacks at a glance.
             if (info.Targeting != Targeting.Enemies)
             {
                 color = Color.Lerp(color, Color.white, 0.5f);
             }
             visual.Sticky = info.Sticky;
+            visual.Flash = flash;
             visual.Stuck = false;
             visual.FuseTicks = (int)Mathf.Max(1, info.FuseTicks);
             visual.BlastRadius = info.BlastRadius;
             visual.Color = color;
-            visual.BodyRenderer.sharedMaterial = info.Sticky
+            visual.Phase = p.Id * 1.7f;
+            visual.Facing = Quaternion.identity;
+            visual.ModelHeight = info.ProjectileRadius * 2.8f;
+            ShowModel(visual, (int)p.SlugIndex, info.Id);
+            bool modelled = visual.Model != null;
+            visual.Ball.gameObject.SetActive(!modelled);
+            visual.BodyRenderer.sharedMaterial = info.Sticky && !flash
                 ? MaterialFactory.Emissive(GrenadeBody, 0.75f, 0.75f)
                 : MaterialFactory.Emissive(color, 0.9f, 0.7f);
-            SetHalo(visual.HaloRenderer, new Color(color.r, color.g, color.b, 0.4f));
+            SetColor(visual.HaloRenderer, new Color(color.r, color.g, color.b, modelled ? 0.28f : 0.4f));
             visual.Light.color = color;
-            visual.Light.intensity = 1.7f;
-            float width = Mathf.Max(0.16f, info.ProjectileRadius * 2.6f);
+            visual.Light.intensity = flash ? 3.2f : 1.7f;
+            visual.Light.range = flash ? 10f : 6.5f;
+            float width = Mathf.Max(0.16f, info.ProjectileRadius * (flash ? 3.4f : 2.6f));
             visual.Trail.widthMultiplier = width;
             visual.Trail.startColor = new Color(color.r, color.g, color.b, 0.9f);
             visual.Trail.endColor = new Color(color.r, color.g, color.b, 0f);
             visual.Root.position = p.Position.ToUnity();
             visual.Trail.Clear();
             visual.Trail.emitting = true;
-            visual.GrenadeParts.SetActive(info.Sticky);
+            visual.GrenadeParts.SetActive(info.Sticky && !flash && !modelled);
+            visual.Flare.gameObject.SetActive(flash);
             visual.BlastRing.gameObject.SetActive(false);
             visual.BlastFill.gameObject.SetActive(false);
             if (info.Sticky)
             {
-                // The fuse hisses quietly in flight and loudly once stuck.
-                visual.FuseSound.volume = 0.25f;
-                visual.FuseSound.pitch = 1f;
+                // The fuse hisses (a Phosphoro hums) quietly in flight and loudly once stuck.
+                visual.FuseSound.clip = flash ? _audio.FlashCharge : _audio.Fuse;
+                visual.FuseSound.volume = flash ? 0.35f : 0.25f;
+                visual.FuseSound.pitch = flash ? 0.8f : 1f;
                 visual.FuseSound.Play();
+            }
+        }
+
+        /// <summary>Shows this slug's model on a pooled visual (made the first time the visual carries that slug).</summary>
+        private static void ShowModel(Visual visual, int slugIndex, string slugId)
+        {
+            if (visual.Model != null)
+            {
+                visual.Model.gameObject.SetActive(false);
+            }
+            if (!visual.Models.TryGetValue(slugIndex, out Transform model))
+            {
+                model = SlugModels.Create(slugId, visual.Body);
+                visual.Models[slugIndex] = model;
+            }
+            visual.Model = model;
+            if (model != null)
+            {
+                model.gameObject.SetActive(true);
             }
         }
 
@@ -191,10 +309,10 @@ namespace Bajoterra.Unity
             float blinkHz = Mathf.Lerp(2.5f, 12f, progress * progress);
             bool on = Mathf.Repeat(time * blinkHz, 1f) < 0.5f;
             Color glow = on ? Palette.Danger : visual.Color;
-            SetHalo(visual.HaloRenderer, new Color(glow.r, glow.g, glow.b, on ? 0.75f : 0.35f));
+            SetColor(visual.HaloRenderer, new Color(glow.r, glow.g, glow.b, on ? 0.75f : 0.35f));
             visual.Light.color = glow;
             visual.Light.intensity = on ? 3.2f : 1.4f;
-            visual.Body.localScale = Vector3.one * (size * (1f + 0.25f * progress) * (on ? 1.06f : 1f));
+            visual.Ball.localScale = Vector3.one * (size * (1f + 0.25f * progress) * (on ? 1.06f : 1f));
             visual.FuseSound.pitch = 1f + 0.55f * progress;
 
             if (time >= visual.NextBeep)
@@ -214,12 +332,44 @@ namespace Bajoterra.Unity
                 visual.BlastFill.position = new Vector3(at.x, floor - 0.01f, at.z);
                 visual.BlastFill.localScale = Vector3.one * (diameter * 1.25f);
                 float alpha = Mathf.Lerp(0.45f, 0.9f, progress) * (on ? 1f : 0.6f);
-                SetHalo(visual.BlastRingRenderer, new Color(Palette.Danger.r, Palette.Danger.g, Palette.Danger.b, alpha));
-                SetHalo(visual.BlastFillRenderer, new Color(Palette.Danger.r, Palette.Danger.g * 0.6f, Palette.Danger.b, alpha * 0.35f));
+                SetColor(visual.BlastRingRenderer, new Color(Palette.Danger.r, Palette.Danger.g, Palette.Danger.b, alpha));
+                SetColor(visual.BlastFillRenderer, new Color(Palette.Danger.r, Palette.Danger.g * 0.6f, Palette.Danger.b, alpha * 0.35f));
             }
         }
 
-        private void SetHalo(Renderer renderer, Color color)
+        /// <summary>
+        /// A Phosphoro: a white star glints around it in flight; once stuck it charges up, the glow and its light
+        /// swelling and pulsing faster and faster while the hum rises, up to the moment it flashes.
+        /// </summary>
+        private void AnimateFlash(Visual visual, ProjectileFrame p, float size, float time)
+        {
+            if (p.Stuck && !visual.Stuck)
+            {
+                visual.Stuck = true;
+                visual.Trail.emitting = false;
+                visual.FuseSound.volume = 0.7f;
+                _audio.PlayAt(_audio.FuseBeep, visual.Root.position, 0.5f, 1.6f);
+            }
+            float progress = p.Stuck ? Mathf.Clamp01(1f - p.FuseTicks / (float)visual.FuseTicks) : 0f;
+            float pulseHz = Mathf.Lerp(2f, 16f, progress * progress);
+            float beat = 0.5f + 0.5f * Mathf.Sin(time * pulseHz * 2f * Mathf.PI);
+            float swell = 1f + 2.6f * progress * progress;
+            visual.Halo.localScale = Vector3.one * (size * (3.2f + beat * 0.8f) * swell);
+            SetColor(visual.HaloRenderer, new Color(FlashGlow.r, FlashGlow.g, FlashGlow.b, 0.45f + 0.4f * beat * (0.4f + progress)));
+            visual.Light.color = Color.Lerp(FlashGlow, Color.white, progress);
+            visual.Light.intensity = Mathf.Lerp(2.6f, 9f, progress) * (0.65f + 0.35f * beat);
+            visual.Light.range = Mathf.Lerp(9f, 18f, progress);
+            visual.Flare.localScale = Vector3.one * (size * (2.4f + 2f * progress) * (0.8f + 0.4f * beat));
+            visual.FlareSpin.Roll = time * (40f + 260f * progress) + visual.Phase * 30f;
+            SetColor(visual.FlareRenderer, new Color(1f, 1f, 0.95f, 0.55f + 0.45f * beat));
+            if (p.Stuck)
+            {
+                visual.FuseSound.pitch = Mathf.Lerp(0.8f, 2.1f, progress);
+                visual.FuseSound.volume = Mathf.Lerp(0.6f, 1f, progress);
+            }
+        }
+
+        private void SetColor(Renderer renderer, Color color)
         {
             _block.SetColor("_Color", color);
             renderer.SetPropertyBlock(_block);
@@ -236,25 +386,27 @@ namespace Bajoterra.Unity
             }
             var root = new GameObject("Slug", typeof(TrailRenderer));
             root.transform.SetParent(_parent, false);
+            var body = new GameObject("Body").transform;
+            body.SetParent(root.transform, false);
 
-            // The slug: a round body with two eyes looking where it flies.
-            GameObject body = Gfx.Primitive(PrimitiveType.Sphere, "Body", root.transform, null);
+            // The stand-in for slugs without a model: a round body with two eyes looking where it flies.
+            GameObject ball = Gfx.Primitive(PrimitiveType.Sphere, "Ball", body, null);
             Material eyeWhite = MaterialFactory.Surface(null, Color.white, 0.6f, 0f);
             Material pupil = MaterialFactory.Surface(null, new Color(0.04f, 0.04f, 0.06f), 0.8f, 0f);
             for (int side = -1; side <= 1; side += 2)
             {
-                GameObject eye = Gfx.Primitive(PrimitiveType.Sphere, "Eye", body.transform, eyeWhite);
+                GameObject eye = Gfx.Primitive(PrimitiveType.Sphere, "Eye", ball.transform, eyeWhite);
                 eye.transform.localPosition = new Vector3(side * 0.22f, 0.16f, 0.38f);
                 eye.transform.localScale = Vector3.one * 0.3f;
-                GameObject dot = Gfx.Primitive(PrimitiveType.Sphere, "Pupil", body.transform, pupil);
+                GameObject dot = Gfx.Primitive(PrimitiveType.Sphere, "Pupil", ball.transform, pupil);
                 dot.transform.localPosition = new Vector3(side * 0.22f, 0.16f, 0.5f);
                 dot.transform.localScale = Vector3.one * 0.15f;
             }
 
-            // Grenade dressing (only shown for sticky slugs): a dark band round the middle and a fuse on the back
-            // whose tip burns.
+            // Grenade dressing for a sticky slug without a model: a dark band round the middle and a fuse on the
+            // back whose tip burns.
             var grenade = new GameObject("Grenade");
-            grenade.transform.SetParent(body.transform, false);
+            grenade.transform.SetParent(ball.transform, false);
             Material band = MaterialFactory.Surface(null, new Color(0.16f, 0.08f, 0.06f), 0.4f, 0.3f);
             GameObject belt = Gfx.Primitive(PrimitiveType.Cylinder, "Band", grenade.transform, band);
             belt.transform.localScale = new Vector3(1.06f, 0.06f, 1.06f);
@@ -266,11 +418,17 @@ namespace Bajoterra.Unity
             fuse.transform.localScale = new Vector3(0.09f, 0.18f, 0.09f);
             Transform spark = Gfx.Halo(grenade.transform, "Spark", Vector3.zero, Spark, 1.1f, Textures.Flare);
             spark.localPosition = new Vector3(0f, 0.68f, -0.42f);
-            Gfx.NoShadows(body);
+            Gfx.NoShadows(ball);
 
             Transform halo = Gfx.Halo(root.transform, "Glow", root.transform.position, Color.white, 1f);
             halo.SetParent(root.transform, false);
             halo.localPosition = Vector3.zero;
+
+            // Phosphoro's glint: a star of light that spins faster as it charges.
+            Transform flare = Gfx.Halo(root.transform, "Flare", root.transform.position, Color.white, 1f, Textures.Flare);
+            flare.SetParent(root.transform, false);
+            flare.localPosition = Vector3.zero;
+            flare.gameObject.SetActive(false);
 
             Light light = Gfx.AddPointLight(root.transform, "Light", root.transform.position, Color.white, 6.5f, 1.7f);
             light.transform.localPosition = Vector3.zero;
@@ -295,14 +453,18 @@ namespace Bajoterra.Unity
             visual = new Visual
             {
                 Root = root.transform,
-                Body = body.transform,
+                Body = body,
+                Ball = ball.transform,
                 Trail = trail,
-                BodyRenderer = body.GetComponent<Renderer>(),
+                BodyRenderer = ball.GetComponent<Renderer>(),
                 Halo = halo,
                 HaloRenderer = halo.GetComponent<Renderer>(),
                 Light = light,
                 GrenadeParts = grenade,
                 Spark = spark,
+                Flare = flare,
+                FlareRenderer = flare.GetComponent<Renderer>(),
+                FlareSpin = flare.GetComponent<Billboard>(),
                 BlastRing = ring,
                 BlastRingRenderer = ring.GetComponent<Renderer>(),
                 BlastFill = fill,

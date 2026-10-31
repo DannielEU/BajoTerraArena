@@ -9,5 +9,10 @@ public enum StackingPolicy {
     /** Replace the running instance only if the new one is stronger. */
     REPLACE_IF_STRONGER,
     /** Keep the running instance untouched. */
-    IGNORE
+    IGNORE,
+    /**
+     * Keep whichever runs longer: the new application only replaces the running instance when it would last longer
+     * (a strong blinding is not cut short by a weak one).
+     */
+    LONGEST
 }

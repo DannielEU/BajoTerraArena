@@ -38,6 +38,12 @@ namespace Bajoterra.Unity
         private int _localPort;
         private string _localName;
         private float _localTimeout;
+        private bool _awaitingWelcome;
+        private float _welcomeTimeout;
+        private bool _triedSparePort;
+
+        /// <summary>Seconds to wait for the cave to greet us before giving up on that connection.</summary>
+        private const float WelcomeSeconds = 8f;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
@@ -92,6 +98,7 @@ namespace Bajoterra.Unity
             EnsureCamera();
             PollLocalServer(deltaTime);
             _client?.Update(now);
+            PollWelcome(deltaTime);
             if (_presenter != null)
             {
                 _presenter.Frame(deltaTime);
@@ -259,6 +266,7 @@ namespace Bajoterra.Unity
                 return;
             }
             _hosting = true;
+            _triedSparePort = false;
             _waitingForLocalServer = true;
             _localPort = port;
             _localName = name;
@@ -304,7 +312,46 @@ namespace Bajoterra.Unity
             _client.Disconnected += OnDisconnected;
             _menu.SetBusy(true);
             _menu.SetStatus(UiText.EnteringCave);
+            _awaitingWelcome = true;
+            _welcomeTimeout = WelcomeSeconds;
             _client.Connect(host, port);
+        }
+
+        /// <summary>
+        /// Never wait forever on "entering the cave". When nobody greets us in time, a local game starts a server of
+        /// its own on a free port (the usual one may be held by a stale server that accepts connections but no longer
+        /// answers); otherwise the menu says the cave could not be entered.
+        /// </summary>
+        private void PollWelcome(float deltaTime)
+        {
+            if (!_awaitingWelcome)
+            {
+                return;
+            }
+            _welcomeTimeout -= deltaTime;
+            if (_welcomeTimeout > 0f)
+            {
+                return;
+            }
+            _awaitingWelcome = false;
+            DisposeClient();
+            Debug.Log("Bajoterra: nobody answered on port " + _settings.Port + " in " + WelcomeSeconds + " s.");
+            if (_hosting && !_triedSparePort)
+            {
+                _triedSparePort = true;
+                int spare = LocalServerLauncher.FreePort();
+                if (spare > 0 && _launcher.Start(_settings.ServerJar, spare, out string error))
+                {
+                    Debug.Log("Bajoterra: started a server of our own on port " + spare + ".");
+                    _waitingForLocalServer = true;
+                    _localPort = spare;
+                    _localTimeout = 20f;
+                    _menu.SetStatus(UiText.OpeningCave);
+                    return;
+                }
+            }
+            _menu.SetBusy(false);
+            _menu.SetStatus(UiText.CouldNotEnter);
         }
 
         private void DisposeClient()
@@ -320,6 +367,7 @@ namespace Bajoterra.Unity
 
         private void OnWelcomed(Welcome welcome)
         {
+            _awaitingWelcome = false;
             _menu.Hide();
             _menu.SetBusy(false);
             _lobby.SetInviteCode(_hosting ? LanAddress.InviteCode(_settings.Port) : null);
@@ -441,6 +489,7 @@ namespace Bajoterra.Unity
             DisposeClient();
             _launcher.Stop();
             _waitingForLocalServer = false;
+            _awaitingWelcome = false;
             _hosting = false;
             ShowMenu(string.Empty);
         }

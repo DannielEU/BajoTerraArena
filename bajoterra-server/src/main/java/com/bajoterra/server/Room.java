@@ -149,7 +149,8 @@ final class Room {
     private void start() {
         List<Session> ordered = new ArrayList<>(members);
         ordered.sort((a, b) -> Integer.compare(a.team, b.team));
-        MatchConfig.Builder builder = MatchConfig.builder(content.maps().find(config.mapId()) != null
+        // A generated arena takes the match seed, so every match of the room is played on a new arena.
+        MatchConfig.Builder builder = MatchConfig.builder(GameSimulation.isPlayableMap(content, config.mapId())
                         ? config.mapId() : content.maps().get(0).id())
                 .seed(seed + matchesPlayed++)
                 .rules(config.rules())

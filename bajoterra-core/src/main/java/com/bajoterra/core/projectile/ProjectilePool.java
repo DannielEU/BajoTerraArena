@@ -25,6 +25,8 @@ public final class ProjectilePool {
                 p.slug = null;
                 p.stuck = false;
                 p.stuckTo = null;
+                p.stuckDirX = 0;
+                p.stuckDirZ = 0;
                 activeCount++;
                 return p;
             }

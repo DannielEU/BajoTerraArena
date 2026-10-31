@@ -54,15 +54,40 @@ snapshots se asigna ordenando los ids alfabéticamente.
 | `projectile.sticky` / `projectile.fuseSeconds` | `true/false` / segundos (o `fuseTicks`) | **granada**: se pega a lo primero que toca (obstáculo, suelo o un combatiente válido, al que sigue) y a los `fuseSeconds` (1,5 por defecto) ejecuta `onExpire` (la explosión) |
 | `fireDelayMultiplier` | 0.1–5 | multiplica el intervalo entre disparos del blaster tras usarla |
 | `reloadShots` | 0–9 | sobrescribe cuántos tiros debe esperar para volver a usarse (por defecto, el del blaster: 3) |
+| `proximity` | 0–20 m (solo `sticky`) | se detiene flotando al pasar a esa distancia de un objetivo válido |
 | `pierceWorld` | `true/false` | atraviesa obstáculos (por defecto no: toda babosa se detiene en los obstáculos) |
 | `onHit` | lista de efectos | al alcanzar un combatiente válido |
 | `onWorldHit` | lista de efectos | donde se detiene contra un obstáculo o el suelo (p. ej. explosión) |
 | `onExpire` | lista de efectos | donde caduca en vuelo |
 | `onTick` | lista de efectos | cada tick de vuelo (sin objetivo) |
+| `trail` | `{spacing?, maxHeight?, radius?, height?, durationSeconds?, periodSeconds?, maxLength?, startAfter?, effects[]}` | muro de fuego que deja en el suelo bajo su vuelo (ver abajo) |
 | `botWeight` | 0.01–10 | cuánto prefieren los bots esta babosa |
 
 **Granada (ejemplo real, `grenuke.json`):** `"projectile": { "speed": 28, "gravity": 14, ..., "sticky": true,
 "fuseSeconds": 1.6 }` y la explosión en `onExpire` con un `area` (su radio es el círculo rojo que dibuja el cliente).
+
+**Destello cegador (ejemplo real, `phosphoro.json`):** la babosa más lenta del juego (`speed` 20) se pega donde cae
+(`sticky`) o, con `proximity` 3,5, **se detiene flotando** en cuanto pasa a 3,5 m de un enemigo, mirándolo; cuando se
+acaba su mecha (`fuseSeconds` 1,5) estalla en un `flash` en `onExpire` con un `blind` dentro. Su luz sale hacia delante
+(`beamAngle` 100: hacia donde volaba, o hacia el enemigo que la detuvo), así que quien la lanzó, que queda detrás, no se
+ciega. Ciega a **todo el que lo vea** dentro de ese haz, del equipo que sea: estar dentro del radio, sin nada que tape
+la vista entre los ojos y la babosa, y tenerla en pantalla (dentro de `viewAngle` grados, medidos desde la cámara en
+tercera persona: la que manda el cliente, o una igual detrás de cada bot). Darse la vuelta o ponerse detrás de una
+pared es la única forma de librarse. Cuanto más de frente y más cerca se mire,
+más fuerte y más larga la ceguera. El cliente la avisa a lo grande antes de estallar (brilla, late cada vez más rápido
+y zumba cada vez más agudo) y, a quien ciega, le pone la pantalla en blanco y le deja un pitido en los oídos; los bots
+ciegos no ven a nadie y los buenos apartan la vista cuando ven una a punto de estallar.
+
+**Muro de hielo (ejemplo real, `frostcrawler.json`):** un `ice_wall` en `onWorldHit` (y en `onHit`) levanta un muro de
+3,2 × 2,2 m donde cae la babosa, atravesado a su vuelo (alineado con los ejes de la arena): para balas, cuerpos y vista
+como cualquier obstáculo, aguanta `hits` impactos (2) y se derrite al acabar su duración (8 s). Si da a alguien, el muro
+sale justo delante de él, nunca encima. Los bots heridos sin cobertura cerca lo lanzan delante de ellos.
+
+**Muro de fuego (ejemplo real, `infurnus.json`):** con `trail`, la babosa deja en el suelo bajo su vuelo una fila de
+llamas: cada `spacing` m (0,9) mientras vuele a menos de `maxHeight` del suelo (2,2 m), hasta `maxLength` m (14) y
+empezando a `startAfter` m del tirador (1,2). Cada llama tiene `radius` (0,6) y `height` (1,4), arde `durationSeconds`
+(3,5) y aplica `effects` a quien la babosa podría golpear y se meta en ella, como mucho una vez cada `periodSeconds`
+(0,5) aunque pise varias llamas. Los bots que pisan fuego enemigo salen de él.
 
 **Golpe crítico:** si el impacto directo de una babosa alcanza el 20 % superior de la caja de un enemigo (la cabeza),
 el daño de sus efectos `damage` sobre esa víctima se multiplica por 1,5 (`CriticalHits`). Solo el impacto directo:
@@ -79,7 +104,7 @@ babosa disparada queda bloqueada durante los **3 tiros siguientes** y vuelve a e
 ## 2. Efectos disponibles
 
 Todos aceptan los campos comunes de duración cuando son estados: `durationSeconds` **o** `durationTicks`,
-`stacking` (`REFRESH`, `STACK`, `REPLACE_IF_STRONGER`, `IGNORE`) y `maxStacks`.
+`stacking` (`REFRESH`, `STACK`, `REPLACE_IF_STRONGER`, `IGNORE`, `LONGEST`: se queda la que dure más) y `maxStacks`.
 
 | `type` | Parámetros | Qué hace |
 |---|---|---|
@@ -89,6 +114,8 @@ Todos aceptan los campos comunes de duración cuando son estados: `durationSecon
 | `overshield` | `amount`, duración | escudo temporal que decae a cero |
 | `knockback` | `force`, `lift?` | empuja desde el punto de impacto |
 | `area` | `radius`, `falloff` (`LINEAR`/`NONE`), `minScale?`, `effects[]` | aplica los hijos a todos los combatientes válidos del radio |
+| `ice_wall` | `width?` (3,2), `height?` (2,2), `thickness?` (0,5), `hits?` (2), duración | levanta un muro de hielo donde cae, atravesado a su vuelo; se rompe con `hits` impactos o se derrite |
+| `flash` | `radius`, `viewAngle?` (grados, 55), `beamAngle?` (grados, 180 = en todas direcciones), `minScale?` (0,3), `effects[]` | aplica los hijos a todo el que **vea** el punto (dentro del radio, sin nada en medio y mirando hacia él), del equipo que sea; más fuerte cuanto más de frente y más cerca |
 | `chain` | `radius`, `jumps`, `decay`, `effects[]` | salta al enemigo más cercano que no haya sido alcanzado |
 | `conditional` | `ifTargetHasStatus?`, `ifTargetHpBelow?`, `then[]`, `else[]` | elige rama según el objetivo |
 | `cleanse` | `tags[]` | quita estados con alguna de esas etiquetas (`burn`, `cc`, `debuff`…) |
@@ -97,7 +124,7 @@ Todos aceptan los campos comunes de duración cuando son estados: `durationSecon
 | `freeze` | `speedFactor?`, `vulnerableTo?`, `vulnerability?`, duración | casi inmoviliza y hace vulnerable a un elemento |
 | `stun` | duración | no puede moverse, disparar ni iniciar movimientos |
 | `regen` | `hps`, duración | cura en el tiempo |
-| `blind` | `spread?`, duración | error aleatorio de puntería |
+| `blind` | `spread?`, duración, `scaleDuration?` | ceguera: error aleatorio de puntería, pantalla en blanco para el jugador y los bots no ven a nadie; se desvanece en su último segundo; con `scaleDuration` dura menos si se vio de lado o de lejos |
 
 ## 3. Nuevo efecto (una clase)
 
@@ -189,7 +216,19 @@ Para añadirlo a un personaje, agrega su id a `"moves"` en el JSON del personaje
 Usa los **mismos efectos** que las babosas: curar con un objeto y con la babosa de un aliado es el mismo código.
 `requirement`: `ANY NEEDS_HP NEEDS_SHIELD NEEDS_HP_OR_SHIELD` (para no gastarlo a vida completa).
 
-## 7. Nuevo mapa con obstáculos
+## 7. Arenas generadas (el modo por defecto)
+
+El servidor juega cada partida en una arena nueva: el id de mapa especial `aleatoria`
+(`ArenaGenerator.MAP_ID`) genera una a partir de la semilla de la partida (misma semilla, misma arena; las
+repeticiones siguen funcionando). `ArenaLayout` construye la mitad oeste con piezas diseñadas —pilares, bloques, cajas,
+muros, colinas y balcones con rampas, una pieza central— dejando pasillos de al menos 2 m, y la refleja en la mitad este
+(espejo o giro de 180°), así que los dos equipos tienen siempre la misma arena. Una candidata solo se acepta si pasa
+`ArenaGenerator.problems` (las comprobaciones de abajo más: todo el suelo se puede recorrer, los spawns no se ven entre
+sí, al menos 4 coberturas en cada tercio, ningún pasillo central abierto más del 65 % del largo y entre el 8 % y el
+30 % del suelo ocupado); si no, se prueba otra (en 1 000 semillas nunca hace falta el respaldo, `caverna`). El mapa
+hecho a mano pasa las mismas comprobaciones. Para jugar siempre en un mapa fijo: `--map caverna`.
+
+## 8. Nuevo mapa con obstáculos
 
 ```json
 {
@@ -219,6 +258,7 @@ Usa los **mismos efectos** que las babosas: curar con un objeto y con la babosa 
 | `obstacles[]` | `{id?, min:[x,y,z], max:[x,y,z], blocksProjectiles?, blocksMovement?, blocksLineOfSight?, ramp?}` | cajas alineadas a los ejes; grosor mínimo 0,2 m; con `ramp`, una rampa (ver abajo) |
 | `spawns` | `{"0": [{pos:[x,y,z], yaw}], "1": [...]}` | mínimo 3 por equipo; `yaw` en grados |
 | `pickups[]` | `{item, pos:[x,y,z]}` | `item` = id de un objeto definido |
+| `water[]` | `{pos:[x,z], radius}` (radio 0,6–2,5 m) | charcos decorativos: no cambian nada del juego, solo salpican y hacen ondas |
 | `nav.cellSize` | número 1–10 (opcional, por defecto 3) | separación de la malla de navegación generada |
 
 - Cada obstáculo es una caja (`min`/`max`) con tres banderas, todas `true` por defecto:
@@ -232,6 +272,12 @@ Usa los **mismos efectos** que las babosas: curar con un objeto y con la babosa 
   `h` sin saltar, la rampa termina a `h` justo pegada a ella. Una plataforma más alta que lo que alcanza un salto
   (≈ 1,8 m con el salto actual) solo se alcanza por rampa. Las rampas son sólidas y no cuentan como cobertura ni para la
   malla de navegación: **los bots se quedan en el suelo**.
+- **Agua.** Un charco (`water`) es puramente decorativo: el servidor no simula nada en él. El cliente lo dibuja con
+  un borde de piedras y su superficie hace ondas de verdad: salpica al pisarlo o caer en él desde un salto, deja estela
+  al cruzarlo, rocía cuando una babosa pasa rasante, burbujea si una se queda pegada dentro, hace "plop" (o vapor si es
+  de fuego) cuando una cae en él y tiembla con las explosiones y destellos cercanos. Debe quedar en suelo libre: ni
+  debajo de un obstáculo ni a menos de 0,4 m de uno o de las paredes. Las arenas generadas ponen uno pequeño (radio
+  1,3–1,9 m) en un rincón libre, fuera de las zonas de aparición.
 - Un `pickup` puede ir sobre una plataforma poniendo su altura en `pos` (`[x, h, z]`); el validador acepta un punto que
   está sobre la superficie de un obstáculo, no dentro.
 - La navegación de los bots y los puntos de cobertura se **generan solos** a partir de los obstáculos.
@@ -239,13 +285,13 @@ Usa los **mismos efectos** que las babosas: curar con un objeto y con la babosa 
   objetos no definidos y mapas donde un equipo no puede llegar al otro.
 - `yaw` en grados (0 = +Z, 90 = +X).
 
-## 8. Nuevo modo de juego
+## 9. Nuevo modo de juego
 
 Implementa `MatchRules` (duraciones, `evaluateRound`, `isMatchOver`, `matchWinner`) y pásalo en
 `MatchConfig.builder(...).rules(...)`. El modo por defecto es `EliminationRoundsRules.bestOfFive()`: rondas sin
 reaparición, gana quien llegue a 3 rondas.
 
-## 9. Qué te protege cuando te equivocas
+## 10. Qué te protege cuando te equivocas
 
 - **Carga:** todos los problemas se reportan juntos, con archivo y campo (`ContentLoaderErrorsTest`).
 - **Contrato automático:** `ContentContractTest` recorre *cada* babosa, personaje y mapa que exista, la dispara/juega y

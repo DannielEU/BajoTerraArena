@@ -11,11 +11,13 @@ import static com.bajoterra.server.ServerFixtures.ready;
 import static com.bajoterra.server.ServerFixtures.ticks;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.bajoterra.core.mapgen.ArenaGenerator;
 import com.bajoterra.core.sim.SimulationConstants;
 import com.bajoterra.protocol.ProtocolVersion;
 import com.bajoterra.protocol.generated.ClientMessage;
 import com.bajoterra.protocol.generated.CombatantState;
 import com.bajoterra.protocol.generated.MatchPhase;
+import com.bajoterra.protocol.generated.MatchStart;
 import com.bajoterra.protocol.generated.Ping;
 import com.bajoterra.protocol.generated.ServerMessage;
 import com.bajoterra.protocol.generated.Snapshot;
@@ -180,7 +182,7 @@ class GameServerLoopbackTest {
     @Test
     void snapshotsArriveAtTheSnapshotRateWithTheFullWorld() {
         LoopbackTransport.Client client = inMatch("Eli");
-        drain(client);
+        MatchStart start = last(drain(client), ServerMessage::hasMatchStart, ServerMessage::getMatchStart);
 
         ticks(server, 60);
 
@@ -194,7 +196,7 @@ class GameServerLoopbackTest {
             assertThat(c.getHp()).isPositive();
             assertThat(c.getHitboxHeight()).isPositive();
         }
-        assertThat(snapshot.getPickupsCount()).isEqualTo(7);
+        assertThat(snapshot.getPickupsCount()).isEqualTo(start.getMap().getPickupsCount()).isPositive();
         for (int i = 1; i < snapshots.size(); i++) {
             assertThat(snapshots.get(i).getTick() - snapshots.get(i - 1).getTick()).isEqualTo(3);
         }
@@ -380,6 +382,29 @@ class GameServerLoopbackTest {
         client.send(ready(true));
         server.tickOnce();
         assertThat(drain(client).stream().anyMatch(ServerMessage::hasMatchStart)).isTrue();
+    }
+
+    @Test
+    void everyMatchOfARoomIsPlayedOnANewArena() {
+        LoopbackTransport.Client client = inMatch("Eli");
+        MatchStart first = last(drain(client), ServerMessage::hasMatchStart,
+                ServerMessage::getMatchStart);
+        boolean over = false;
+        for (int i = 0; i < 60 * 60 * 5 && !over; i++) {
+            server.tickOnce();
+            over = drain(client).stream().anyMatch(ServerMessage::hasMatchEnd);
+        }
+        assertThat(over).isTrue();
+        client.send(ready(true));
+        server.tickOnce();
+        MatchStart second = last(drain(client), ServerMessage::hasMatchStart,
+                ServerMessage::getMatchStart);
+
+        assertThat(first.getMapId()).isEqualTo(ArenaGenerator.MAP_ID);
+        assertThat(second.getMapId()).isEqualTo(ArenaGenerator.MAP_ID);
+        assertThat(second.getMap().getObstaclesList()).isNotEqualTo(first.getMap().getObstaclesList());
+        assertThat(first.getMap().getName()).isNotBlank();
+        assertThat(first.getMap().getSpawnsCount()).isEqualTo(6);
     }
 
     @Test

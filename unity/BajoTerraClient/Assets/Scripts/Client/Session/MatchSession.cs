@@ -148,6 +148,7 @@ namespace Bajoterra.Client.Session
         {
             Clock.Observe(localNow, (int)snapshot.Tick);
             Snapshots.Add(snapshot.Tick / (double)TicksPerSecond, snapshot);
+            Map.SetBarriers(snapshot.Barriers);
             Prediction.Reconcile(snapshot);
         }
 

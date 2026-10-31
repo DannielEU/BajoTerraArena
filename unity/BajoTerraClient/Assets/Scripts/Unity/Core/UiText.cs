@@ -60,7 +60,16 @@ namespace Bajoterra.Unity
         public const string CaveFighter = "lanzador de la caverna";
         public const string Critical = "¡CRÍTICO!";
         public const string Grenade = "Granada";
+        public const string Blinding = "Cegadora";
+        public const string WallMaker = "Muro de hielo";
+        public const string Dazed = "¡CEGADO!";
         public const string CourageBanner = "¡CORAJE!";
+
+        /// <summary>Under the first round's banner: the name of this match's arena, then the call to fight.</summary>
+        public static string ArenaIntro(string arenaName)
+        {
+            return string.IsNullOrEmpty(arenaName) ? FightNow : arenaName + "  -  " + FightNow;
+        }
 
         /// <summary>The badge over your bars while your team is outnumbered.</summary>
         public static string CourageBadge(int level)

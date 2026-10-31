@@ -181,6 +181,35 @@ namespace Bajoterra.Unity
                         Explode(position, e.Value);
                     }
                     break;
+                case EventKind.Flash:
+                    OnFlash(position, e.Value);
+                    break;
+                case EventKind.BarrierRaised:
+                    // Frost bursting out of the floor as the ice shoots up.
+                    Burst(position + Vector3.up * 0.3f, new Color(0.75f, 0.97f, 1f), 50, 4.5f, 0.2f);
+                    ShockRing(position + Vector3.up * 0.05f, new Color(0.6f, 0.95f, 1f), 2.4f, 0.4f);
+                    _audio.PlayAt(_audio.IceForm, position, 0.9f, Random(0.95f, 1.05f));
+                    break;
+                case EventKind.BarrierHit:
+                    Burst(position, new Color(0.85f, 1f, 1f), 26, 5f, 0.12f);
+                    _audio.PlayAt(_audio.IceCrack, position, 0.85f, Random(0.9f, 1.15f));
+                    break;
+                case EventKind.BarrierGone:
+                    if (e.A == 1)
+                    {
+                        // Shattered: a spray of shards and a crash.
+                        Burst(position + Vector3.up * 1.1f, new Color(0.85f, 1f, 1f), 90, 7f, 0.22f);
+                        Burst(position + Vector3.up * 0.6f, new Color(0.6f, 0.9f, 1f), 40, 3f, 0.4f);
+                        FlashAt(position + Vector3.up * 1f, new Color(0.7f, 0.95f, 1f), 3f, 0.2f, 3f);
+                        _audio.PlayAt(_audio.IceShatter, position, 1f, Random(0.95f, 1.05f));
+                    }
+                    else
+                    {
+                        // Melted away: a last puff of cold mist.
+                        Burst(position + Vector3.up * 0.3f, new Color(0.8f, 0.95f, 1f), 18, 1.2f, 0.45f);
+                        _audio.PlayAt(_audio.Splish, position, 0.4f, 0.8f);
+                    }
+                    break;
                 case EventKind.Damage:
                     OnDamage(e);
                     break;
@@ -437,6 +466,23 @@ namespace Bajoterra.Unity
             _audio.PlayAt(_audio.GrenadeBlast, center, 1f, Random(0.94f, 1.04f));
             float distance = Vector3.Distance(center, _cameraPosition);
             Shake?.Invoke(0.6f * Mathf.Clamp01(1f - distance / 32f));
+        }
+
+        /// <summary>
+        /// A Phosphoro going off: a burst of white light that floods the whole cavern for a moment (the walls light
+        /// up even for those who looked away), a ring of sparkles and a sharp electric bang.
+        /// </summary>
+        private void OnFlash(Vector3 center, float radius)
+        {
+            Color light = new Color(0.85f, 1f, 1f);
+            FlashAt(center, light, Mathf.Max(6f, radius * 0.55f), 0.6f, 9f);
+            FlashAt(center, Color.white, 4.5f, 0.22f, 14f);
+            Burst(center, new Color(0.8f, 1f, 1f), 70, 9f, 0.22f);
+            Burst(center, new Color(1f, 0.97f, 0.7f), 30, 4f, 0.4f);
+            ShockRing(center, light, 3.2f, 0.35f);
+            _audio.PlayAt(_audio.FlashBang, center, 1f, Random(0.96f, 1.04f));
+            float distance = Vector3.Distance(center, _cameraPosition);
+            Shake?.Invoke(0.15f * Mathf.Clamp01(1f - distance / 20f));
         }
 
         private bool IsSticky(int slugIndex)

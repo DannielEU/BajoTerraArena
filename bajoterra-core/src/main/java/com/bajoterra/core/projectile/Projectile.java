@@ -25,4 +25,11 @@ public final class Projectile {
     public Combatant stuckTo;
     /** Where a slug stuck to a combatant sits, relative to their feet. */
     public final Vec3 stuckOffset = new Vec3();
+    /** Metres flown since the last patch of fire of its trail (negative before the first one). */
+    public double trailGap;
+    /** Metres of trail laid so far. */
+    public double trailLaid;
+    /** Horizontal unit direction a stuck slug faces: the way it was flying, or towards whoever stopped it. */
+    public double stuckDirX;
+    public double stuckDirZ;
 }

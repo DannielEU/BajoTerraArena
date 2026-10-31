@@ -38,6 +38,11 @@ namespace Bajoterra.Unity
         private readonly Transform[] _statusDots = new Transform[MaxStatusDots];
         private readonly Renderer[] _statusRenderers = new Renderer[MaxStatusDots];
         private readonly Renderer[] _tagRenderers;
+        private readonly Transform _dazed;
+        private readonly Transform[] _stars = new Transform[3];
+        private readonly Transform _dazzle;
+        private readonly TextMesh _dazedLabel;
+        private float _dazedTime;
         private readonly ArenaMap _map;
         private readonly ContentCatalog _content;
         private readonly float _radius;
@@ -119,6 +124,26 @@ namespace Bajoterra.Unity
                 _statusRenderers[i] = dot.GetComponent<Renderer>();
                 dot.SetActive(false);
             }
+            // Blinded by a flash: little stars circle the head, the face glows white and a sign says so.
+            _dazed = new GameObject("Dazed").transform;
+            _dazed.SetParent(_root, false);
+            for (int i = 0; i < _stars.Length; i++)
+            {
+                _stars[i] = Gfx.Halo(_dazed, "Star " + i, Vector3.zero, new Color(1f, 0.97f, 0.75f), 0.32f, Textures.Flare);
+            }
+            _dazzle = Gfx.Halo(_dazed, "Dazzle", Vector3.zero, new Color(1f, 1f, 0.95f, 0.7f), 0.9f);
+            var sign = new GameObject("Dazed sign", typeof(TextMesh), typeof(Billboard));
+            sign.transform.SetParent(_dazed, false);
+            _dazedLabel = sign.GetComponent<TextMesh>();
+            _dazedLabel.font = UiKit.DisplayFont;
+            sign.GetComponent<MeshRenderer>().sharedMaterial = UiKit.DisplayFont.material;
+            _dazedLabel.text = UiText.Dazed;
+            _dazedLabel.anchor = TextAnchor.MiddleCenter;
+            _dazedLabel.alignment = TextAlignment.Center;
+            _dazedLabel.characterSize = 0.06f;
+            _dazedLabel.fontSize = 64;
+            _dazedLabel.color = new Color(1f, 0.96f, 0.7f);
+            _dazed.gameObject.SetActive(false);
             ApplyHeight(_height);
         }
 
@@ -202,6 +227,7 @@ namespace Bajoterra.Unity
             _model.Pose(in pose);
 
             UpdateShield(state, alive, deltaTime, lookup);
+            UpdateDazed(state, alive, deltaTime);
             UpdateTag(state, alive, camera, lookup);
             UpdateCourage(state, alive);
             _ring.gameObject.SetActive(alive);
@@ -259,6 +285,35 @@ namespace Bajoterra.Unity
             }
             _shieldMaterial.color = color;
             _shieldMaterial.SetFloat("_Rim", 1.2f + _shieldFlash * 3.5f);
+        }
+
+        /// <summary>Shows the dazed look while the combatant is blinded by a flash (its sign only for others).</summary>
+        private void UpdateDazed(CombatantState state, bool alive, float deltaTime)
+        {
+            float level = alive && state != null ? Bajoterra.Client.Hud.HudModel.Blindness(state, 60) : 0f;
+            bool show = level > 0.05f;
+            if (_dazed.gameObject.activeSelf != show)
+            {
+                _dazed.gameObject.SetActive(show);
+                _dazedTime = 0f;
+            }
+            if (!show)
+            {
+                return;
+            }
+            _dazedTime += deltaTime;
+            float head = _height + 0.12f;
+            for (int i = 0; i < _stars.Length; i++)
+            {
+                float angle = _dazedTime * 4.5f + i * Mathf.PI * 2f / _stars.Length;
+                _stars[i].localPosition = new Vector3(Mathf.Cos(angle) * 0.38f, head + 0.08f * Mathf.Sin(angle * 2f),
+                    Mathf.Sin(angle) * 0.38f);
+                _stars[i].localScale = Vector3.one * (0.3f * (0.8f + 0.2f * Mathf.Sin(_dazedTime * 9f + i)));
+            }
+            _dazzle.localPosition = new Vector3(0f, _height * 0.88f, 0.15f);
+            _dazzle.localScale = Vector3.one * (0.9f * level);
+            _dazedLabel.gameObject.SetActive(!_isYou);
+            _dazedLabel.transform.localPosition = new Vector3(0f, head + 0.95f + 0.05f * Mathf.Sin(_dazedTime * 5f), 0f);
         }
 
         private void UpdateCourage(CombatantState state, bool alive)

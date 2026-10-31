@@ -14,6 +14,7 @@ import com.bajoterra.core.effect.Effect;
  * @param onWorldHit effects applied where the slug stops against an obstacle
  * @param onTick effects applied (without a target) at the slug position every tick of flight
  * @param onExpire effects applied (without a target) where the slug expires in flight
+ * @param trail the wall of fire the slug leaves under its flight, or {@link TrailSpec#NONE}
  */
 public record SlugDefinition(
         String id,
@@ -30,7 +31,8 @@ public record SlugDefinition(
         Effect onHit,
         Effect onWorldHit,
         Effect onTick,
-        Effect onExpire) implements Identified {
+        Effect onExpire,
+        TrailSpec trail) implements Identified {
 
     public SlugDefinition {
         if (id == null || id.isBlank()) {
@@ -50,7 +52,7 @@ public record SlugDefinition(
     /** Copy with a different dense index (assigned by the loader once every slug is known). */
     public SlugDefinition withIndex(int newIndex) {
         return new SlugDefinition(id, newIndex, name, element, role, targeting, projectile, fireDelayMultiplier,
-                reloadShotsOverride, pierceWorld, botWeight, onHit, onWorldHit, onTick, onExpire);
+                reloadShotsOverride, pierceWorld, botWeight, onHit, onWorldHit, onTick, onExpire, trail);
     }
 
     /** Starts a builder with sensible defaults. */
@@ -74,6 +76,7 @@ public record SlugDefinition(
         private Effect onWorldHit = Effect.NONE;
         private Effect onTick = Effect.NONE;
         private Effect onExpire = Effect.NONE;
+        private TrailSpec trail = TrailSpec.NONE;
 
         private Builder(String id) {
             this.id = id;
@@ -145,9 +148,14 @@ public record SlugDefinition(
             return this;
         }
 
+        public Builder trail(TrailSpec value) {
+            this.trail = value == null ? TrailSpec.NONE : value;
+            return this;
+        }
+
         public SlugDefinition build() {
             return new SlugDefinition(id, 0, name, element, role, targeting, projectile, fireDelayMultiplier,
-                    reloadShotsOverride, pierceWorld, botWeight, onHit, onWorldHit, onTick, onExpire);
+                    reloadShotsOverride, pierceWorld, botWeight, onHit, onWorldHit, onTick, onExpire, trail);
         }
     }
 }

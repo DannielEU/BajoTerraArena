@@ -58,5 +58,19 @@ public enum EventType {
      * A combatant's courage changed because their team gained or lost the numbers advantage. subject = combatant,
      * a = new courage level (0 = none), b = previous level, value = shield restored.
      */
-    COURAGE
+    COURAGE,
+    /**
+     * A blinding flash went off (Phosphoro). actor = source, a = slug index (-1 for none), xyz = centre,
+     * value = the radius within which it can be seen. Whoever saw it gets a {@code blind} status (STATUS_APPLIED).
+     */
+    FLASH,
+    /**
+     * A wall was raised (an ice wall). actor = who raised it, a = slug index, b = barrier id, xyz = middle of its
+     * foot, value = hits it can take.
+     */
+    BARRIER_RAISED,
+    /** A slug struck a wall. actor = shooter, a = hits it can still take, b = barrier id, xyz = impact point. */
+    BARRIER_HIT,
+    /** A wall is gone. a = 1 when it was broken, 0 when it melted; b = barrier id, xyz = middle of its foot. */
+    BARRIER_GONE
 }

@@ -4,8 +4,9 @@ import com.bajoterra.core.entity.Combatant;
 
 /**
  * Collision and visibility queries over a {@link GameMap} for one running simulation. The map and its grid are
- * immutable and shared; this class owns the only mutable scratch (the de-duplication stamps), so every simulation
- * has its own {@code World} and queries never allocate.
+ * immutable and shared; this class owns the only mutable scratch (the de-duplication stamps) and the few
+ * {@link Barrier}s raised during a round (ice walls), which every query treats like the map's own solids. Every
+ * simulation has its own {@code World} and queries never allocate.
  */
 public final class World {
 
@@ -21,15 +22,74 @@ public final class World {
     private static final int KIND_PROJECTILE = 0;
     private static final int KIND_SIGHT = 1;
 
+    /** Most barriers standing at once; raising one more replaces the one closest to melting. */
+    public static final int MAX_BARRIERS = 12;
+
     private final GameMap map;
     private final SpatialGrid grid;
     private final int[] stamps;
+    private final Barrier[] barriers = new Barrier[MAX_BARRIERS];
     private int stamp;
+    private int nextBarrierId = 1;
+    private Barrier lastBarrierHit;
 
     public World(GameMap map) {
         this.map = map;
         this.grid = map.grid();
         this.stamps = new int[map.obstacleCount()];
+        for (int i = 0; i < MAX_BARRIERS; i++) {
+            barriers[i] = new Barrier();
+        }
+    }
+
+    /** The barrier pool; check {@link Barrier#active} before using one. */
+    public Barrier[] barriers() {
+        return barriers;
+    }
+
+    /**
+     * Raises a barrier over the given box, replacing the one closest to melting when every slot is taken.
+     *
+     * @return the barrier, already active
+     */
+    public Barrier raiseBarrier(double minX, double minY, double minZ, double maxX, double maxY, double maxZ,
+            int hits, int ticks, int ownerId, int slugIndex) {
+        Barrier slot = barriers[0];
+        for (Barrier b : barriers) {
+            if (!b.active) {
+                slot = b;
+                break;
+            }
+            if (b.ticksLeft < slot.ticksLeft) {
+                slot = b;
+            }
+        }
+        slot.active = true;
+        slot.id = nextBarrierId++;
+        slot.minX = minX;
+        slot.minY = minY;
+        slot.minZ = minZ;
+        slot.maxX = maxX;
+        slot.maxY = maxY;
+        slot.maxZ = maxZ;
+        slot.hitsLeft = hits;
+        slot.ticksLeft = ticks;
+        slot.lifeTicks = ticks;
+        slot.ownerId = ownerId;
+        slot.slugIndex = slugIndex;
+        return slot;
+    }
+
+    /** Removes every barrier (a new round starts on a clean arena). */
+    public void clearBarriers() {
+        for (Barrier b : barriers) {
+            b.active = false;
+        }
+    }
+
+    /** The barrier that stopped the last {@link #sweepProjectile} call, or null when it was the map or nothing. */
+    public Barrier lastBarrierHit() {
+        return lastBarrierHit;
     }
 
     public GameMap map() {
@@ -50,6 +110,7 @@ public final class World {
             }
             if (t <= 1 && (best < 0 || t < best)) {
                 best = t;
+                lastBarrierHit = null;
             }
         }
         return best;
@@ -127,6 +188,11 @@ public final class World {
         stamp++;
         double feet = c.pos.y;
         double top = feet + height;
+        for (Barrier b : barriers) {
+            if (b.active && b.maxY - feet > STEP_HEIGHT && b.minY < top) {
+                pushOut(c, b.minX, b.maxX, b.minZ, b.maxZ, radius);
+            }
+        }
         int c0 = grid.columnOf(c.pos.x - radius);
         int c1 = grid.columnOf(c.pos.x + radius);
         int r0 = grid.rowOf(c.pos.z - radius);
@@ -142,15 +208,15 @@ public final class World {
                     if (!o.blocksMovement() || o.topAt(c.pos.x, c.pos.z) - feet <= STEP_HEIGHT || o.minY() >= top) {
                         continue;
                     }
-                    pushOut(c, o, radius);
+                    pushOut(c, o.minX(), o.maxX(), o.minZ(), o.maxZ(), radius);
                 }
             }
         }
     }
 
-    private static void pushOut(Combatant c, Obstacle o, double radius) {
-        double nearestX = Math.min(Math.max(c.pos.x, o.minX()), o.maxX());
-        double nearestZ = Math.min(Math.max(c.pos.z, o.minZ()), o.maxZ());
+    private static void pushOut(Combatant c, double minX, double maxX, double minZ, double maxZ, double radius) {
+        double nearestX = Math.min(Math.max(c.pos.x, minX), maxX);
+        double nearestZ = Math.min(Math.max(c.pos.z, minZ), maxZ);
         double dx = c.pos.x - nearestX;
         double dz = c.pos.z - nearestZ;
         double distanceSq = dx * dx + dz * dz;
@@ -165,10 +231,10 @@ public final class World {
             return;
         }
         // The centre is inside the box: leave through the closest face.
-        double toMinX = c.pos.x - o.minX();
-        double toMaxX = o.maxX() - c.pos.x;
-        double toMinZ = c.pos.z - o.minZ();
-        double toMaxZ = o.maxZ() - c.pos.z;
+        double toMinX = c.pos.x - minX;
+        double toMaxX = maxX - c.pos.x;
+        double toMinZ = c.pos.z - minZ;
+        double toMaxZ = maxZ - c.pos.z;
         double smallest = toMinX;
         int face = 0;
         if (toMaxX < smallest) {
@@ -183,10 +249,10 @@ public final class World {
             face = 3;
         }
         switch (face) {
-            case 0 -> c.pos.x = o.minX() - radius;
-            case 1 -> c.pos.x = o.maxX() + radius;
-            case 2 -> c.pos.z = o.minZ() - radius;
-            default -> c.pos.z = o.maxZ() + radius;
+            case 0 -> c.pos.x = minX - radius;
+            case 1 -> c.pos.x = maxX + radius;
+            case 2 -> c.pos.z = minZ - radius;
+            default -> c.pos.z = maxZ + radius;
         }
     }
 
@@ -194,6 +260,17 @@ public final class World {
             int kind) {
         stamp++;
         double best = -1;
+        lastBarrierHit = null;
+        for (Barrier b : barriers) {
+            if (!b.active) {
+                continue;
+            }
+            double t = boxHitTime(b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ, ox, oy, oz, sx, sy, sz, radius);
+            if (t >= 0 && (best < 0 || t < best)) {
+                best = t;
+                lastBarrierHit = b;
+            }
+        }
         int c0 = grid.columnOf(Math.min(ox, ox + sx) - radius);
         int c1 = grid.columnOf(Math.max(ox, ox + sx) + radius);
         int r0 = grid.rowOf(Math.min(oz, oz + sz) - radius);
@@ -213,11 +290,39 @@ public final class World {
                     double t = hitTime(o, ox, oy, oz, sx, sy, sz, radius);
                     if (t >= 0 && (best < 0 || t < best)) {
                         best = t;
+                        lastBarrierHit = null;
                     }
                 }
             }
         }
         return best;
+    }
+
+    /** Slab test of a segment against a plain box grown by {@code r}; returns the entry fraction or -1. */
+    private static double boxHitTime(double minX, double minY, double minZ, double maxX, double maxY, double maxZ,
+            double ox, double oy, double oz, double sx, double sy, double sz, double r) {
+        double tMin = 0;
+        double tMax = 1;
+        for (int axis = 0; axis < 3; axis++) {
+            double origin = axis == 0 ? ox : axis == 1 ? oy : oz;
+            double delta = axis == 0 ? sx : axis == 1 ? sy : sz;
+            double lo = (axis == 0 ? minX : axis == 1 ? minY : minZ) - r;
+            double hi = (axis == 0 ? maxX : axis == 1 ? maxY : maxZ) + r;
+            if (Math.abs(delta) < 1e-12) {
+                if (origin < lo || origin > hi) {
+                    return -1;
+                }
+                continue;
+            }
+            double t1 = (lo - origin) / delta;
+            double t2 = (hi - origin) / delta;
+            tMin = Math.max(tMin, Math.min(t1, t2));
+            tMax = Math.min(tMax, Math.max(t1, t2));
+            if (tMin > tMax) {
+                return -1;
+            }
+        }
+        return tMin;
     }
 
     /**

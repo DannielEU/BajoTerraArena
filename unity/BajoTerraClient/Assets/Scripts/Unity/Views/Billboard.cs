@@ -8,6 +8,9 @@ namespace Bajoterra.Unity
         private static Mesh _quad;
         private Transform _camera;
 
+        /// <summary>Degrees the sprite is turned about the view direction (a spinning star).</summary>
+        public float Roll { get; set; }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
@@ -44,7 +47,7 @@ namespace Bajoterra.Unity
                 }
                 _camera = main.transform;
             }
-            transform.rotation = _camera.rotation;
+            transform.rotation = Roll == 0f ? _camera.rotation : _camera.rotation * Quaternion.Euler(0f, 0f, Roll);
         }
     }
 }

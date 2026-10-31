@@ -34,6 +34,7 @@ public final class StatusSet {
     void apply(AbstractStatusEffect definition, EffectContext ctx) {
         Combatant owner = ctx.target();
         int sourceId = ctx.source() == null ? -1 : ctx.source().id;
+        int duration = definition.durationFor(ctx);
         StatusInstance instance = find(definition.statusId());
         if (instance != null) {
             switch (definition.stacking()) {
@@ -44,18 +45,24 @@ public final class StatusSet {
                     if (definition.strength() <= instance.definition().strength()) {
                         return;
                     }
-                    instance.refresh(definition, definition.durationTicks(), sourceId);
+                    instance.refresh(definition, duration, sourceId);
                 }
                 case STACK -> {
                     instance.addStack(definition.maxStacks());
-                    instance.refresh(definition, definition.durationTicks(), sourceId);
+                    instance.refresh(definition, duration, sourceId);
                 }
-                case REFRESH -> instance.refresh(definition, definition.durationTicks(), sourceId);
+                case REFRESH -> instance.refresh(definition, duration, sourceId);
+                case LONGEST -> {
+                    if (duration <= instance.remainingTicks()) {
+                        return;
+                    }
+                    instance.refresh(definition, duration, sourceId);
+                }
                 default -> throw new IllegalStateException("Unhandled stacking policy");
             }
         } else {
             instance = freeSlot();
-            instance.start(definition, definition.durationTicks(), sourceId);
+            instance.start(definition, duration, sourceId);
         }
         definition.onApply(instance, ctx);
         CombatArena arena = ctx.arena();
@@ -63,7 +70,7 @@ public final class StatusSet {
         event.actor = sourceId;
         event.subject = owner.id;
         event.a = definition.statusId().hashCode();
-        event.value = definition.durationTicks();
+        event.value = duration;
     }
 
     /** Advances every status by one tick: periodic hooks first, then expiry. */

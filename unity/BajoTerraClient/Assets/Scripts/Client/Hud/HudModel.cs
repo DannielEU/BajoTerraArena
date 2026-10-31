@@ -9,6 +9,7 @@ namespace Bajoterra.Client.Hud
     public struct SlugSlotView
     {
         public int SlugIndex;
+        public string Id;
         public string Name;
         public string Element;
         public string Role;
@@ -72,6 +73,12 @@ namespace Bajoterra.Client.Hud
         /// <summary>Seconds left before the grenade stuck to you explodes (the soonest one, if several).</summary>
         public float GrenadeSeconds;
 
+        /// <summary>
+        /// How blinded you are by a flash you looked at: 1 sees nothing but white, 0 sees normally. Like the server it
+        /// stays at full strength until the last second of the blindness and then fades out.
+        /// </summary>
+        public float BlindLevel;
+
         public bool HasState { get; private set; }
 
         public string CharacterName { get; private set; }
@@ -97,6 +104,7 @@ namespace Bajoterra.Client.Hud
             Overshield = you.Overshield;
             Courage = you.Alive ? (int)you.Courage : 0;
             RefreshGrenade(latest, match);
+            BlindLevel = you.Alive ? Blindness(you, match.TicksPerSecond) : 0f;
 
             ReadySlots = 0;
             SelectedSlot = -1;
@@ -110,6 +118,7 @@ namespace Bajoterra.Client.Hud
                 SlotState state = you.Slots[i];
                 SlugInfo info = match.Content.Slug((int)state.SlugIndex);
                 Slots[i].SlugIndex = (int)state.SlugIndex;
+                Slots[i].Id = info.Id;
                 Slots[i].Name = info.Name;
                 Slots[i].Element = match.Content.ElementName((int)info.Element);
                 Slots[i].Role = info.Role;
@@ -148,8 +157,9 @@ namespace Bajoterra.Client.Hud
             for (int i = 0; i < latest.Projectiles.Count; i++)
             {
                 ProjectileState p = latest.Projectiles[i];
+                // A stuck flash is no grenade: it blinds, it does not blow up.
                 if (p.Stuck && p.StuckTo == match.YourId && match.TeamOf((int)p.Owner) != match.YourTeam
-                    && (int)p.FuseTicks < soonest)
+                    && match.Content.Slug((int)p.SlugIndex).FlashRadius <= 0f && (int)p.FuseTicks < soonest)
                 {
                     soonest = (int)p.FuseTicks;
                 }
@@ -159,6 +169,24 @@ namespace Bajoterra.Client.Hud
                 GrenadeOnYou = true;
                 GrenadeSeconds = soonest / (float)match.TicksPerSecond;
             }
+        }
+
+        /// <summary>
+        /// The blindness of a combatant, 0 to 1, from its <c>blind</c> status: full until its last second, then
+        /// fading out over that second (the server fades the aim error the same way).
+        /// </summary>
+        public static float Blindness(CombatantState state, int ticksPerSecond)
+        {
+            float level = 0f;
+            for (int i = 0; i < state.Statuses.Count; i++)
+            {
+                StatusState status = state.Statuses[i];
+                if (status.Id == "blind")
+                {
+                    level = Math.Max(level, Math.Min(1f, status.RemainingTicks / (float)Math.Max(1, ticksPerSecond)));
+                }
+            }
+            return level;
         }
 
         /// <summary>Formats seconds as m:ss.</summary>

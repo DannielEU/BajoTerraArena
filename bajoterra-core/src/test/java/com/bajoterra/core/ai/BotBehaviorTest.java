@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.event.EventType;
 import com.bajoterra.core.event.GameEvent;
+import com.bajoterra.core.hazard.Hazard;
 import com.bajoterra.core.math.Trig;
 import com.bajoterra.core.projectile.Projectile;
 import com.bajoterra.core.sim.GameSimulation;
@@ -18,6 +19,7 @@ import com.bajoterra.core.sim.MatchConfig;
 import com.bajoterra.core.sim.SlotConfig;
 import com.bajoterra.core.slug.Element;
 import com.bajoterra.core.slug.SlugDefinition;
+import com.bajoterra.core.world.Barrier;
 import org.junit.jupiter.api.Test;
 
 /** Individual bot behaviours in small hand-made scenarios. */
@@ -246,6 +248,141 @@ class BotBehaviorTest {
         }
 
         assertThat(escaped).as("the bot left the blast radius").isTrue();
+    }
+
+    @Test
+    void aBlindedBotSeesNobody() {
+        GameSimulation sim = sim("test_open", 3,
+                bot(0, "eli", 1.0, "flaringo"), human(1, "kord", "doc"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        place(bot, -6, 0, FACING_PLUS_X);
+        place(sim.combatants()[1], 6, 0, -FACING_PLUS_X);
+        BotBrain brain = (BotBrain) bot.brain;
+        bot.stats.blindness = 1.0;
+        brain.planNow(sim, bot);
+        assertThat(brain.context().target).as("blinded").isNull();
+
+        bot.stats.blindness = 0;
+        brain.planNow(sim, bot);
+        assertThat(brain.context().target).as("sees again").isSameAs(sim.combatants()[1]);
+    }
+
+    @Test
+    void aPhosphoroFiredAtABotBlindsItAndItStaggersWithoutShootingUntilItSeesAgain() {
+        GameSimulation sim = sim("test_open", 13,
+                bot(0, "eli", 0.0, "flaringo"), human(1, "kord", "phosphoro"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        Combatant human = sim.combatants()[1];
+        place(bot, 4, 0, -FACING_PLUS_X);
+        place(human, -8, 0, FACING_PLUS_X);
+        human.input.aimPitch = 0.1;
+        human.input.fire = true;
+
+        int blindTicks = 0;
+        int shotsWhenBlinded = -1;
+        int shotsWhileBlind = 0;
+        double before = 0;
+        double staggered = 0;
+        for (int i = 0; i < 360; i++) {
+            before = bot.pos.x;
+            double beforeZ = bot.pos.z;
+            sim.tick();
+            if (human.shotsFired > 0) {
+                human.input.fire = false;
+            }
+            if (bot.statuses.has("blind") && bot.stats.blindness > BotBrain.BLIND_SIGHT) {
+                blindTicks++;
+                if (shotsWhenBlinded < 0) {
+                    shotsWhenBlinded = bot.shotsFired;
+                }
+                shotsWhileBlind = bot.shotsFired - shotsWhenBlinded;
+                staggered += Trig.hypot(bot.pos.x - before, bot.pos.z - beforeZ);
+            }
+        }
+
+        assertThat(blindTicks).as("the bot was blinded").isGreaterThan(60);
+        assertThat(shotsWhileBlind).as("a blinded bot does not shoot").isZero();
+        assertThat(staggered).as("it staggers about").isGreaterThan(0.5);
+    }
+
+    @Test
+    void aHurtBotInTheOpenRaisesAnIceWallBetweenItselfAndItsTarget() {
+        GameSimulation sim = sim("test_open", 17,
+                bot(0, "eli", 0.8, "frostcrawler", "flaringo"), human(1, "kord", "doc"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        Combatant enemy = sim.combatants()[1];
+        place(bot, -8, 0, FACING_PLUS_X);
+        place(enemy, 8, 0, -FACING_PLUS_X);
+        bot.vitals.applyDamage(bot.vitals.shield() + bot.vitals.hp() * 0.6, 0);
+
+        Barrier wall = null;
+        for (int i = 0; i < 240 && wall == null; i++) {
+            sim.tick();
+            for (Barrier b : sim.world().barriers()) {
+                if (b.active) {
+                    wall = b;
+                }
+            }
+        }
+
+        assertThat(wall).as("a wall went up").isNotNull();
+        double middle = (wall.minX + wall.maxX) / 2;
+        assertThat(middle).as("between them").isGreaterThan(bot.pos.x).isLessThan(enemy.pos.x);
+    }
+
+    @Test
+    void aBotStandingInAnEnemysFireStepsOutOfIt() {
+        GameSimulation sim = sim("test_open", 19,
+                bot(0, "eli", 0.7, "doc"), human(1, "kord", "infurnus"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        Combatant slinger = sim.combatants()[1];
+        place(bot, 0, 0, FACING_PLUS_X);
+        place(slinger, 15, 9, 0);
+        Hazard patch = sim.hazards().lay(slinger, CONTENT.slugs().require("infurnus"),
+                0, 0, 0);
+
+        ticks(sim, 60);
+
+        assertThat(sim.hazards().touching(bot)).as("out of the fire").isNull();
+        assertThat(Trig.hypot(bot.pos.x - patch.x, bot.pos.z - patch.z)).isGreaterThan(0.8);
+    }
+
+    @Test
+    void aSkilledBotTurnsItsEyesAwayFromAFlashAboutToGoOff() {
+        GameSimulation sim = sim("test_open", 11,
+                bot(0, "eli", 1.0, "doc"), human(1, "kord", "flaringo"));
+        startRound(sim);
+        Combatant bot = sim.combatants()[0];
+        Combatant thrower = sim.combatants()[1];
+        place(bot, -6, 0, FACING_PLUS_X);
+        bot.pitch = 0;
+        place(thrower, 15, 9, 0);
+        SlugDefinition phosphoro = CONTENT.slugs().require("phosphoro");
+
+        boolean lookedAway = false;
+        for (int attempt = 0; attempt < 8 && !lookedAway; attempt++) {
+            Projectile flash = sim.projectiles().acquire();
+            flash.owner = thrower;
+            flash.slug = phosphoro;
+            flash.pos.set(bot.pos.x + 5 * Trig.sin(bot.yaw), 0.3, bot.pos.z + 5 * Trig.cos(bot.yaw));
+            flash.vel.setZero();
+            flash.stuck = true;
+            flash.ticksLeft = 80;
+            ticks(sim, 79);
+            double toFlashX = flash.pos.x - bot.pos.x;
+            double toFlashZ = flash.pos.z - bot.pos.z;
+            double facing = (toFlashX * Trig.sin(bot.yaw) + toFlashZ * Trig.cos(bot.yaw))
+                    / Trig.hypot(toFlashX, toFlashZ);
+            lookedAway = facing < 0;
+            ticks(sim, 2);   // let it go off before the next attempt
+            bot.statuses.clear();
+        }
+
+        assertThat(lookedAway).as("the bot faced away from the flash").isTrue();
     }
 
     @Test

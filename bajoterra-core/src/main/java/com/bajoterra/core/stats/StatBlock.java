@@ -17,6 +17,8 @@ public final class StatBlock {
     public double healReceivedMultiplier = 1.0;
     /** Extra random aim error in radians (blinded combatants). */
     public double aimSpread;
+    /** How blinded the combatant is right now, 0 (sees normally) to 1 (sees nothing but white). */
+    public double blindness;
     /** Multiplies the damage this combatant deals (courage). */
     public double damageDealtMultiplier = 1.0;
     /** Multiplies the blaster's interval between shots (below 1 fires faster). */
@@ -43,6 +45,7 @@ public final class StatBlock {
         fireIntervalMultiplier = 1.0;
         damageTakenMultiplier = 1.0;
         aimSpread = 0;
+        blindness = 0;
         invulnerable = false;
         stunned = false;
         Arrays.fill(elementTaken, 1.0);

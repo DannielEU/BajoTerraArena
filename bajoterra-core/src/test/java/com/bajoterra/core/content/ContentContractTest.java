@@ -92,7 +92,8 @@ class ContentContractTest {
         shooter.input.aimYaw = Math.PI / 2;
         shooter.input.fire = true;
 
-        ticks(sim, 90);
+        // Long enough for a slug with a fuse (a grenade, a hovering flash) to go off too.
+        ticks(sim, 150);
 
         assertThat(count(sim, EventType.SHOT)).as("fires").isGreaterThanOrEqualTo(1);
         assertThat(count(sim, EventType.PROJECTILE_HIT) + count(sim, EventType.PROJECTILE_WORLD_HIT)

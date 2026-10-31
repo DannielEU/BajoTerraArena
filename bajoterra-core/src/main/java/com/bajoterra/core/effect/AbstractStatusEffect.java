@@ -86,6 +86,14 @@ public abstract class AbstractStatusEffect implements Effect {
         return params.tags().contains(tag);
     }
 
+    /**
+     * How long this application lasts. By default always {@link #durationTicks()}; effects whose duration follows
+     * the context's scale (a flash seen from the corner of the eye blinds for less time) override it.
+     */
+    protected int durationFor(EffectContext ctx) {
+        return params.durationTicks();
+    }
+
     /** Strength used by {@link StackingPolicy#REPLACE_IF_STRONGER}; higher wins. */
     public double strength() {
         return 0;

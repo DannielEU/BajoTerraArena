@@ -89,11 +89,12 @@ namespace Bajoterra.Unity.Tests
         }
 
         [Test]
-        public void AGrenadeInFlightCarriesItsFuseButNoBlastCircle()
+        public void AGrenadeInFlightIsTheGrenukeModelWithItsFuseHissingButNoBlastCircle()
         {
             _views.Apply(Frame(false, 0), 1f);
 
-            Assert.IsTrue(Find("Grenade").gameObject.activeInHierarchy, "band and fuse are shown");
+            Assert.IsTrue(Find("Slug model grenuke").gameObject.activeInHierarchy, "the 3D Grenuke flies");
+            Assert.IsFalse(Find("Grenade").gameObject.activeInHierarchy, "no stand-in band and fuse on the model");
             Assert.IsFalse(Find("Blast ring").gameObject.activeSelf);
             Assert.IsTrue(Fuse().isPlaying, "the fuse already hisses, quietly");
         }

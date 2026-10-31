@@ -162,6 +162,12 @@ public final class ContentCatalogPrinter {
         if (slug.projectile().pierce() > 0) {
             parts.add("atraviesa " + slug.projectile().pierce());
         }
+        if (slug.trail().exists()) {
+            parts.add(String.format(Locale.ROOT, "deja un muro de fuego de hasta %.0f m que arde %.1f s: %s",
+                    slug.trail().maxLength(),
+                    slug.trail().durationTicks() / (double) SimulationConstants.TICKS_PER_SECOND,
+                    describeList(json.path("trail").path("effects"))));
+        }
         return String.join("; ", parts);
     }
 
@@ -200,6 +206,10 @@ public final class ContentCatalogPrinter {
             case "blind" -> "ciega (" + duration(e) + ")";
             case "cleanse" -> "limpia " + e.path("tags").toString();
             case "area" -> "área r=" + e.path("radius").asText() + " [" + describeList(e.path("effects")) + "]";
+            case "flash" -> "destello visible a " + e.path("radius").asText() + " m [" + describeList(e.path("effects"))
+                    + "] a quien lo mire";
+            case "ice_wall" -> "levanta un muro de hielo (" + e.path("hits").asText("2") + " impactos, " + duration(e)
+                    + ")";
             case "chain" -> "cadena " + e.path("jumps").asText(" 1") + "× [" + describeList(e.path("effects")) + "]";
             default -> type;
         };

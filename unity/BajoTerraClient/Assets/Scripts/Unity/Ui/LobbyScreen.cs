@@ -45,6 +45,7 @@ namespace Bajoterra.Unity
         private readonly RectTransform _characters;
         private readonly RectTransform _slugs;
         private readonly Image[] _belt = new Image[LoadoutSize];
+        private readonly RawImage[] _beltSlugs = new RawImage[LoadoutSize];
         private readonly List<HeroCard> _heroCards = new List<HeroCard>();
         private readonly List<Text> _countLabels = new List<Text>();
         private readonly List<int> _counts = new List<int>();
@@ -123,6 +124,13 @@ namespace Bajoterra.Unity
                 UiKit.Place(tile.rectTransform, new Vector2(0f, 1f), new Vector2(66f, 54f), new Vector2(620f + i * 76f, -70f));
                 UiKit.Edge(tile.transform, UiKit.Ink, 8, 3);
                 _belt[i] = tile;
+                // The chosen slug itself, peeking out of its tile.
+                var face = new GameObject("Slug", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+                face.transform.SetParent(tile.transform, false);
+                UiKit.Place(face.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(58f, 58f), new Vector2(0f, 2f));
+                face.raycastTarget = false;
+                face.enabled = false;
+                _beltSlugs[i] = face;
             }
             _slugs = UiKit.Rect("Slugs", _roomPanel);
             UiKit.Place(_slugs, new Vector2(0f, 1f), new Vector2(760f, 760f), new Vector2(620f, -144f));
@@ -361,13 +369,37 @@ namespace Bajoterra.Unity
                 Image stripe = UiKit.Card(card.transform, "Stripe", element, 4);
                 UiKit.Place(stripe.rectTransform, new Vector2(0f, 0.5f), new Vector2(8f, 62f), new Vector2(10f, 0f));
                 stripe.rectTransform.pivot = new Vector2(0f, 0.5f);
+                // The slug's 3D model, photographed for the card.
+                Texture2D portrait = SlugPortraits.Get(slug.Id);
+                float textLeft = 30f;
+                if (portrait != null)
+                {
+                    var face = new GameObject("Portrait", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+                    face.transform.SetParent(card.transform, false);
+                    face.texture = portrait;
+                    face.raycastTarget = false;
+                    UiKit.Place(face.rectTransform, new Vector2(0f, 0.5f), new Vector2(72f, 72f), new Vector2(16f, 0f));
+                    textLeft = 86f;
+                }
+                // The name and its kind end where the -/+ buttons start, shrinking to fit when they are long.
+                float textWidth = 196f - textLeft;
                 Text name = UiKit.Label(card.transform, "Name", slug.Name, 27, TextAnchor.MiddleLeft, UiKit.TextColor);
-                UiKit.Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(210f, 36f), new Vector2(30f, -8f));
+                UiKit.Place(name.rectTransform, new Vector2(0f, 1f), new Vector2(textWidth, 36f), new Vector2(textLeft, -8f));
+                name.horizontalOverflow = HorizontalWrapMode.Wrap;
+                name.verticalOverflow = VerticalWrapMode.Truncate;
+                name.resizeTextForBestFit = true;
+                name.resizeTextMinSize = 16;
+                name.resizeTextMaxSize = 27;
                 UiKit.Strong(name);
                 UiKit.AddShadow(name, 1.5f);
                 Text kind = UiKit.Label(card.transform, "Kind", UiText.Element(_content.ElementName((int)slug.Element)) + " - " + RoleCaption(slug),
                     18, TextAnchor.MiddleLeft, Color.Lerp(element, Color.white, 0.4f));
-                UiKit.Place(kind.rectTransform, new Vector2(0f, 1f), new Vector2(210f, 28f), new Vector2(30f, -46f));
+                UiKit.Place(kind.rectTransform, new Vector2(0f, 1f), new Vector2(textWidth, 28f), new Vector2(textLeft, -46f));
+                kind.horizontalOverflow = HorizontalWrapMode.Wrap;
+                kind.verticalOverflow = VerticalWrapMode.Truncate;
+                kind.resizeTextForBestFit = true;
+                kind.resizeTextMinSize = 11;
+                kind.resizeTextMaxSize = 18;
                 Button minus = UiKit.MakeButton(card.transform, "Minus", "-", new Vector2(46f, 46f), () => Change(index, -1),
                     ButtonStyle.Secondary, 44);
                 UiKit.Place((RectTransform)minus.transform, new Vector2(1f, 0.5f), new Vector2(46f, 46f), new Vector2(-124f, 0f));
@@ -384,6 +416,14 @@ namespace Bajoterra.Unity
 
         private static string RoleCaption(SlugInfo slug)
         {
+            if (slug.FlashRadius > 0f)
+            {
+                return UiText.Blinding;
+            }
+            if (slug.RaisesWall)
+            {
+                return UiText.WallMaker;
+            }
             return slug.Sticky ? UiText.Grenade : UiText.Role(slug.Role);
         }
 
@@ -460,19 +500,23 @@ namespace Bajoterra.Unity
             _loadoutTotal.text = total == 0
                 ? UiText.Loadout + " · al azar"
                 : UiText.Loadout + " · " + total + "/" + LoadoutSize;
-            // The belt: one tile per chosen slug, in the colour of its element.
+            // The belt: one tile per chosen slug, in the colour of its element, with the slug in it.
             int tile = 0;
             for (int i = 0; i < _counts.Count && tile < LoadoutSize; i++)
             {
                 Color element = Palette.Element(_content.ElementName((int)_content.Slug(i).Element));
+                Texture2D portrait = SlugPortraits.Get(_content.Slug(i).Id);
                 for (int n = 0; n < _counts[i] && tile < LoadoutSize; n++)
                 {
+                    _beltSlugs[tile].texture = portrait;
+                    _beltSlugs[tile].enabled = portrait != null;
                     _belt[tile++].color = element;
                 }
             }
             for (; tile < LoadoutSize; tile++)
             {
                 _belt[tile].color = EmptyTile;
+                _beltSlugs[tile].enabled = false;
             }
             _readyButton.interactable = _ready || total == 0 || total == LoadoutSize;
         }

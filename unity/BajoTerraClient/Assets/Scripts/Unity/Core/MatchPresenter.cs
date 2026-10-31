@@ -25,6 +25,9 @@ namespace Bajoterra.Unity
         private readonly AudioPlayer _audio;
         private readonly Transform _root;
         private readonly ArenaView _arena;
+        private readonly WaterView _water;
+        private readonly BarrierViews _barriers;
+        private readonly FireTrailViews _fire;
         private readonly CombatantViews _combatants;
         private readonly ProjectileViews _projectiles;
         private readonly VfxPlayer _vfx;
@@ -39,6 +42,7 @@ namespace Bajoterra.Unity
         private int _lastCountdown = -1;
         private int _spectateId = -1;
         private bool _wasAlive = true;
+        private float _lastBlind;
 
         public MatchPresenter(GameClient client, GameSettings settings, IControls controls, Camera camera,
             HudScreen hud, AudioPlayer audio, Transform parent)
@@ -54,6 +58,9 @@ namespace Bajoterra.Unity
             _root.SetParent(parent, false);
 
             _arena = new ArenaView(_root, _match.Map, _match.Content, _match.YourTeam);
+            _water = new WaterView(_root, _match.Map, _match.Content, audio);
+            _barriers = new BarrierViews(_root);
+            _fire = new FireTrailViews(_root, _match.Content, audio);
             _combatants = new CombatantViews(_root, _match);
             _projectiles = new ProjectileViews(_root, _match.Content, _match.Map, audio);
             _vfx = new VfxPlayer(_root, _match.Content, _match.Map, audio, _combatants, _match.YourId, _match.YourTeam,
@@ -62,6 +69,7 @@ namespace Bajoterra.Unity
             _match.Prediction.Enabled = settings.Prediction;
 
             _match.EventPlayed += _vfx.Handle;
+            _match.EventPlayed += _water.Handle;
             _match.EventPlayed += OnEvent;
             _vfx.YouWereHit += _hud.Flash;
             _vfx.YouHitAnEnemy += _hud.HitMarker;
@@ -121,17 +129,35 @@ namespace Bajoterra.Unity
             _combatants.Apply(frame, deltaTime, _camera.Camera);
             _projectiles.Apply(frame, time);
             _arena.Animate(frame, time);
+            _water.Apply(frame, deltaTime);
+            _barriers.Apply(_match.Latest, deltaTime);
+            _fire.Apply(_match.Latest, deltaTime, _camera.Camera != null ? _camera.Camera.transform.position : Vector3.zero);
             _vfx.Update(deltaTime, _camera.Camera);
 
             _model.Refresh(_match, _client.PingMs);
+            HearTheFlash();
             AnnounceCountdown();
             UpdateDebug(deltaTime);
             _hud.Refresh(_model, _match, deltaTime, _debugText);
         }
 
+        /// <summary>A flash that blinds you also leaves your ears ringing and the world muffled while it lasts.</summary>
+        private void HearTheFlash()
+        {
+            float blind = _model.BlindLevel;
+            if (blind > 0.25f && _lastBlind < 0.05f)
+            {
+                _audio.PlayUi(_audio.Tinnitus, 0.3f + 0.5f * blind);
+            }
+            _lastBlind = blind;
+            _audio.Muffle = blind;
+        }
+
         public void Destroy()
         {
+            _audio.Muffle = 0f;
             _match.EventPlayed -= _vfx.Handle;
+            _match.EventPlayed -= _water.Handle;
             _match.EventPlayed -= OnEvent;
             _vfx.YouWereHit -= _hud.Flash;
             _vfx.YouHitAnEnemy -= _hud.HitMarker;
@@ -144,6 +170,9 @@ namespace Bajoterra.Unity
             _projectiles.Destroy();
             _combatants.Destroy();
             _arena.Destroy();
+            _water.Destroy();
+            _barriers.Destroy();
+            _fire.Destroy();
             if (_root != null)
             {
                 Object.Destroy(_root.gameObject);
@@ -326,7 +355,9 @@ namespace Bajoterra.Unity
             switch (e.Kind)
             {
                 case EventKind.RoundStarted:
-                    _hud.Banner(UiText.Round + " " + e.A, Color.white, 2.2f, UiText.FightNow);
+                    // Every match has its own arena: the first round says which one.
+                    _hud.Banner(UiText.Round + " " + e.A, Color.white, 2.2f,
+                        e.A == 1 ? UiText.ArenaIntro(_match.Map.Name) : UiText.FightNow);
                     break;
                 case EventKind.RoundEnded:
                     if (e.A < 0)

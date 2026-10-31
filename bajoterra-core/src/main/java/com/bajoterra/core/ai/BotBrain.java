@@ -3,7 +3,9 @@ package com.bajoterra.core.ai;
 import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.entity.InputSource;
 import com.bajoterra.core.entity.InputState;
+import com.bajoterra.core.hazard.Hazard;
 import com.bajoterra.core.math.Trig;
+import com.bajoterra.core.math.Vec3;
 import com.bajoterra.core.move.MoveDefinition;
 import com.bajoterra.core.projectile.Projectile;
 import com.bajoterra.core.projectile.ProjectilePool;
@@ -23,8 +25,9 @@ import java.util.List;
  * <p>Decisions run at 10 Hz ({@link SimulationConstants#BOT_THINK_INTERVAL_TICKS}) through a behavior tree
  * (heal a wounded ally, else attack a visible enemy, else hunt the last known position, else patrol); aiming,
  * movement and the trigger are updated every tick from those decisions. A bot that notices an enemy grenade stuck
- * next to it runs out of the blast for a moment, whatever the tree chose. Nothing here allocates after
- * construction.
+ * next to it runs out of the blast for a moment, whatever the tree chose, and one that notices a blinding slug
+ * about to go off turns its eyes away from it (a blinded bot sees nobody until it wears off). Nothing here
+ * allocates after construction.
  */
 public final class BotBrain implements InputSource {
 
@@ -34,8 +37,18 @@ public final class BotBrain implements InputSource {
     private static final double PREFERRED_MIN_RANGE = 7.0;
     private static final double LOW_COVER_HEIGHT = 1.3;
     private static final double MAX_COVER_SEARCH = 26.0;
+    /** An ice wall goes up this far in front of the bot that throws it, towards its target. */
+    private static final double WALL_AHEAD = 2.6;
+    /** No wall against a target closer than this: there is no time to hide. */
+    private static final double WALL_MIN_RANGE = 6.0;
+    /** Ticks between two walls of the same bot. */
+    private static final int WALL_COOLDOWN_TICKS = 420;
     /** Cosine of the half-angle of the cone in which a bot notices incoming slugs (about 75 degrees). */
     private static final double DODGE_VIEW_COS = 0.26;
+    /** Above this {@link com.bajoterra.core.stats.StatBlock#blindness} a bot sees nothing. */
+    static final double BLIND_SIGHT = 0.35;
+    /** A flying blinding slug is worth looking away from when it has fewer ticks than this left to go off. */
+    private static final int FLASH_WARNING_TICKS = 40;
 
     private BotProfile profile;
     private double skill;
@@ -134,13 +147,143 @@ public final class BotBrain implements InputSource {
         context.wantFire = false;
         context.wantCrouch = false;
         perceive(tick);
+        if (self.stats.blindness > BLIND_SIGHT) {
+            stumble(tick);
+            return;
+        }
         detectThreat(tick);
         updateStuck(tick);
         context.damageTakenAtLastPlan = self.damageTaken;
         if (tree.tick(context) == Status.FAILURE) {
             context.intent = BotContext.Intent.NONE;
         }
+        planWall(tick);
         avoidGrenades(tick);
+        avoidFire();
+        avoidFlashes(tick);
+    }
+
+    /**
+     * A hurt bot fighting in the open (no cover to run to) throws an ice wall at the floor a few metres in front of it,
+     * towards its target, and fights from behind it.
+     */
+    private void planWall(int tick) {
+        Combatant self = context.self();
+        Combatant target = context.target;
+        if (tick < context.nextWallTick || context.intent != BotContext.Intent.ATTACK || target == null
+                || context.inCover || context.coverIndex >= 0 || tick < context.wallUntilTick) {
+            return;
+        }
+        boolean hurt = self.vitals.totalFraction() < profile.retreatHealth() + 0.15
+                || tick - context.lastHurtTick < 60 && self.vitals.totalFraction() < 0.8;
+        double toX = target.pos.x - self.pos.x;
+        double toZ = target.pos.z - self.pos.z;
+        double distance = Trig.hypot(toX, toZ);
+        if (!hurt || distance < WALL_MIN_RANGE || distance > PREFERRED_MAX_RANGE) {
+            return;
+        }
+        int slot = scorer.wallSlot(context);
+        if (slot < 0) {
+            return;
+        }
+        context.wallSlot = slot;
+        context.wallX = self.pos.x + toX / distance * WALL_AHEAD;
+        context.wallZ = self.pos.z + toZ / distance * WALL_AHEAD;
+        context.wallUntilTick = tick + 45;
+        context.wallShots = self.shotsFired;
+        context.nextWallTick = tick + WALL_COOLDOWN_TICKS;
+    }
+
+    /** A bot standing in an enemy's wall of fire steps out of it, away from the patch burning it. */
+    private void avoidFire() {
+        Combatant self = context.self();
+        Hazard burning = context.sim().hazards().touching(self);
+        if (burning == null) {
+            return;
+        }
+        double awayX = self.pos.x - burning.x;
+        double awayZ = self.pos.z - burning.z;
+        double length = Trig.hypot(awayX, awayZ);
+        if (length < 1e-3) {
+            awayX = -Trig.sin(self.yaw);
+            awayZ = -Trig.cos(self.yaw);
+            length = 1;
+        }
+        context.waypointX = self.pos.x + awayX / length * 2.5;
+        context.waypointZ = self.pos.z + awayZ / length * 2.5;
+        context.hasWaypoint = true;
+        context.moveSpeedFactor = 1.0;
+        context.inCover = false;
+        context.wantCrouch = false;
+    }
+
+    /**
+     * Blinded: the bot sees nobody, so it neither aims nor fires; it staggers about slowly in short random
+     * directions until its sight comes back, the way a dazzled player would.
+     */
+    private void stumble(int tick) {
+        Combatant self = context.self();
+        context.intent = BotContext.Intent.NONE;
+        context.inCover = false;
+        context.wantCrouch = false;
+        context.coverIndex = -1;
+        if (tick >= context.stumbleUntilTick || !context.hasWaypoint) {
+            var random = context.sim().arena().random();
+            double angle = random.nextDouble() * Math.PI * 2;
+            context.waypointX = self.pos.x + Trig.sin(angle) * 2.5;
+            context.waypointZ = self.pos.z + Trig.cos(angle) * 2.5;
+            context.stumbleUntilTick = tick + 24 + random.nextInt(30);
+        }
+        context.hasWaypoint = true;
+        context.moveSpeedFactor = 0.35;
+    }
+
+    /**
+     * Notices blinding slugs about to go off within sight (stuck ones, or flying ones close to the end of their
+     * flight) and decides once per slug whether to turn its eyes away until it has popped. A bot knows where its own
+     * slugs are; somebody else's it only notices in front of it, and the worse the bot the likelier it stares.
+     */
+    private void avoidFlashes(int tick) {
+        Combatant self = context.self();
+        if (tick < context.lookAwayUntilTick) {
+            return;
+        }
+        ProjectilePool pool = context.sim().projectiles();
+        World world = context.sim().world();
+        for (int i = 0; i < pool.capacity(); i++) {
+            Projectile p = pool.at(i);
+            if (!p.active || p.id <= context.flashJudgedId) {
+                continue;
+            }
+            double reach = p.slug.onExpire().flashRadius();
+            if (reach <= 0 || !p.stuck && p.ticksLeft > FLASH_WARNING_TICKS) {
+                continue;
+            }
+            double rx = p.pos.x - context.eye.x;
+            double rz = p.pos.z - context.eye.z;
+            double flat = Trig.hypot(rx, rz);
+            double beamCos = p.slug.onExpire().flashBeamCos();
+            if (p.stuck && beamCos > -1 && flat > 1.5
+                    && -(rx * p.stuckDirX + rz * p.stuckDirZ) / flat < beamCos) {
+                continue;   // behind it: its light shines the other way
+            }
+            boolean own = p.owner == self;
+            boolean behind = flat > 1e-6
+                    && (rx * Trig.sin(self.yaw) + rz * Trig.cos(self.yaw)) / flat < DODGE_VIEW_COS;
+            Vec3 eye = context.eye;
+            if (flat > reach || !own && behind
+                    || !world.hasLineOfSight(eye.x, eye.y, eye.z, p.pos.x, p.pos.y, p.pos.z)) {
+                continue;
+            }
+            context.flashJudgedId = p.id;
+            double chance = own ? 0.5 + 0.5 * profile.dodgeChance() : profile.dodgeChance();
+            if (context.sim().arena().random().nextDouble() < chance) {
+                context.lookAwayUntilTick = tick + p.ticksLeft + 4;
+                context.lookAwayX = p.pos.x;
+                context.lookAwayZ = p.pos.z;
+                return;
+            }
+        }
     }
 
     /**
@@ -197,9 +340,11 @@ public final class BotBrain implements InputSource {
         }
         Combatant ally = null;
         double lowest = 0.6;
+        boolean blinded = self.stats.blindness > BLIND_SIGHT;
         for (Combatant other : context.sim().combatants()) {
-            boolean seen = other != self && other.alive && world.hasLineOfSight(context.eye.x, context.eye.y,
-                    context.eye.z, other.pos.x, other.pos.y + other.hitHeight() * CHEST_FRACTION, other.pos.z);
+            boolean seen = !blinded && other != self && other.alive && world.hasLineOfSight(context.eye.x,
+                    context.eye.y, context.eye.z, other.pos.x, other.pos.y + other.hitHeight() * CHEST_FRACTION,
+                    other.pos.z);
             if (seen && !context.visible[other.id]) {
                 context.spottedTick[other.id] = tick;
             }
@@ -471,7 +616,16 @@ public final class BotBrain implements InputSource {
                     : scorer.bestAttackSlot(context, focus);
         }
         boolean aimed = false;
-        if (focus != null && context.slot >= 0) {
+        boolean walling = tick < context.wallUntilTick && context.wallSlot >= 0
+                && self.loadout.isAvailable(context.wallSlot) && self.shotsFired == context.wallShots;
+        if (tick < context.lookAwayUntilTick) {
+            // Eyes off a flash about to go off: face away from it, a little down, and hold fire.
+            desiredYaw = Trig.atan2(self.pos.x - context.lookAwayX, self.pos.z - context.lookAwayZ);
+            desiredPitch = -0.25;
+        } else if (walling) {
+            aimAtFloor(self, context.wallSlot, context.wallX, context.wallZ);
+            aimed = true;
+        } else if (focus != null && context.slot >= 0) {
             solveAim(self, focus);
             aimed = true;
         } else if (context.hasWaypoint && context.moveSpeedFactor > 0) {
@@ -492,11 +646,16 @@ public final class BotBrain implements InputSource {
         input.aimPitch = self.pitch;
         input.hasCamera = false;
         // A player needs a moment to react to an enemy that just came into view; so does a bot.
-        boolean reacted = focus == null || context.intent != BotContext.Intent.ATTACK
+        boolean reacted = walling || focus == null || context.intent != BotContext.Intent.ATTACK
                 || tick - context.spottedTick[focus.id] >= profile.reactionTicks();
-        input.fire = aimed && reacted && context.wantFire && remainingYaw < tolerance && remainingPitch < tolerance;
-        if (aimed && self.loadout.selected() != context.slot && self.loadout.isAvailable(context.slot)) {
-            input.selectSlot = context.slot;
+        input.fire = aimed && reacted && (context.wantFire || walling) && remainingYaw < tolerance
+                && remainingPitch < tolerance;
+        int wanted = walling ? context.wallSlot : context.slot;
+        if (aimed && self.loadout.selected() != wanted && self.loadout.isAvailable(wanted)) {
+            input.selectSlot = wanted;
+            if (walling) {
+                input.fire = false;
+            }
         }
 
         input.moveMask = 0;
@@ -527,6 +686,18 @@ public final class BotBrain implements InputSource {
         refreshAimNoise(context.sim().tickCount());
         desiredYaw = aim.yaw + context.noiseYaw;
         desiredPitch = aim.pitch + context.noisePitch;
+    }
+
+    /** Aims the slug in {@code slot} at a spot on the floor (where an ice wall should go up). */
+    private void aimAtFloor(Combatant self, int slot, double x, double z) {
+        ProjectileSpec spec = self.loadout.slug(slot).projectile();
+        double muzzleY = self.pos.y + self.hitHeight() * 0.72;
+        double muzzleX = self.pos.x + Trig.sin(self.yaw) * 0.55;
+        double muzzleZ = self.pos.z + Trig.cos(self.yaw) * 0.55;
+        AimSolver.solve(aim, muzzleX, muzzleY, muzzleZ, x, self.pos.y + 0.1, z, 0, 0, spec.speed(), spec.gravity(),
+                false);
+        desiredYaw = aim.yaw;
+        desiredPitch = aim.pitch;
     }
 
     /**

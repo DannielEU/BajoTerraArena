@@ -7,10 +7,13 @@ import com.bajoterra.core.effect.EffectContext;
 import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.event.EventType;
 import com.bajoterra.core.event.GameEvent;
+import com.bajoterra.core.hazard.HazardSystem;
 import com.bajoterra.core.math.Vec3;
 import com.bajoterra.core.sim.SimulationConstants;
 import com.bajoterra.core.slug.ProjectileSpec;
 import com.bajoterra.core.slug.SlugDefinition;
+import com.bajoterra.core.slug.TrailSpec;
+import com.bajoterra.core.world.Barrier;
 import com.bajoterra.core.world.World;
 
 /**
@@ -20,7 +23,9 @@ import com.bajoterra.core.world.World;
  *
  * <p>Sticky slugs (grenades) stop at their first impact instead: they cling to the obstacle or to the combatant
  * they touched, follow that combatant around, and run their expiry effects when the fuse burns out. A direct hit on
- * the top of an enemy's hitbox is a headshot ({@link CriticalHits}).
+ * the top of an enemy's hitbox is a headshot ({@link CriticalHits}). A sticky slug with a proximity fuse
+ * (Phosphoro) also stops in mid-air, hovering, as soon as it comes that close to a combatant it can affect, facing
+ * them.
  */
 public final class ProjectileSystem {
 
@@ -29,14 +34,21 @@ public final class ProjectileSystem {
     private final CombatArena arena;
     private final World world;
     private final ProjectilePool pool;
+    private final HazardSystem hazards;
     private final EffectContext context = new EffectContext();
     private final Vec3 impactPoint = new Vec3();
     private final Vec3 travelDirection = new Vec3();
 
     public ProjectileSystem(CombatArena arena, World world, ProjectilePool pool) {
+        this(arena, world, pool, null);
+    }
+
+    /** With {@code hazards}, slugs that leave a trail ({@link TrailSpec}) light it as they fly. */
+    public ProjectileSystem(CombatArena arena, World world, ProjectilePool pool, HazardSystem hazards) {
         this.arena = arena;
         this.world = world;
         this.pool = pool;
+        this.hazards = hazards;
     }
 
     public ProjectilePool pool() {
@@ -61,6 +73,8 @@ public final class ProjectileSystem {
         p.vel.set(direction).scale(spec.speed());
         p.ticksLeft = spec.lifetimeTicks();
         p.pierceLeft = spec.pierce();
+        p.trailGap = -slug.trail().startAfter();
+        p.trailLaid = 0;
         return p;
     }
 
@@ -81,6 +95,9 @@ public final class ProjectileSystem {
         }
         SlugDefinition slug = p.slug;
         ProjectileSpec spec = slug.projectile();
+        if (spec.proximity() > 0 && stopNearTarget(p, spec.proximity())) {
+            return;
+        }
         double dt = SimulationConstants.TICK_SECONDS;
         p.vel.y -= spec.gravity() * dt;
         travelDirection.set(p.vel).normalize();
@@ -110,10 +127,13 @@ public final class ProjectileSystem {
             }
             if (bestTime < 0) {
                 p.pos.add(sx, sy, sz);
+                layTrail(p, Math.sqrt(sx * sx + sz * sz));
                 remaining = 0;
                 break;
             }
+            Barrier barrier = hit == null ? world.lastBarrierHit() : null;
             p.pos.add(sx * bestTime, sy * bestTime, sz * bestTime);
+            layTrail(p, Math.sqrt(sx * sx + sz * sz) * bestTime);
             remaining *= 1.0 - bestTime;
             impactPoint.set(p.pos);
             if (hit != null) {
@@ -128,6 +148,9 @@ public final class ProjectileSystem {
                     return;
                 }
             } else {
+                if (barrier != null) {
+                    strike(p, barrier);
+                }
                 hitWorld(p);
                 if (spec.sticky()) {
                     stick(p, null);
@@ -162,8 +185,36 @@ public final class ProjectileSystem {
         p.slug.onHit().apply(context);
     }
 
+    /**
+     * A proximity fuse: once a combatant the slug can affect is within {@code reach} of it (centre to the middle of
+     * their body), the slug stops where it is, turns to face them and lights its fuse.
+     */
+    private boolean stopNearTarget(Projectile p, double reach) {
+        for (Combatant candidate : arena.combatants()) {
+            if (!candidate.alive || candidate == p.owner || !p.slug.targeting().accepts(p.owner, candidate)) {
+                continue;
+            }
+            double dx = candidate.pos.x - p.pos.x;
+            double dy = candidate.centerY() - p.pos.y;
+            double dz = candidate.pos.z - p.pos.z;
+            if (dx * dx + dy * dy + dz * dz <= reach * reach) {
+                stick(p, null);
+                double flat = Math.sqrt(dx * dx + dz * dz);
+                if (flat > 1e-6) {
+                    p.stuckDirX = dx / flat;
+                    p.stuckDirZ = dz / flat;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Stops a sticky slug where it touched and lights its fuse; it clings to {@code victim} when there is one. */
     private void stick(Projectile p, Combatant victim) {
+        double flat = Math.sqrt(p.vel.x * p.vel.x + p.vel.z * p.vel.z);
+        p.stuckDirX = flat > 1e-6 ? p.vel.x / flat : 0;
+        p.stuckDirZ = flat > 1e-6 ? p.vel.z / flat : 0;
         p.stuck = true;
         p.vel.setZero();
         p.ticksLeft = p.slug.projectile().fuseTicks();
@@ -187,7 +238,51 @@ public final class ProjectileSystem {
             }
         }
         if (--p.ticksLeft <= 0) {
+            // The blast (or the flash) faces the way the slug was facing when it stopped.
+            travelDirection.set(p.stuckDirX, 0, p.stuckDirZ);
             expire(p);
+        }
+    }
+
+    /** A slug struck a barrier (an ice wall): it takes one hit, and the last one breaks it. */
+    private void strike(Projectile p, Barrier barrier) {
+        barrier.hitsLeft--;
+        GameEvent event = arena.events().begin(EventType.BARRIER_HIT, arena.tick());
+        event.actor = p.owner.id;
+        event.a = Math.max(0, barrier.hitsLeft);
+        event.b = barrier.id;
+        event.x = impactPoint.x;
+        event.y = impactPoint.y;
+        event.z = impactPoint.z;
+        if (barrier.hitsLeft <= 0) {
+            barrier.active = false;
+            GameEvent gone = arena.events().begin(EventType.BARRIER_GONE, arena.tick());
+            gone.actor = p.owner.id;
+            gone.a = 1;
+            gone.b = barrier.id;
+            gone.x = (barrier.minX + barrier.maxX) * 0.5;
+            gone.y = barrier.minY;
+            gone.z = (barrier.minZ + barrier.maxZ) * 0.5;
+        }
+    }
+
+    /**
+     * A slug with a trail lights a patch of fire on the floor under it every {@code spacing} metres it flies, as long
+     * as it flies low enough and has trail left.
+     */
+    private void layTrail(Projectile p, double flown) {
+        TrailSpec trail = p.slug.trail();
+        if (hazards == null || !trail.exists() || p.trailLaid >= trail.maxLength()) {
+            return;
+        }
+        p.trailGap += flown;
+        while (p.trailGap >= 0 && p.trailLaid < trail.maxLength()) {
+            p.trailGap -= trail.spacing();
+            p.trailLaid += trail.spacing();
+            double below = world.projectileRayDistance(p.pos.x, p.pos.y, p.pos.z, 0, -1, 0, trail.maxHeight());
+            if (below < trail.maxHeight()) {
+                hazards.lay(p.owner, p.slug, p.pos.x, p.pos.y - below, p.pos.z);
+            }
         }
     }
 

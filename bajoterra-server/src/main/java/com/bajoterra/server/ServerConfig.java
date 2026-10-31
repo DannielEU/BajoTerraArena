@@ -1,5 +1,6 @@
 package com.bajoterra.server;
 
+import com.bajoterra.core.mapgen.ArenaGenerator;
 import com.bajoterra.core.rules.EliminationRoundsRules;
 import com.bajoterra.core.rules.MatchRules;
 
@@ -11,7 +12,7 @@ import com.bajoterra.core.rules.MatchRules;
  * @param rules match rules applied to new matches
  * @param seed base seed for the random sources of new matches
  * @param maxRooms upper bound on simultaneous rooms
- * @param mapId map new matches are played on
+ * @param mapId map new matches are played on; {@code ArenaGenerator.MAP_ID} makes a new arena for every match
  */
 public record ServerConfig(int port, boolean realTime, MatchRules rules, long seed, int maxRooms, String mapId) {
 
@@ -21,9 +22,9 @@ public record ServerConfig(int port, boolean realTime, MatchRules rules, long se
         }
     }
 
-    /** Real-time server on the given port with best-of-five rules. */
+    /** Real-time server on the given port with best-of-five rules and a new generated arena for every match. */
     public static ServerConfig defaults(int port) {
-        return new ServerConfig(port, true, EliminationRoundsRules.bestOfFive(), 1L, 64, "caverna");
+        return new ServerConfig(port, true, EliminationRoundsRules.bestOfFive(), 1L, 64, ArenaGenerator.MAP_ID);
     }
 
     public ServerConfig withRealTime(boolean value) {

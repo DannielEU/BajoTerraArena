@@ -201,7 +201,7 @@ class LocomotionTest {
     }
 
     @Test
-    void rollCannotStartInTheAir() {
+    void rollCanStartInTheAir() {
         begin();
         press(eli, "jump");
         sim.tick();
@@ -210,7 +210,54 @@ class LocomotionTest {
         press(eli, "roll");
         ticks(sim, 3);
 
-        assertThat(eli.posture).isEqualTo(Posture.AIRBORNE);
+        assertThat(eli.grounded).isFalse();
+        assertThat(eli.posture).isEqualTo(Posture.ACTION);
+        assertThat(eli.moves.active().id()).isEqualTo("roll");
+    }
+
+    /** The crouch key presses slide and crouch together, as the client does. */
+    private void pressCrouchKey(Combatant c) {
+        c.input.moveMask = (1 << slot(c, "slide")) | (1 << slot(c, "crouch"));
+    }
+
+    @Test
+    void crouchingWhileRunningSlidesFasterThanRunningAndCanFire() {
+        begin();
+        eli.input.moveZ = 1;
+        ticks(sim, 10);
+        double startX = eli.pos.x;
+        pressCrouchKey(eli);
+        eli.input.fire = true;
+        ticks(sim, 30);
+
+        assertThat(eli.moves.active().id()).isEqualTo("slide");
+        assertThat(eli.stats.hitboxHeightMultiplier).isCloseTo(0.6, within(1e-9));
+        assertThat(eli.pos.x - startX).as("further than 30 ticks of running (3 m)").isGreaterThan(4.0);
+        assertThat(eli.shotsFired).as("can fire while sliding").isPositive();
+
+        ticks(sim, 15); // the slide lasts 36 ticks, then the held key keeps it crouched
+        assertThat(eli.moves.active().id()).isEqualTo("crouch");
+    }
+
+    @Test
+    void crouchingStandingStillDoesNotSlide() {
+        begin();
+        pressCrouchKey(eli);
+        ticks(sim, 5);
+
+        assertThat(eli.moves.active().id()).isEqualTo("crouch");
+        assertThat(eli.pos.x).isCloseTo(-10, within(0.01));
+    }
+
+    @Test
+    void startingToRunWhileCrouchedDoesNotSlide() {
+        begin();
+        pressCrouchKey(eli);
+        ticks(sim, 5);
+        eli.input.moveZ = 1;
+        ticks(sim, 5);
+
+        assertThat(eli.moves.active().id()).isEqualTo("crouch");
     }
 
     @Test

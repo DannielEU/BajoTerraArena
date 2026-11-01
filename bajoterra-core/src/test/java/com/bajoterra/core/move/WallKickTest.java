@@ -18,9 +18,10 @@ import org.junit.jupiter.api.Test;
 class WallKickTest {
 
     private static final double WEST = -Math.PI / 2;
-    // Eli's move set: jump, crouch, roll, wall_kick.
+    // Eli's move set: jump, slide, crouch, roll, wall_kick.
     private static final int JUMP = 1;
-    private static final int KICK = 8;
+    private static final int ROLL = 8;
+    private static final int KICK = 16;
 
     private final GameSimulation sim = scripted("test_open", 3, human(0, "eli", "infurnus"),
             human(1, "eli", "infurnus"));
@@ -122,5 +123,32 @@ class WallKickTest {
         press(KICK, 1);
 
         assertThat(body.wallKicks).isZero();
+    }
+
+    @Test
+    void aRollRightAfterAWallKickCanStillFire() {
+        jumpAgainstTheWestEdge(0);
+        press(KICK, 1);
+        ticks(sim, 2);
+        body.input.fire = true;
+        press(ROLL, 1);
+        ticks(sim, 10);
+
+        assertThat(body.moves.active().id()).isEqualTo("roll");
+        assertThat(body.shotsFired).as("fires mid-roll after the kick").isPositive();
+    }
+
+    @Test
+    void aRollInTheAirWithoutAWallKickStillCannotFire() {
+        place(body, 0, 0, WEST);
+        ticks(sim, 2);
+        press(JUMP, 1);
+        ticks(sim, 5);
+        body.input.fire = true;
+        press(ROLL, 1);
+        ticks(sim, 10);
+
+        assertThat(body.moves.active().id()).isEqualTo("roll");
+        assertThat(body.shotsFired).isZero();
     }
 }

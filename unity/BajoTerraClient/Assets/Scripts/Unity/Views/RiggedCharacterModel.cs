@@ -76,6 +76,7 @@ namespace Bajoterra.Unity
         private float _move;
         private float _air;
         private float _roll;
+        private float _slide;
         private float _rollTime;
         private float _rollYaw;
         private float _gait;
@@ -258,7 +259,9 @@ namespace Bajoterra.Unity
                 }
             }
             Vector2 d = _direction.normalized;
-            float moveTarget = Mathf.Clamp01((speed - 0.35f) / 1.2f);
+            // A slide keeps the crouched pose with the legs still: the floor carries the body, not its steps.
+            _slide = Mathf.MoveTowards(_slide, pose.Sliding ? 1f : 0f, dt * 10f);
+            float moveTarget = pose.Sliding ? 0f : Mathf.Clamp01((speed - 0.35f) / 1.2f);
             _move = Mathf.MoveTowards(_move, moveTarget, dt * 7f);
             float cycle = Mathf.Lerp(_cycleDistance, _cycleDistance * 0.55f, _crouch);
             _gait += dt * Mathf.Min(speed / cycle, MaxCyclesPerSecond);
@@ -356,7 +359,8 @@ namespace Bajoterra.Unity
             float aim = (1f - _roll) * (1f - dead) * (1f - _dance);
             float degrees = -pose.Pitch * Mathf.Rad2Deg * aim;
             Vector3 axis = _body.right;
-            Tilt(_spine, axis, degrees * 0.4f);
+            // Sliding leans the body back a little; the aim (and the shot) stays on the camera.
+            Tilt(_spine, axis, degrees * 0.4f - 12f * _slide * (1f - dead));
             Tilt(_chest, axis, degrees * 0.6f);
             Tilt(_neck, axis, -degrees * 0.15f);
             Tilt(_head, axis, -degrees * 0.15f);

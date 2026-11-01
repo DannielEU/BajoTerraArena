@@ -7,7 +7,7 @@
   "effects": [
     {
       "type": "overshield",
-      "amount": 40,
+      "amount": 60,
       "durationSeconds": 10
     }
   ]

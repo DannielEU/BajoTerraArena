@@ -8,7 +8,7 @@
   "interruptible": true,
   "behavior": {
     "type": "wallkick",
-    "vertical": 8.0,
+    "vertical": 9.0,
     "push": 9.0,
     "maxKicks": 2
   }

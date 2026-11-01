@@ -35,6 +35,9 @@ namespace Bajoterra.Client.Prediction
         /// <summary>A wall whose normal is this close (cosine) to the last kick's is the same wall (WallKickBehavior).</summary>
         public const double SameWall = 0.5;
 
+        /// <summary>How far the stick must be pushed for a press to slide (SlideBehavior.MIN_INPUT).</summary>
+        public const double SlideMinInput = 0.5;
+
         public const double TickSeconds = 1.0 / 60.0;
 
         /// <summary>Advances the body by one simulation tick under <paramref name="input"/>.</summary>
@@ -65,7 +68,7 @@ namespace Bajoterra.Client.Prediction
             {
                 for (int slot = 0; slot < body.Moves.Length; slot++)
                 {
-                    if ((mask & (1 << slot)) != 0 && slot != body.ActiveSlot && CanStart(body, slot))
+                    if ((mask & (1 << slot)) != 0 && slot != body.ActiveSlot && CanStart(body, slot, moveX, moveZ))
                     {
                         StartMove(body, slot, moveX, moveZ);
                         break;
@@ -82,6 +85,15 @@ namespace Bajoterra.Client.Prediction
                     driven = true;
                     drivenX = body.DirX * rule.DriveSpeed;
                     drivenZ = body.DirZ * rule.DriveSpeed;
+                }
+                else if (rule.Kind == BehaviorKind.Slide)
+                {
+                    // SlideBehavior.onTick: from speed down to endSpeed over the move.
+                    double t = Math.Min(1.0, body.Elapsed / (double)Math.Max(1, (int)rule.Info.DurationTicks));
+                    double now = rule.DriveSpeed + (rule.EndSpeed - rule.DriveSpeed) * t;
+                    driven = true;
+                    drivenX = body.DirX * now;
+                    drivenZ = body.DirZ * now;
                 }
                 body.Elapsed++;
             }
@@ -155,7 +167,7 @@ namespace Bajoterra.Client.Prediction
             return body.Elapsed >= move.DurationTicks;
         }
 
-        private static bool CanStart(PredictedBody body, int slot)
+        private static bool CanStart(PredictedBody body, int slot, double moveX, double moveZ)
         {
             if (body.Tick < body.CooldownUntil[slot])
             {
@@ -170,12 +182,17 @@ namespace Bajoterra.Client.Prediction
                 return false;
             }
             MoveRule rule = body.Moves[slot];
+            bool fresh = (body.LastMask & (1 << slot)) == 0;
+            if (rule.Kind == BehaviorKind.Slide)
+            {
+                // SlideBehavior.canStart
+                return fresh && body.Grounded && moveX * moveX + moveZ * moveZ >= SlideMinInput * SlideMinInput;
+            }
             if (rule.Kind != BehaviorKind.WallKick)
             {
                 return true;
             }
             // WallKickBehavior.canStart
-            bool fresh = (body.LastMask & (1 << slot)) == 0;
             if (!fresh || body.Grounded || body.WallKicks >= rule.MaxKicks || (body.WallNX == 0.0 && body.WallNZ == 0.0))
             {
                 return false;

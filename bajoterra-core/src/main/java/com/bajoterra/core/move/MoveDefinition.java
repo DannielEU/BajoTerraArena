@@ -11,6 +11,7 @@ import com.bajoterra.core.content.Identified;
  * @param stance a holdable move that puts the combatant in the CROUCHING posture
  * @param interruptible another move may replace this one while it is active
  * @param blocksFiring the combatant cannot fire while the move is active
+ * @param firesAfterWallKick lifts {@code blocksFiring} when the move starts after a wall kick, before landing
  * @param allowedFromMask bit mask of the postures the move may start from
  * @param speedMultiplier walking speed multiplier while active
  * @param hitboxHeightMultiplier hitbox height multiplier while active
@@ -27,6 +28,7 @@ public record MoveDefinition(
         boolean stance,
         boolean interruptible,
         boolean blocksFiring,
+        boolean firesAfterWallKick,
         int allowedFromMask,
         double speedMultiplier,
         double hitboxHeightMultiplier,
@@ -49,7 +51,7 @@ public record MoveDefinition(
 
     public MoveDefinition withIndex(int newIndex) {
         return new MoveDefinition(id, newIndex, durationTicks, cooldownTicks, holdable, stance, interruptible,
-                blocksFiring, allowedFromMask, speedMultiplier, hitboxHeightMultiplier, invulnerableFromTick,
-                invulnerableToTick, behavior);
+                blocksFiring, firesAfterWallKick, allowedFromMask, speedMultiplier, hitboxHeightMultiplier,
+                invulnerableFromTick, invulnerableToTick, behavior);
     }
 }

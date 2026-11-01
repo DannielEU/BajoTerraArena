@@ -16,6 +16,9 @@ namespace Bajoterra.Unity
         public bool Airborne;
         public bool Rolling;
 
+        /// <summary>Sliding along the floor: crouched, legs still, still aiming and firing.</summary>
+        public bool Sliding;
+
         /// <summary>0 standing .. 1 down (defeated).</summary>
         public float Fall;
 

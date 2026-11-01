@@ -17,9 +17,9 @@ import org.junit.jupiter.api.Test;
  */
 class ReplayGoldenTest {
 
-    private static final long GOLDEN_BOT_SEED_1_AFTER_1800_TICKS = 3587775714632303451L;
-    private static final long GOLDEN_BOT_SEED_2_AFTER_1800_TICKS = -8548301964261180960L;
-    private static final long GOLDEN_COMMAND_LOG_AFTER_1800_TICKS = -5980056064684697301L;
+    private static final long GOLDEN_BOT_SEED_1_AFTER_1800_TICKS = -8310141631855470299L;
+    private static final long GOLDEN_BOT_SEED_2_AFTER_1800_TICKS = 1983050729323692651L;
+    private static final long GOLDEN_COMMAND_LOG_AFTER_1800_TICKS = 4428906723507156540L;
 
     /** One recorded command and the tick it was submitted on. */
     private record Entry(int tick, InputFrame frame) {

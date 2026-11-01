@@ -88,7 +88,7 @@ public final class LocomotionStateMachine {
             dirX = Trig.sin(c.yaw) * forward + Trig.cos(c.yaw) * right;
             dirZ = Trig.cos(c.yaw) * forward - Trig.sin(c.yaw) * right;
         }
-        runner.begin(move, slot, arena.tick(), dirX, dirZ);
+        runner.begin(move, slot, arena.tick(), dirX, dirZ, !c.grounded && c.wallKicks > 0);
         GameEvent event = arena.events().begin(EventType.MOVE_STARTED, arena.tick());
         event.actor = c.id;
         event.a = move.index();
@@ -119,9 +119,10 @@ public final class LocomotionStateMachine {
         return c.grounded ? Posture.GROUNDED : Posture.AIRBORNE;
     }
 
-    /** Whether the active move forbids firing right now. */
+    /** Whether the active move forbids firing right now (a roll right after a wall kick still lets it fire). */
     public static boolean blocksFiring(Combatant c) {
         MoveDefinition active = c.moves.active();
-        return active != null && active.blocksFiring();
+        return active != null && active.blocksFiring()
+                && !(active.firesAfterWallKick() && c.moves.startedAfterWallKick());
     }
 }

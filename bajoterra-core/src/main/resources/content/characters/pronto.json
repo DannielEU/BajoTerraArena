@@ -10,6 +10,7 @@
   "healPotency": 1.0,
   "moves": [
     "jump",
+    "slide",
     "crouch",
     "roll",
     "dash",
@@ -17,6 +18,6 @@
   ],
   "blaster": {
     "fireIntervalSeconds": 0.7,
-    "reloadShots": 3
+    "reloadShots": 2
   }
 }

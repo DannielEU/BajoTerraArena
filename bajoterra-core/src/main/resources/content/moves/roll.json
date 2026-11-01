@@ -4,10 +4,12 @@
   "cooldownSeconds": 1.2,
   "allowedFrom": [
     "GROUNDED",
+    "AIRBORNE",
     "CROUCHING"
   ],
   "interruptible": false,
   "blocksFiring": true,
+  "firesAfterWallKick": true,
   "hitboxHeightMultiplier": 0.6,
   "invulnerable": {
     "fromSeconds": 0.05,

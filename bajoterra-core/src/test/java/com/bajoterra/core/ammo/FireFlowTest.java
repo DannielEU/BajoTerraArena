@@ -170,6 +170,6 @@ class FireFlowTest {
         assertThat(Loadout.SIZE).isEqualTo(5);
         assertThat(shooter.loadout.reloadShotsOf(0))
                 .isEqualTo(CONTENT.characters().require("eli").blaster().reloadShots());
-        assertThat(shooter.loadout.reloadShotsOf(0)).isEqualTo(3);
+        assertThat(shooter.loadout.reloadShotsOf(0)).isEqualTo(2);
     }
 }

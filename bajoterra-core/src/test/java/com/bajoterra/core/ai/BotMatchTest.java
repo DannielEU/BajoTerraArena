@@ -61,7 +61,7 @@ class BotMatchTest {
                         locked++;
                     }
                 }
-                assertThat(locked).as("at most 3 locked slugs").isLessThanOrEqualTo(3);
+                assertThat(locked).as("at most 2 locked slugs").isLessThanOrEqualTo(2);
                 assertThat(c.pos.y).isBetween(-0.001, 5.0);
             }
             assertThat(sim.projectiles().activeCount()).isLessThan(sim.projectiles().capacity());

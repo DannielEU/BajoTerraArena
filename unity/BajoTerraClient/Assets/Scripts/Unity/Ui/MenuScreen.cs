@@ -22,7 +22,7 @@ namespace Bajoterra.Unity
 
         private static readonly string[] Tips =
         {
-            "Una babosa que disparas queda bloqueada durante los siguientes 3 disparos: reparte bien tu cinturón.",
+            "Una babosa que disparas queda bloqueada durante los siguientes 2 disparos: reparte bien tu cinturón.",
             "Sube por las rampas para ganar altura: desde la plataforma ves y disparas por encima de la cobertura.",
             "Doc y Boon Doc curan a tus aliados. Apunta a un compañero herido para restaurar su vida.",
             "El escudo se agota antes que la vida: cuando está a cero, cada impacto cuenta el doble.",
@@ -312,8 +312,8 @@ namespace Bajoterra.Unity
                 { "Clic izquierdo", "Disparar (mantén pulsado)" },
                 { "1 - 5  /  Rueda", "Elegir babosa del cinturón" },
                 { "Espacio", "Saltar; en el aire junto a un muro: rebote" },
-                { "C  /  Ctrl", "Agacharte (mantén)" },
-                { "Shift", "Rodar: breve invulnerabilidad" },
+                { "C  /  Ctrl", "Agacharte (mantén); corriendo: deslizarte disparando" },
+                { "Shift", "Rodar, también en el aire; tras un rebote puedes disparar" },
                 { "F", "Dash, según el personaje" },
                 { "Q  /  Clic derecho", "Disparo fusión: dos babosas a la vez" },
                 { "Tab", "Marcador de la partida" },

@@ -346,6 +346,7 @@ namespace Bajoterra.Unity
             switch (id)
             {
                 case "jump": return "Salto";
+                case "slide": return "Deslizarse";
                 case "crouch": return "Agacharse";
                 case "roll": return "Rodar";
                 case "dash": return "Dash";

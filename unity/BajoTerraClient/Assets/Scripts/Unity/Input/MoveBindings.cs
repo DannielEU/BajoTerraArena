@@ -33,7 +33,7 @@ namespace Bajoterra.Unity
             { "crouch", new[] { MoveKey.C, MoveKey.LeftCtrl } },
             { "roll", new[] { MoveKey.LeftShift } },
             { "dash", new[] { MoveKey.F } },
-            { "slide", new[] { MoveKey.V } },
+            { "slide", new[] { MoveKey.C, MoveKey.LeftCtrl } },
             { "double_jump", new[] { MoveKey.Space } }
         };
 

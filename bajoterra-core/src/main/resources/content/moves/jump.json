@@ -1,7 +1,7 @@
 {
   "id": "jump",
   "durationTicks": 1,
-  "cooldownSeconds": 0.35,
+  "cooldownSeconds": 0.20,
   "allowedFrom": [
     "GROUNDED",
     "CROUCHING"

@@ -128,10 +128,11 @@ namespace Bajoterra.Client.Integration
         private static void ContentCatalogCheck(GameClient client)
         {
             Assert.GreaterOrEqual(client.Content.SlugCount, 14);
-            Assert.AreEqual(4, client.Content.MoveSetOf(client.Content.FindCharacter("eli")).Length);
-            Assert.AreEqual(5, client.Content.MoveSetOf(client.Content.FindCharacter("pronto")).Length);
+            Assert.AreEqual(5, client.Content.MoveSetOf(client.Content.FindCharacter("eli")).Length);
+            Assert.AreEqual(6, client.Content.MoveSetOf(client.Content.FindCharacter("pronto")).Length);
             Assert.AreEqual("roll", client.Content.Move(client.Content.MoveIndexOf("roll")).Id);
             Assert.AreEqual("drive", client.Content.Move(client.Content.MoveIndexOf("roll")).BehaviorType);
+            Assert.AreEqual("slide", client.Content.Move(client.Content.MoveIndexOf("slide")).BehaviorType);
         }
 
         [Test, Timeout(30000)]
@@ -290,7 +291,7 @@ namespace Bajoterra.Client.Integration
             Assert.GreaterOrEqual(shots, 4, "0.7 s between shots for 3 s");
             Assert.LessOrEqual(shots, 6, "and not faster than that");
             Assert.Greater(slugsSeen, 0, "slugs were drawn in flight");
-            Assert.AreEqual(3, maxLocked, "a fired slug stays locked while three more shots are fired");
+            Assert.AreEqual(2, maxLocked, "a fired slug stays locked while two more shots are fired");
         }
 
         [Test, Timeout(90000)]

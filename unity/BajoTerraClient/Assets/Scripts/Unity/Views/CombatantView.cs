@@ -23,6 +23,7 @@ namespace Bajoterra.Unity
         private readonly Transform _spin;
         private readonly ICharacterModel _model;
         private readonly int _rollMove;
+        private readonly int _slideMove;
         private readonly Transform _shieldBubble;
         private readonly Material _shieldMaterial;
         private readonly Transform _ring;
@@ -89,6 +90,7 @@ namespace Bajoterra.Unity
             _spin.SetParent(_root, false);
             _model = CharacterModels.Create(_spin, character.Id, _radius, _standingHeight, teamColor);
             _rollMove = content.MoveIndexOf("roll");
+            _slideMove = content.MoveIndexOf("slide");
 
             // Shield bubble.
             GameObject bubble = Gfx.Primitive(PrimitiveType.Sphere, "Shield", _root, null);
@@ -235,10 +237,11 @@ namespace Bajoterra.Unity
             _velocity = Vector2.Lerp(_velocity, alive ? local : Vector2.zero, 1f - Mathf.Exp(-deltaTime * 14f));
 
             // Rolling and dashing are server actions. A model with its own roll clip plays it; the primitive stand-in
-            // is spun instead. The fall pose lies the body down when defeated.
+            // is spun instead. A slide is never spun: the body keeps aiming. The fall pose lies the body down when defeated.
             bool acting = frame.Posture == Posture.Action && alive;
             bool rolling = acting && _rollMove >= 0 && frame.ActiveMove == _rollMove;
-            bool spinning = _model.HandlesRoll ? false : acting;
+            bool sliding = acting && _slideMove >= 0 && frame.ActiveMove == _slideMove;
+            bool spinning = _model.HandlesRoll ? false : acting && !sliding;
             _spinAngle = spinning ? (_spinAngle + deltaTime * 720f) % 360f
                 : Mathf.MoveTowardsAngle(_spinAngle, 0f, deltaTime * 900f);
             _fall = Mathf.MoveTowards(_fall, alive ? 0f : 1f, deltaTime * 3f);
@@ -260,6 +263,7 @@ namespace Bajoterra.Unity
                 Velocity = _velocity,
                 Airborne = frame.Posture == Posture.Airborne,
                 Rolling = rolling,
+                Sliding = sliding,
                 Fall = _fall,
                 Pitch = frame.Pitch,
                 SlugColor = SelectedSlugColor(state),

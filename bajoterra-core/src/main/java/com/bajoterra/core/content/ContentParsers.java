@@ -93,6 +93,7 @@ final class ContentParsers {
                 spec.optBoolean("stance", false),
                 spec.optBoolean("interruptible", holdable),
                 spec.optBoolean("blocksFiring", false),
+                spec.optBoolean("firesAfterWallKick", false),
                 mask,
                 spec.optDouble("speedMultiplier", 1.0, 0, 10),
                 spec.optDouble("hitboxHeightMultiplier", 1.0, 0.1, 1.5),

@@ -29,7 +29,7 @@ qué queda para quien lo abra en el editor.
 
 ## Qué NO hace el cliente
 
-- No decide daño, impactos, curaciones, colisiones con babosas ni el bloqueo de 3 tiros: lo valida el servidor.
+- No decide daño, impactos, curaciones, colisiones con babosas ni el bloqueo de 2 tiros: lo valida el servidor.
 - No simula bots: son combatientes del servidor que producen las mismas entradas que un humano.
 - No tiene copia del contenido del juego: personajes, movimientos y mapa llegan del servidor al conectar.
 

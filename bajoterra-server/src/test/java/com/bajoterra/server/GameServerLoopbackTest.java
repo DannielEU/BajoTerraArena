@@ -173,7 +173,7 @@ class GameServerLoopbackTest {
         var you = start.getSlots(start.getYourCombatantId());
         assertThat(you.getYou()).isTrue();
         assertThat(you.getSlugIdsCount()).as("you see your own five slugs").isEqualTo(5);
-        assertThat(you.getMoveIdsList()).containsExactly("jump", "crouch", "roll", "wall_kick");
+        assertThat(you.getMoveIdsList()).containsExactly("jump", "slide", "crouch", "roll", "wall_kick");
         assertThat(start.getSlots(start.getYourCombatantId() == 0 ? 3 : 0).getSlugIdsCount())
                 .as("others' loadouts stay hidden").isZero();
         assertThat(start.getSlotsList().stream().filter(s -> s.getTeam() == 0).count()).isEqualTo(3);

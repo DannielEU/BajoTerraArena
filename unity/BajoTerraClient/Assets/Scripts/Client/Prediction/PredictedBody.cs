@@ -17,7 +17,10 @@ namespace Bajoterra.Client.Prediction
         Drive,
 
         /// <summary>A kick off a wall in mid-air: up and away from the wall (wall_kick).</summary>
-        WallKick
+        WallKick,
+
+        /// <summary>A slide that starts on a fresh press while running and slows down over the move (slide).</summary>
+        Slide
     }
 
     /// <summary>A move of the player's character, with the behavior parameters already parsed.</summary>
@@ -37,6 +40,11 @@ namespace Bajoterra.Client.Prediction
                 case "drive":
                     Kind = BehaviorKind.Drive;
                     DriveSpeed = info.BehaviorParams.TryGetValue("speed", out value) ? value : 0.0;
+                    break;
+                case "slide":
+                    Kind = BehaviorKind.Slide;
+                    DriveSpeed = info.BehaviorParams.TryGetValue("speed", out value) ? value : 0.0;
+                    EndSpeed = info.BehaviorParams.TryGetValue("endSpeed", out value) ? value : DriveSpeed * 0.5;
                     break;
                 case "wallkick":
                     Kind = BehaviorKind.WallKick;
@@ -59,6 +67,9 @@ namespace Bajoterra.Client.Prediction
         public double Horizontal { get; }
 
         public double DriveSpeed { get; }
+
+        /// <summary>Speed a slide has slowed down to when it ends (slide only).</summary>
+        public double EndSpeed { get; }
 
         /// <summary>Wall kicks allowed before landing (wall kick only).</summary>
         public int MaxKicks { get; }

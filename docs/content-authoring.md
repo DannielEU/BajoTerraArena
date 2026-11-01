@@ -53,7 +53,7 @@ snapshots se asigna ordenando los ids alfabéticamente.
 | `projectile.pierce` | 0–5 | combatientes adicionales que atraviesa tras el primero |
 | `projectile.sticky` / `projectile.fuseSeconds` | `true/false` / segundos (o `fuseTicks`) | **granada**: se pega a lo primero que toca (obstáculo, suelo o un combatiente válido, al que sigue) y a los `fuseSeconds` (1,5 por defecto) ejecuta `onExpire` (la explosión) |
 | `fireDelayMultiplier` | 0.1–5 | multiplica el intervalo entre disparos del blaster tras usarla |
-| `reloadShots` | 0–9 | sobrescribe cuántos tiros debe esperar para volver a usarse (por defecto, el del blaster: 3) |
+| `reloadShots` | 0–9 | sobrescribe cuántos tiros debe esperar para volver a usarse (por defecto, el del blaster: 2) |
 | `proximity` | 0–20 m (solo `sticky`) | se detiene flotando al pasar a esa distancia de un objetivo válido |
 | `pierceWorld` | `true/false` | atraviesa obstáculos (por defecto no: toda babosa se detiene en los obstáculos) |
 | `onHit` | lista de efectos | al alcanzar un combatiente válido |
@@ -99,7 +99,7 @@ ganado restaura al instante el 50 % del escudo máximo (`Courage`; un `MatchRule
 `courageLevel`).
 
 **Reglas de 5 babosas:** cada jugador lleva exactamente 5 (se permiten repetidas, máximo 2 copias por defecto). Una
-babosa disparada queda bloqueada durante los **3 tiros siguientes** y vuelve a estar disponible en el cuarto.
+babosa disparada queda bloqueada durante los **2 tiros siguientes** y vuelve a estar disponible en el tercero.
 
 ## 2. Efectos disponibles
 
@@ -170,11 +170,11 @@ Y ya se puede usar en cualquier babosa: `{ "type": "poison", "dps": 6, "duration
 
 ## 4. Nuevo movimiento
 
-**Solo JSON** (`content/moves/slide.json`), reutilizando la conducta `drive`:
+**Solo JSON** (`content/moves/sprint_hop.json`), reutilizando la conducta `drive`:
 
 ```json
 {
-  "id": "slide",
+  "id": "sprint_hop",
   "durationSeconds": 0.4,
   "cooldownSeconds": 1.0,
   "allowedFrom": ["GROUNDED"],
@@ -189,9 +189,10 @@ Y ya se puede usar en cualquier babosa: `{ "type": "poison", "dps": 6, "duration
 | `holdable` / `stance` | `holdable`: dura mientras se mantenga el botón (agacharse); `stance`: pone la postura `CROUCHING` |
 | `interruptible` | otro movimiento puede reemplazarlo mientras está activo (por defecto, igual a `holdable`) |
 | `blocksFiring` | no se puede disparar mientras dura (rodar) |
+| `firesAfterWallKick` | anula `blocksFiring` si el movimiento empieza en el aire tras un rebote en pared (rodar) |
 | `speedMultiplier`, `hitboxHeightMultiplier` | modificadores mientras está activo |
 | `invulnerable` | `{ "fromSeconds": 0.05, "toSeconds": 0.35 }` ventana de invulnerabilidad |
-| `behavior` | `impulse` (`vertical`, `horizontal`: empuje inicial, p. ej. saltar), `drive` (`speed`: movimiento dirigido, p. ej. rodar/dash) o `wallkick` (`vertical`, `push`, `maxKicks`: rebote en pared; solo arranca en el aire con un muro a 0,3 m del costado, con una pulsación nueva y en un muro distinto al del rebote anterior) |
+| `behavior` | `impulse` (`vertical`, `horizontal`: empuje inicial, p. ej. saltar), `drive` (`speed`: movimiento dirigido, p. ej. rodar/dash) `slide` (`speed`, `endSpeed`: deslizarse; solo arranca en el suelo con una pulsación nueva mientras se corre, y frena de `speed` a `endSpeed` a lo largo del movimiento; el cliente le asigna la misma tecla que a agacharse, y va antes de `crouch` en `"moves"`) o `wallkick` (`vertical`, `push`, `maxKicks`: rebote en pared; solo arranca en el aire con un muro a 0,3 m del costado, con una pulsación nueva y en un muro distinto al del rebote anterior) |
 
 Para añadirlo a un personaje, agrega su id a `"moves"` en el JSON del personaje (el orden define el bit del
 `move_mask` en el protocolo: **agregar un movimiento no cambia el protocolo**).
@@ -208,7 +209,7 @@ Para añadirlo a un personaje, agrega su id a `"moves"` en el JSON del personaje
   "hitRadius": 0.4, "hitHeight": 1.8,
   "affinity": "NEUTRAL", "healPotency": 1.0,
   "moves": ["jump", "crouch", "roll"],
-  "blaster": { "fireIntervalSeconds": 0.7, "reloadShots": 3 }
+  "blaster": { "fireIntervalSeconds": 0.7, "reloadShots": 2 }
 }
 ```
 

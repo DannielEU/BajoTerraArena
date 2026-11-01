@@ -29,27 +29,30 @@
 
 | índice | id | vida | escudo | velocidad | afinidad | potencia de cura | movimientos | blaster |
 |---|---|---|---|---|---|---|---|---|
-| 0 | `eli` | 100 | 50 | 6.0 m/s | NEUTRAL | ×1.00 | jump, crouch, roll | 42 ticks, bloqueo 3 tiros |
-| 1 | `kord` | 140 | 70 | 5.0 m/s | EARTH | ×1.00 | jump, crouch, roll | 42 ticks, bloqueo 3 tiros |
-| 2 | `pronto` | 80 | 40 | 7.0 m/s | AIR | ×1.00 | jump, crouch, roll, dash | 42 ticks, bloqueo 3 tiros |
-| 3 | `trixie` | 90 | 60 | 6.0 m/s | WATER | ×1.25 | jump, crouch, roll | 42 ticks, bloqueo 3 tiros |
+| 0 | `eli` | 100 | 50 | 6.0 m/s | NEUTRAL | ×1.00 | jump, slide, crouch, roll, wall_kick | 42 ticks, bloqueo 2 tiros |
+| 1 | `kord` | 140 | 70 | 5.0 m/s | EARTH | ×1.00 | jump, slide, crouch, roll, wall_kick | 42 ticks, bloqueo 2 tiros |
+| 2 | `pronto` | 80 | 40 | 7.0 m/s | AIR | ×1.00 | jump, slide, crouch, roll, dash, wall_kick | 42 ticks, bloqueo 2 tiros |
+| 3 | `trixie` | 90 | 60 | 6.0 m/s | WATER | ×1.25 | jump, slide, crouch, roll, wall_kick | 42 ticks, bloqueo 2 tiros |
 
-## Movimientos (4)
+## Movimientos (6)
 
 | índice | id | duración | enfriamiento | tipo | desde | invulnerable | conducta |
 |---|---|---|---|---|---|---|---|
 | 0 | `crouch` | mientras se mantiene | 0.00 s | postura | GROUNDED | no | NoMoveBehavior |
 | 1 | `dash` | 0.20 s | 2.00 s | acción | GROUNDED, AIRBORNE, CROUCHING | no | DriveBehavior |
-| 2 | `jump` | 0.02 s | 0.35 s | acción | GROUNDED, CROUCHING | no | ImpulseBehavior |
-| 3 | `roll` | 0.50 s | 1.20 s | acción | GROUNDED, CROUCHING | 0.05 s–0.35 s | DriveBehavior |
+| 2 | `jump` | 0.02 s | 0.20 s | acción | GROUNDED, CROUCHING | no | ImpulseBehavior |
+| 3 | `roll` | 0.50 s | 1.20 s | acción | GROUNDED, AIRBORNE, CROUCHING | 0.05 s–0.35 s | DriveBehavior |
+| 4 | `slide` | 0.60 s | 0.90 s | acción | GROUNDED | no | SlideBehavior |
+| 5 | `wall_kick` | 0.02 s | 0.20 s | acción | AIRBORNE | no | WallKickBehavior |
 
-## Objetos (3)
+## Objetos (4)
 
 | índice | id | requisito | reaparece | radio |
 |---|---|---|---|---|
 | 0 | `health_pack` | NEEDS_HP | 20.00 s | 1.2 m |
-| 1 | `overshield_orb` | ANY | 30.00 s | 1.2 m |
-| 2 | `shield_cell` | NEEDS_SHIELD | 20.00 s | 1.2 m |
+| 1 | `megamorph_crystal` | ANY | 45.00 s | 1.3 m |
+| 2 | `overshield_orb` | ANY | 30.00 s | 1.2 m |
+| 3 | `shield_cell` | NEEDS_SHIELD | 20.00 s | 1.2 m |
 
 ## Mapas (1)
 

@@ -44,8 +44,8 @@ class MovementParityFixtureTest {
     private static final float QUARTER = (float) (Math.PI / 2);
 
     private static List<Scenario> scenarios() {
-        // Eli's move mask bits: 1 jump, 2 crouch, 4 roll, 8 wall kick. Pronto: 1 jump, 2 crouch, 4 roll, 8 dash,
-        // 16 wall kick.
+        // Eli's move mask bits: 1 jump, 2 slide, 4 crouch, 8 roll, 16 wall kick. Pronto: 1 jump, 2 slide, 4 crouch,
+        // 8 roll, 16 dash, 32 wall kick. The crouch key presses slide and crouch together (6).
         return List.of(
                 new Scenario("walk_and_strafe", "eli", -25.03, 0.02, QUARTER, List.of(
                         new Hold(45, 0f, 1f, QUARTER, 0),
@@ -59,24 +59,24 @@ class MovementParityFixtureTest {
                         new Hold(60, 0.5f, 1f, 0.4f, 1),
                         new Hold(40, 0f, 0f, 0.4f, 0))),
                 new Scenario("crouch_then_jump_from_crouch", "eli", -8.03, 4.02, 0.5f, List.of(
-                        new Hold(60, 0f, 1f, 0.5f, 2),
+                        new Hold(60, 0f, 1f, 0.5f, 4),
                         new Hold(30, 0f, 1f, 0.5f, 0),
-                        new Hold(1, 0f, 1f, 0.5f, 3),
-                        new Hold(50, 0f, 1f, 0.5f, 2),
+                        new Hold(1, 0f, 1f, 0.5f, 5),
+                        new Hold(50, 0f, 1f, 0.5f, 4),
                         new Hold(20, 0f, 0f, 0.5f, 0))),
                 new Scenario("roll_cooldown_and_repeat", "eli", -12.03, -6.02, QUARTER, List.of(
                         new Hold(10, 0f, 1f, QUARTER, 0),
-                        new Hold(45, 0f, 1f, QUARTER, 4),
+                        new Hold(45, 0f, 1f, QUARTER, 8),
                         new Hold(60, 0f, 1f, QUARTER, 0),
-                        new Hold(60, 1f, 1f, QUARTER, 4),
+                        new Hold(60, 1f, 1f, QUARTER, 8),
                         new Hold(10, 0f, 0f, QUARTER, 0))),
                 new Scenario("pronto_dash_ground_and_air", "pronto", -6.03, -10.02, 0f, List.of(
                         new Hold(20, 0f, 0f, 0f, 0),
-                        new Hold(8, 1f, 0f, 0f, 8),
+                        new Hold(8, 1f, 0f, 0f, 16),
                         new Hold(60, 0f, 1f, 0f, 0),
                         new Hold(1, 0f, 1f, 0f, 1),
                         new Hold(6, 0f, 1f, 0f, 0),
-                        new Hold(14, -1f, 0f, 0f, 8),
+                        new Hold(14, -1f, 0f, 0f, 16),
                         new Hold(50, 0f, 0f, 0f, 0))),
                 new Scenario("slide_along_wall", "eli", -6.03, 8.02, QUARTER, List.of(
                         new Hold(60, 0f, 1f, QUARTER, 0),
@@ -106,36 +106,53 @@ class MovementParityFixtureTest {
                 // Along the north balcony: up its east ramp (rises towards -x), over the top, and a roll on it.
                 new Scenario("balcony_east_ramp", "eli", 13.03, 18.52, -QUARTER, List.of(
                         new Hold(90, 0f, 1f, -QUARTER, 0),
-                        new Hold(45, 0f, 1f, -QUARTER, 4),
+                        new Hold(45, 0f, 1f, -QUARTER, 8),
                         new Hold(60, 0f, 1f, -QUARTER, 0),
                         new Hold(60, 0f, -1f, -QUARTER, 0))),
                 // Sprint down a ramp with a dash (Pronto): the speed must not launch the body off the slope.
                 new Scenario("dash_down_the_ramp", "pronto", -15.53, 3.52, 0f, List.of(
                         new Hold(30, 0f, 1f, 0f, 0),
-                        new Hold(12, 0f, 1f, 0f, 8),
+                        new Hold(12, 0f, 1f, 0f, 16),
                         new Hold(60, 0f, 1f, 0f, 0))),
                 // Run at the west edge of the arena, jump, and kick off it with a fresh press; a second kick off the
                 // same wall is refused.
                 new Scenario("wall_kick_off_the_edge", "eli", -27.03, 0.02, -QUARTER, List.of(
                         new Hold(40, 0f, 1f, -QUARTER, 0),
-                        new Hold(1, 0f, 1f, -QUARTER, 9),
+                        new Hold(1, 0f, 1f, -QUARTER, 17),
                         new Hold(14, 0f, 1f, -QUARTER, 0),
-                        new Hold(1, 0f, 1f, -QUARTER, 8),
+                        new Hold(1, 0f, 1f, -QUARTER, 16),
                         new Hold(10, 0f, -1f, -QUARTER, 0),
-                        new Hold(1, 0f, -1f, -QUARTER, 8),
+                        new Hold(1, 0f, -1f, -QUARTER, 16),
                         new Hold(60, 0f, 0f, -QUARTER, 0))),
                 // Holding the button from the jump never kicks: the kick needs a fresh press.
                 new Scenario("held_jump_does_not_kick", "pronto", -27.03, 4.02, -QUARTER, List.of(
                         new Hold(40, 0f, 1f, -QUARTER, 0),
-                        new Hold(50, 0f, 1f, -QUARTER, 17),
+                        new Hold(50, 0f, 1f, -QUARTER, 33),
                         new Hold(20, 0f, 0f, -QUARTER, 0))),
                 // Along the wall the slide scenario uses: jump next to it and kick off it.
                 new Scenario("wall_kick_off_cover", "eli", -6.03, 8.02, QUARTER, List.of(
                         new Hold(60, 0f, 1f, QUARTER, 0),
                         new Hold(1, 0f, 1f, QUARTER, 1),
                         new Hold(12, 0f, 1f, QUARTER, 0),
-                        new Hold(1, 0f, 1f, QUARTER, 8),
-                        new Hold(60, 0f, 0f, QUARTER, 0))));
+                        new Hold(1, 0f, 1f, QUARTER, 16),
+                        new Hold(60, 0f, 0f, QUARTER, 0))),
+                // Run, press the crouch key: slide (slowing down) and stay crouched while it is held; standing still
+                // the same key only crouches.
+                new Scenario("run_and_slide", "eli", -25.03, -4.02, QUARTER, List.of(
+                        new Hold(30, 0f, 1f, QUARTER, 0),
+                        new Hold(50, 0.3f, 1f, 1.3f, 6),
+                        new Hold(20, 0f, 1f, 1.3f, 0),
+                        new Hold(30, 0f, 0f, 1.3f, 6),
+                        new Hold(20, 0f, 0f, 1.3f, 0))),
+                // Kick off the west edge and roll in mid-air.
+                new Scenario("air_roll_after_wall_kick", "eli", -27.03, -2.02, -QUARTER, List.of(
+                        new Hold(40, 0f, 1f, -QUARTER, 0),
+                        new Hold(1, 0f, 1f, -QUARTER, 17),
+                        new Hold(14, 0f, 1f, -QUARTER, 0),
+                        new Hold(1, 0f, 1f, -QUARTER, 16),
+                        new Hold(4, 0f, -1f, -QUARTER, 0),
+                        new Hold(1, 0f, -1f, -QUARTER, 8),
+                        new Hold(60, 0f, 0f, -QUARTER, 0))));
     }
 
     @Test

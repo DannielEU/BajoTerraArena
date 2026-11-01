@@ -63,11 +63,11 @@ class ClientDataTest {
         var pronto = details.getCharacters(CONTENT.characters().require("pronto").index());
 
         assertThat(pronto.getMoveIndicesList().stream().map(i -> details.getMoves(i).getId()).toList())
-                .containsExactly("jump", "crouch", "roll", "dash", "wall_kick");
+                .containsExactly("jump", "slide", "crouch", "roll", "dash", "wall_kick");
         assertThat(pronto.getSpeed()).isEqualTo(7.0f);
         assertThat(pronto.getHitHeight()).isEqualTo(1.15f);
         assertThat(pronto.getFireIntervalTicks()).isEqualTo(42);
-        assertThat(pronto.getReloadShots()).isEqualTo(3);
+        assertThat(pronto.getReloadShots()).isEqualTo(2);
     }
 
     @Test
@@ -171,7 +171,7 @@ class ClientDataTest {
             assertThat(welcome.getWelcome().getDetails().getMovesCount()).isEqualTo(CONTENT.moves().size());
             assertThat(start.getMatchStart().getMap().getObstaclesCount()).isGreaterThan(10);
             assertThat(snapshot.getSnapshot().hasLocal()).isTrue();
-            assertThat(snapshot.getSnapshot().getLocal().getMoveCooldownTicksCount()).isEqualTo(4);
+            assertThat(snapshot.getSnapshot().getLocal().getMoveCooldownTicksCount()).isEqualTo(5);
         } finally {
             server.close();
         }

@@ -15,6 +15,7 @@ public final class MoveRunner {
     private double drivenX;
     private double drivenZ;
     private int lastMask;
+    private boolean afterWallKick;
 
     public MoveDefinition active() {
         return active;
@@ -37,6 +38,11 @@ public final class MoveRunner {
 
     public double dirZ() {
         return dirZ;
+    }
+
+    /** True when the active move started in mid-air after a wall kick. */
+    public boolean startedAfterWallKick() {
+        return afterWallKick;
     }
 
     /** Tick at which the move in the given slot may start again. */
@@ -73,8 +79,10 @@ public final class MoveRunner {
         return drivenZ;
     }
 
-    void begin(MoveDefinition move, int slot, int startTick, double directionX, double directionZ) {
+    void begin(MoveDefinition move, int slot, int startTick, double directionX, double directionZ,
+            boolean afterKick) {
         this.active = move;
+        this.afterWallKick = afterKick;
         this.activeSlot = slot;
         this.elapsed = 0;
         this.dirX = directionX;
@@ -86,6 +94,7 @@ public final class MoveRunner {
         this.active = null;
         this.activeSlot = -1;
         this.elapsed = 0;
+        this.afterWallKick = false;
     }
 
     void advance() {

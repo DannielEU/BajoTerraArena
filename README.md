@@ -14,7 +14,7 @@ que se conecta por red (carpeta [`unity/`](unity/README.md)).
   **Espacio** y sales impulsado hacia arriba y lejos del muro; hasta 2 rebotes antes de tocar el suelo y nunca dos
   seguidos en el mismo muro (entre dos muros enfrentados se sube como por una chimenea). Mantener Espacio pulsado
   desde el salto no rebota: hace falta una pulsación nueva. Los bots también rebotan para esquivar o desatascarse.
-- **5 babosas por jugador**, cada una con su efecto. Al disparar una queda **bloqueada durante los 3 tiros siguientes**;
+- **5 babosas por jugador**, cada una con su efecto. Al disparar una queda **bloqueada durante los 2 tiros siguientes**;
   además hay un **tiempo mínimo entre disparos**. Todas las babosas vuelan un 10 % más rápido que en la primera versión.
 - Derrota = escudo **y** vida en cero. Se restauran con **objetos** del mapa o con la **babosa de un aliado**
   (curación, escudo, protección).

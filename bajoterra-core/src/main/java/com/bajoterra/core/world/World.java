@@ -18,6 +18,8 @@ public final class World {
      * a ramp keeps the feet on the slope instead of floating off it.
      */
     public static final double SNAP_DOWN = 0.35;
+    /** How far beyond the side of a body a wall still counts as within reach for a wall kick. */
+    public static final double WALL_REACH = 0.3;
 
     private static final int KIND_PROJECTILE = 0;
     private static final int KIND_SIGHT = 1;
@@ -154,6 +156,90 @@ public final class World {
             c.vel.y = 0;
         }
         c.grounded = c.pos.y <= ground + 0.02 && c.vel.y <= 0.001;
+        senseWall(c, radius, height);
+    }
+
+    /**
+     * Finds the closest wall within {@link #WALL_REACH} of the body's side, one it could not step onto (a raised
+     * wall, a solid taller than a step at the body's height, or the edge of the arena), and stores its outward
+     * normal in the combatant (zero when there is none).
+     */
+    private void senseWall(Combatant c, double radius, double height) {
+        double reach = radius + WALL_REACH;
+        double best = reach * reach;
+        double nx = 0;
+        double nz = 0;
+        double feet = c.pos.y;
+        double top = feet + height;
+        for (Barrier b : barriers) {
+            if (b.active && b.maxY - feet > STEP_HEIGHT && b.minY < top) {
+                double dx = c.pos.x - Math.min(Math.max(c.pos.x, b.minX), b.maxX);
+                double dz = c.pos.z - Math.min(Math.max(c.pos.z, b.minZ), b.maxZ);
+                double d2 = dx * dx + dz * dz;
+                if (d2 < best && d2 > 1e-12) {
+                    double d = Math.sqrt(d2);
+                    best = d2;
+                    nx = dx / d;
+                    nz = dz / d;
+                }
+            }
+        }
+        stamp++;
+        int c0 = grid.columnOf(c.pos.x - reach);
+        int c1 = grid.columnOf(c.pos.x + reach);
+        int r0 = grid.rowOf(c.pos.z - reach);
+        int r1 = grid.rowOf(c.pos.z + reach);
+        for (int row = r0; row <= r1; row++) {
+            for (int col = c0; col <= c1; col++) {
+                for (int index : grid.obstaclesIn(col, row)) {
+                    if (stamps[index] == stamp) {
+                        continue;
+                    }
+                    stamps[index] = stamp;
+                    Obstacle o = map.obstacle(index);
+                    double px = Math.min(Math.max(c.pos.x, o.minX()), o.maxX());
+                    double pz = Math.min(Math.max(c.pos.z, o.minZ()), o.maxZ());
+                    // A ramp is only a wall where its surface is too high to step onto.
+                    if (!o.blocksMovement() || o.topAt(px, pz) - feet <= STEP_HEIGHT || o.minY() >= top) {
+                        continue;
+                    }
+                    double dx = c.pos.x - px;
+                    double dz = c.pos.z - pz;
+                    double d2 = dx * dx + dz * dz;
+                    if (d2 < best && d2 > 1e-12) {
+                        double d = Math.sqrt(d2);
+                        best = d2;
+                        nx = dx / d;
+                        nz = dz / d;
+                    }
+                }
+            }
+        }
+        double west = c.pos.x - map.minX();
+        double east = map.maxX() - c.pos.x;
+        double south = c.pos.z - map.minZ();
+        double north = map.maxZ() - c.pos.z;
+        if (west * west < best) {
+            best = west * west;
+            nx = 1;
+            nz = 0;
+        }
+        if (east * east < best) {
+            best = east * east;
+            nx = -1;
+            nz = 0;
+        }
+        if (south * south < best) {
+            best = south * south;
+            nx = 0;
+            nz = 1;
+        }
+        if (north * north < best) {
+            nx = 0;
+            nz = -1;
+        }
+        c.wallNormalX = nx;
+        c.wallNormalZ = nz;
     }
 
     /** Height of the surface a body standing at (x, z) with its feet at {@code feetY} would stand on. */

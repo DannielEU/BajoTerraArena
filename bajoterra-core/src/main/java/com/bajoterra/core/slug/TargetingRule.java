@@ -16,6 +16,11 @@ public enum TargetingRule {
     /** Everybody. */
     ANY;
 
+    /** True when the slug can hit enemies (an attack), false when it only reaches the shooter's team (support). */
+    public boolean reachesEnemies() {
+        return this == ENEMIES || this == ANY;
+    }
+
     /** True when {@code target} is a valid victim of a slug fired by {@code source}. Liveness is checked elsewhere. */
     public boolean accepts(Combatant source, Combatant target) {
         boolean sameTeam = source.team == target.team;

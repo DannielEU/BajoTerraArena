@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * The ten slugs a combatant carries and their shot-based lock.
+ * The five slugs a combatant carries and their shot-based lock.
  *
  * <p>Firing the slug in a slot as shot number {@code n} locks it for the following {@code reloadShots} shots: with
  * a reload of 3, shots n+1, n+2 and n+3 must use other slugs and the slug is available again for shot n+4.
@@ -14,7 +14,7 @@ import java.util.List;
 public final class Loadout {
 
     /** Number of slugs every combatant carries. */
-    public static final int SIZE = 10;
+    public static final int SIZE = 5;
 
     private static final int NEVER_FIRED = Integer.MIN_VALUE / 2;
 
@@ -109,6 +109,42 @@ public final class Loadout {
             }
         }
         return false;
+    }
+
+    /**
+     * The slot a fusion shot pairs with the selected one: the next available slot after it holding a different slug
+     * of the same kind (attacks fuse with attacks, help with help: a fused attack never heals its victim), or the
+     * same slug when nothing else is left; -1 when there is none.
+     */
+    public int fusionPartner() {
+        int same = -1;
+        boolean attack = slugs[selected].targeting().reachesEnemies();
+        for (int i = 1; i < SIZE; i++) {
+            int candidate = (selected + i) % SIZE;
+            if (!isAvailable(candidate) || slugs[candidate].targeting().reachesEnemies() != attack) {
+                continue;
+            }
+            if (!slugs[candidate].id().equals(slugs[selected].id())) {
+                return candidate;
+            }
+            if (same < 0) {
+                same = candidate;
+            }
+        }
+        return same;
+    }
+
+    /**
+     * Fires another slot together with the selected one (the second slug of a fusion shot), locking it as if it had
+     * been the next shot. The caller must have checked {@link #isAvailable(int)}.
+     */
+    public SlugDefinition fireAlongside(int slot) {
+        if (!isAvailable(slot)) {
+            throw new IllegalStateException("Slot " + slot + " is locked");
+        }
+        shotCounter++;
+        firedAtShot[slot] = shotCounter;
+        return slugs[slot];
     }
 
     /** Fires the selected slot, locking it. The caller must have checked {@link #isAvailable(int)}. */

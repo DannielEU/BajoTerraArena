@@ -1,0 +1,15 @@
+{
+  "id": "wall_kick",
+  "durationTicks": 1,
+  "cooldownSeconds": 0.2,
+  "allowedFrom": [
+    "AIRBORNE"
+  ],
+  "interruptible": true,
+  "behavior": {
+    "type": "wallkick",
+    "vertical": 8.0,
+    "push": 9.0,
+    "maxKicks": 2
+  }
+}

@@ -5,7 +5,7 @@
   "role": "DAMAGE",
   "targeting": "ENEMIES",
   "projectile": {
-    "speed": 28,
+    "speed": 30.8,
     "gravity": 14,
     "radius": 0.3,
     "lifetimeSeconds": 3,

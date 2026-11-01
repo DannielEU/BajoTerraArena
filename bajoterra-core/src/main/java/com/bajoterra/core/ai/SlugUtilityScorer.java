@@ -2,6 +2,7 @@ package com.bajoterra.core.ai;
 
 import com.bajoterra.core.ammo.Loadout;
 import com.bajoterra.core.entity.Combatant;
+import com.bajoterra.core.sim.SimulationConstants;
 import com.bajoterra.core.slug.SlugDefinition;
 import com.bajoterra.core.slug.SlugRole;
 
@@ -21,7 +22,9 @@ final class SlugUtilityScorer {
         Loadout loadout = self.loadout;
         var chart = context.sim().content().elementChart();
         boolean controlled = target.statuses.has("stun") || target.statuses.has("freeze")
-                || target.statuses.has("slow") || target.statuses.has("blind");
+                || target.statuses.has("slow") || target.statuses.has("blind")
+                || target.statuses.has("ensnare") || target.statuses.has("bubble")
+                || target.statuses.has("lasso");
         double distance = Math.sqrt(target.pos.horizontalDistanceSq(self.pos));
         int best = -1;
         double bestScore = 0;
@@ -38,6 +41,11 @@ final class SlugUtilityScorer {
                 score *= controlled ? 0.25 : 1.1;
             } else if (target.vitals.totalFraction() < 0.3) {
                 score *= 1.3;
+            }
+            if (distance > slug.projectile().speed() * slug.projectile().lifetimeTicks()
+                    * SimulationConstants.TICK_SECONDS * 0.9) {
+                // A short-lived slug (Lariat's lasso) would fade before it got there.
+                score *= 0.1;
             }
             if (slug.projectile().gravity() > 8 && distance < 6) {
                 score *= 0.5;

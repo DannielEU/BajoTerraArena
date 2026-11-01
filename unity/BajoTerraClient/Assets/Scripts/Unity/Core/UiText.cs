@@ -24,7 +24,7 @@ namespace Bajoterra.Unity
         public const string Team = "Tu equipo";
         public const string TeamAuto = "Al azar";
         public const string Character = "Personaje";
-        public const string Loadout = "Tus 10 babosas";
+        public const string Loadout = "Tus 5 babosas";
         public const string RandomLoadout = "Elegir al azar";
         public const string Ready = "¡LISTO!";
         public const string NotReady = "Cancelar";
@@ -64,6 +64,29 @@ namespace Bajoterra.Unity
         public const string WallMaker = "Muro de hielo";
         public const string Dazed = "¡CEGADO!";
         public const string CourageBanner = "¡CORAJE!";
+        public const string Fusion = "FUSIÓN";
+        public const string FusionReady = "¡FUSIÓN LISTA!  Q";
+        public const string FusionBanner = "¡DISPARO FUSIÓN!";
+        public const string Ensnared = "¡ENREDADO!";
+        public const string EnsnaredDetail = "No puedes moverte, pero sí disparar";
+        public const string Bubbled = "¡EN UNA BURBUJA!";
+        public const string BubbledDetail = "Flotas sin poder moverte: cualquier impacto la revienta";
+        public const string Lassoed = "¡LAZADO!";
+        public const string LassoedDetail = "El lazo te arrastra hacia tu rival";
+        public const string FreezingTornado = "¡TORNADO CONGELANTE!";
+        public const string DanceHint = "B  para bailar";
+        public const string MegamorphBanner = "¡MEGAMORFOSIS!";
+        public const string MegamorphDetail = "Babosas gigantes: más daño y más rápidas";
+        public const string MegamorphCrystalUp = "¡Apareció el cristal de megamorfosis!";
+        public const string TornadoJump = "¡SALTO TORNADO!";
+        public const string WebMaker = "Telaraña";
+        public const string TornadoMaker = "Tornado";
+
+        /// <summary>The badge while you are megamorphed, with the seconds left.</summary>
+        public static string MegamorphBadge(int seconds)
+        {
+            return "MEGAMORFOSIS  " + seconds + " s";
+        }
 
         /// <summary>Under the first round's banner: the name of this match's arena, then the call to fight.</summary>
         public static string ArenaIntro(string arenaName)
@@ -120,6 +143,10 @@ namespace Bajoterra.Unity
                 case "regen": return "REGENERA";
                 case "blind": return "CEGADO";
                 case "overshield": return "SOBREESCUDO";
+                case "ensnare": return "ENREDADO";
+                case "bubble": return "EN BURBUJA";
+                case "lasso": return "LAZADO";
+                case "megamorph": return "MEGAMORFO";
                 default: return id == null ? string.Empty : id.ToUpperInvariant();
             }
         }

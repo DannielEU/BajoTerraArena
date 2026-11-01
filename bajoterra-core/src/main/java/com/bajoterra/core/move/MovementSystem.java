@@ -25,7 +25,7 @@ public final class MovementSystem {
         MoveRunner runner = c.moves;
         double vx = 0;
         double vz = 0;
-        if (c.alive && !c.stats.stunned) {
+        if (c.alive && !c.stats.stunned && !c.stats.rooted) {
             if (runner.isDriven()) {
                 vx = runner.drivenX();
                 vz = runner.drivenZ();

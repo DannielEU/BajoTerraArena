@@ -32,7 +32,16 @@ namespace Bajoterra.Unity
             "Apunta a la cabeza: un impacto directo en la cabeza es CRÍTICO y hace la mitad más de daño.",
             "Si tu equipo se queda en desventaja ganas CORAJE: más daño, disparo más rápido y escudo extra.",
             "Grenuke se pega donde choca y explota al poco: el círculo rojo marca hasta dónde llega. ¡Sal de él!",
-            "Los lanzadores de la caverna se adaptan a ti: si pierdes una ronda aflojan, y si ganas, aprietan."
+            "Los lanzadores de la caverna se adaptan a ti: si pierdes una ronda aflojan, y si ganas, aprietan.",
+            "Al hacer daño o curar se llena la barra de FUSIÓN: con Q disparas tu babosa y la siguiente a la vez.",
+            "Tormato se convierte en un tornado: atrapa a tus rivales y desvía sus babosas. ¡Métete en el tuyo para saltar alto!",
+            "Arachnet enreda a quien toca. Si falla, teje una telaraña trampa en el suelo. El fuego la quema.",
+            "A mitad de ronda aparece el cristal de MEGAMORFOSIS en el centro: babosas gigantes durante unos segundos.",
+            "Dispara una babosa de hielo a un tornado y se vuelve un TORNADO CONGELANTE que congela a quien atrapa.",
+            "Bubbaleone encierra a su víctima en una burbuja que la eleva. Cualquier impacto la revienta.",
+            "El lazo de Lariat arrastra a tu rival hasta ti, pero solo llega a media distancia.",
+            "Pulsa B para bailar. Al ganar una ronda, tu equipo lo celebra bailando.",
+            "En el aire, pegado a un muro, vuelve a pulsar Espacio: REBOTE EN PARED. Hasta 2 seguidos, cada uno en otro muro."
         };
 
         private readonly GameSettings _settings;
@@ -301,19 +310,21 @@ namespace Bajoterra.Unity
                 { "W A S D", "Moverte" },
                 { "Ratón", "Apuntar: la mira marca donde llega la babosa" },
                 { "Clic izquierdo", "Disparar (mantén pulsado)" },
-                { "1 - 0  /  Rueda", "Elegir babosa del cinturón" },
-                { "Espacio", "Saltar" },
+                { "1 - 5  /  Rueda", "Elegir babosa del cinturón" },
+                { "Espacio", "Saltar; en el aire junto a un muro: rebote" },
                 { "C  /  Ctrl", "Agacharte (mantén)" },
                 { "Shift", "Rodar: breve invulnerabilidad" },
                 { "F", "Dash, según el personaje" },
+                { "Q  /  Clic derecho", "Disparo fusión: dos babosas a la vez" },
                 { "Tab", "Marcador de la partida" },
+                { "B", "Bailar para celebrar (otra vez: otro baile)" },
                 { "Esc", "Pausa y opciones" }
             };
             for (int i = 0; i < rows.GetLength(0); i++)
             {
-                float y = -124f - i * 56f;
+                float y = -120f - i * 48f;
                 Image chip = UiKit.Card(window, "Key " + i, UiKit.Ink, 10);
-                UiKit.Place(chip.rectTransform, new Vector2(0f, 1f), new Vector2(290f, 46f), new Vector2(50f, y));
+                UiKit.Place(chip.rectTransform, new Vector2(0f, 1f), new Vector2(290f, 42f), new Vector2(50f, y));
                 Image face = UiKit.Card(chip.transform, "Face", Color.white, 8);
                 UiKit.Inset(face.rectTransform, 3f, 5f, 3f, 3f);
                 UiKit.Gradient(face, new Color(0.45f, 0.74f, 1f), new Color(0.13f, 0.35f, 0.68f));
@@ -321,7 +332,7 @@ namespace Bajoterra.Unity
                 UiKit.Strong(key);
                 UiKit.Stretch(key.rectTransform);
                 Text what = UiKit.Label(window, "Action " + i, rows[i, 1], 26, TextAnchor.MiddleLeft, UiKit.TextColor);
-                UiKit.Place(what.rectTransform, new Vector2(0f, 1f), new Vector2(520f, 46f), new Vector2(366f, y));
+                UiKit.Place(what.rectTransform, new Vector2(0f, 1f), new Vector2(520f, 42f), new Vector2(366f, y));
                 UiKit.AddShadow(what, 1.5f);
             }
         }

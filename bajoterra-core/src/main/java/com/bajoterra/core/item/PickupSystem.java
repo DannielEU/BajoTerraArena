@@ -24,10 +24,15 @@ public final class PickupSystem {
         return pickups;
     }
 
-    /** Makes every pickup available again (start of a round). */
+    /**
+     * Makes every pickup available again (start of a round), except those that first show up some way into the
+     * round (the megamorph crystal), which are scheduled instead.
+     */
     public void resetAll() {
         for (Pickup pickup : pickups) {
-            pickup.available = true;
+            int delay = pickup.definition.firstSpawnTicks();
+            pickup.available = delay == 0;
+            pickup.respawnTick = arena.tick() + delay;
         }
     }
 

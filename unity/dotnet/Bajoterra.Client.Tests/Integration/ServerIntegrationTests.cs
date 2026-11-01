@@ -117,7 +117,7 @@ namespace Bajoterra.Client.Integration
             Assert.AreEqual(8, match.Map.Obstacles.Count(o => o.IsRamp), "the hills' and balconies' ramps arrive with their direction");
             Assert.AreEqual(RampDirection.PosX, match.Map.Obstacles.First(o => o.Id == "ramp_n_w").Rise);
             Assert.AreEqual(RampDirection.NegZ, match.Map.Obstacles.First(o => o.Id == "ramp_w_n").Rise);
-            Assert.AreEqual(7, match.Map.Pickups.Length);
+            Assert.AreEqual(8, match.Map.Pickups.Length, "7 pickups and the megamorph crystal");
             Assert.AreEqual(6, match.Map.Spawns.Length);
             Assert.AreEqual(-30f, match.Map.MinX);
             Assert.IsTrue(match.Map.Obstacles.Any(o => o.Id == "center_wall_n" && o.BlocksProjectiles));
@@ -128,8 +128,8 @@ namespace Bajoterra.Client.Integration
         private static void ContentCatalogCheck(GameClient client)
         {
             Assert.GreaterOrEqual(client.Content.SlugCount, 14);
-            Assert.AreEqual(3, client.Content.MoveSetOf(client.Content.FindCharacter("eli")).Length);
-            Assert.AreEqual(4, client.Content.MoveSetOf(client.Content.FindCharacter("pronto")).Length);
+            Assert.AreEqual(4, client.Content.MoveSetOf(client.Content.FindCharacter("eli")).Length);
+            Assert.AreEqual(5, client.Content.MoveSetOf(client.Content.FindCharacter("pronto")).Length);
             Assert.AreEqual("roll", client.Content.Move(client.Content.MoveIndexOf("roll")).Id);
             Assert.AreEqual("drive", client.Content.Move(client.Content.MoveIndexOf("roll")).BehaviorType);
         }
@@ -189,7 +189,7 @@ namespace Bajoterra.Client.Integration
             Assert.IsTrue(_client.Match.Clock.IsSynchronized);
             Assert.AreEqual(6, _client.Match.Latest.Combatants.Count);
             Assert.IsNotNull(_client.Match.Latest.Local, "the owner receives its movement state");
-            Assert.AreEqual(10, _client.Match.YourState.Slots.Count);
+            Assert.AreEqual(5, _client.Match.YourState.Slots.Count);
         }
 
         [Test, Timeout(90000)]
@@ -303,12 +303,39 @@ namespace Bajoterra.Client.Integration
             Play(1.0, now =>
             {
                 PlayerInput input = PlayerInput.Idle;
-                input.SelectSlot = 6;
+                input.SelectSlot = 3;
                 return input;
             });
 
-            Assert.IsTrue(WaitFor(() => match.YourState != null && match.YourState.SelectedSlot == 6, 3),
-                "slot 6 is selected");
+            Assert.IsTrue(WaitFor(() => match.YourState != null && match.YourState.SelectedSlot == 3, 3),
+                "slot 3 is selected");
+        }
+
+        [Test, Timeout(60000)]
+        public void AskingForADanceMakesYourHeroDanceUntilYouMove()
+        {
+            Join("Eli", "dance");
+            Assert.IsTrue(WaitFor(() => _client.Match.Latest != null
+                                        && _client.Match.Latest.Match.Phase == MatchPhase.RoundActive, 15));
+            MatchSession match = _client.Match;
+            bool asked = false;
+
+            Play(0.6, now =>
+            {
+                PlayerInput input = PlayerInput.Idle;
+                input.Dance = asked ? 0u : 3u;
+                asked = true;
+                return input;
+            });
+            Assert.IsTrue(WaitFor(() => match.YourState != null && match.YourState.Dance == 3, 3), "dancing the third dance");
+
+            Play(0.5, now =>
+            {
+                PlayerInput input = PlayerInput.Idle;
+                input.MoveZ = 1f;
+                return input;
+            });
+            Assert.IsTrue(WaitFor(() => match.YourState != null && match.YourState.Dance == 0, 3), "moving stops it");
         }
 
         [Test, Timeout(60000)]

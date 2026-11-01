@@ -7,6 +7,9 @@ import com.bajoterra.core.effect.StatusSet;
 import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.event.EventBuffer;
 import com.bajoterra.core.event.GameEvent;
+import com.bajoterra.core.hazard.Hazard;
+import com.bajoterra.core.hazard.Tornado;
+import com.bajoterra.core.hazard.Web;
 import com.bajoterra.core.item.Pickup;
 import com.bajoterra.core.move.MoveBehavior;
 import com.bajoterra.core.move.MoveDefinition;
@@ -19,7 +22,6 @@ import com.bajoterra.core.sim.SimulationConstants;
 import com.bajoterra.core.slug.Element;
 import com.bajoterra.core.slug.SlugDefinition;
 import com.bajoterra.core.stats.StatBlock;
-import com.bajoterra.core.hazard.Hazard;
 import com.bajoterra.core.world.Barrier;
 import com.bajoterra.core.world.GameMap;
 import com.bajoterra.core.world.Obstacle;
@@ -50,6 +52,8 @@ import com.bajoterra.protocol.generated.Snapshot;
 import com.bajoterra.protocol.generated.SpawnInfo;
 import com.bajoterra.protocol.generated.StatusState;
 import com.bajoterra.protocol.generated.Targeting;
+import com.bajoterra.protocol.generated.TornadoState;
+import com.bajoterra.protocol.generated.WebState;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -100,7 +104,11 @@ public final class SnapshotBuilder {
                             || slug.onExpire().raisesWall())
                     .setTrailRadius((float) slug.trail().radius())
                     .setTrailHeight((float) slug.trail().height())
-                    .setTrailTicks(slug.trail().exists() ? slug.trail().durationTicks() : 0));
+                    .setTrailTicks(slug.trail().exists() ? slug.trail().durationTicks() : 0)
+                    .setTornadoRadius((float) Math.max(slug.onHit().tornadoRadius(),
+                            Math.max(slug.onWorldHit().tornadoRadius(), slug.onExpire().tornadoRadius())))
+                    .setWebRadius((float) Math.max(slug.onHit().webRadius(),
+                            Math.max(slug.onWorldHit().webRadius(), slug.onExpire().webRadius()))));
         }
         for (var character : content.characters().all()) {
             CharacterInfo.Builder info = CharacterInfo.newBuilder().setId(character.id()).setName(character.name())
@@ -187,9 +195,13 @@ public final class SnapshotBuilder {
                 .setKnockX((float) c.knock.x).setKnockZ((float) c.knock.z)
                 .setGrounded(c.grounded)
                 .setStatusSpeedMultiplier((float) fromStatuses.speedMultiplier)
-                .setStunned(fromStatuses.stunned)
+                .setStunned(fromStatuses.stunned || fromStatuses.rooted)
                 .setMoveElapsedTicks(runner.elapsed())
-                .setMoveDirX((float) runner.dirX()).setMoveDirZ((float) runner.dirZ());
+                .setMoveDirX((float) runner.dirX()).setMoveDirZ((float) runner.dirZ())
+                .setWallNormalX((float) c.wallNormalX).setWallNormalZ((float) c.wallNormalZ)
+                .setWallKicks(c.wallKicks)
+                .setLastKickX((float) c.lastKickX).setLastKickZ((float) c.lastKickZ)
+                .setLastMoveMask(runner.lastMask());
         for (int slot = 0; slot < c.character.moves().size(); slot++) {
             builder.addMoveCooldownTicks(Math.max(0, runner.cooldownUntil(slot) - tick));
         }
@@ -210,7 +222,9 @@ public final class SnapshotBuilder {
                         .setOwner(p.owner.id).setX((float) p.pos.x).setY((float) p.pos.y).setZ((float) p.pos.z)
                         .setVx((float) p.vel.x).setVy((float) p.vel.y).setVz((float) p.vel.z)
                         .setStuck(p.stuck).setFuseTicks(p.stuck ? Math.max(0, p.ticksLeft) : 0)
-                        .setStuckTo(p.stuck && p.stuckTo != null ? p.stuckTo.id : -1));
+                        .setStuckTo(p.stuck && p.stuckTo != null ? p.stuckTo.id : -1)
+                        .setPartnerSlug(p.partner == null ? -1 : p.partner.index())
+                        .setRadius((float) p.radius));
             }
         }
         for (Pickup pickup : sim.pickups()) {
@@ -231,6 +245,28 @@ public final class SnapshotBuilder {
                         .setOwner(h.owner == null ? -1 : h.owner.id)
                         .setX((float) h.x).setY((float) h.y).setZ((float) h.z)
                         .setTicksLeft(Math.max(0, h.ticksLeft)));
+            }
+        }
+        for (Tornado t : sim.tornadoes().tornadoes()) {
+            if (t.active) {
+                builder.addTornadoes(TornadoState.newBuilder().setId(t.id)
+                        .setSlugIndex(t.slug == null ? -1 : t.slug.index())
+                        .setOwner(t.owner == null ? -1 : t.owner.id)
+                        .setX((float) t.x).setY((float) t.y).setZ((float) t.z)
+                        .setRadius((float) t.spec.radius()).setEyeRadius((float) t.spec.eyeRadius())
+                        .setHeight((float) t.spec.height()).setTicksLeft(Math.max(0, t.ticksLeft))
+                        .setLifeTicks(t.spec.durationTicks()).setFlaming(t.flaming)
+                        .setFreezing(t.freezing));
+            }
+        }
+        for (Web w : sim.webs().webs()) {
+            if (w.active) {
+                builder.addWebs(WebState.newBuilder().setId(w.id)
+                        .setSlugIndex(w.slug == null ? -1 : w.slug.index())
+                        .setOwner(w.owner == null ? -1 : w.owner.id)
+                        .setX((float) w.x).setY((float) w.y).setZ((float) w.z)
+                        .setRadius((float) w.spec.radius()).setTicksLeft(Math.max(0, w.ticksLeft))
+                        .setLifeTicks(w.spec.durationTicks()));
             }
         }
         return builder.build();
@@ -259,7 +295,9 @@ public final class SnapshotBuilder {
                 .setPosture(Posture.forNumber(c.posture.ordinal()))
                 .setSelectedSlot(c.loadout.selected())
                 .setHitboxHeight((float) c.hitHeight())
-                .setCourage(c.courage);
+                .setCourage(c.courage)
+                .setFusion((float) c.fusion)
+                .setDance(c.dance);
         MoveDefinition active = c.moves.active();
         builder.setActiveMove(active == null ? -1 : active.index());
         for (int slot = 0; slot < Loadout.SIZE; slot++) {

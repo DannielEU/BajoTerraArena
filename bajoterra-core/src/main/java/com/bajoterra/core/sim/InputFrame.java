@@ -15,6 +15,8 @@ import com.bajoterra.core.entity.InputState;
  * @param moveMask bit i requests the i-th move of the character's move set
  * @param selectSlot slot to select (0-9) or -1
  * @param cycleSlot -1 / 0 / +1 to move the selection
+ * @param fusion fusion button held (fires a fusion shot once the energy is full)
+ * @param dance celebration dance to start (1..{@link com.bajoterra.core.entity.Combatant#DANCES}) or 0
  */
 public record InputFrame(
         int combatantId,
@@ -30,7 +32,25 @@ public record InputFrame(
         boolean fire,
         int moveMask,
         int selectSlot,
-        int cycleSlot) implements Command {
+        int cycleSlot,
+        boolean fusion,
+        int dance) implements Command {
+
+    /** A frame without a dance. */
+    public InputFrame(int combatantId, int sequence, float moveX, float moveZ, float aimYaw, float aimPitch,
+            boolean hasCamera, float camX, float camY, float camZ, boolean fire, int moveMask, int selectSlot,
+            int cycleSlot, boolean fusion) {
+        this(combatantId, sequence, moveX, moveZ, aimYaw, aimPitch, hasCamera, camX, camY, camZ, fire, moveMask,
+                selectSlot, cycleSlot, fusion, 0);
+    }
+
+    /** A frame without the fusion button. */
+    public InputFrame(int combatantId, int sequence, float moveX, float moveZ, float aimYaw, float aimPitch,
+            boolean hasCamera, float camX, float camY, float camZ, boolean fire, int moveMask, int selectSlot,
+            int cycleSlot) {
+        this(combatantId, sequence, moveX, moveZ, aimYaw, aimPitch, hasCamera, camX, camY, camZ, fire, moveMask,
+                selectSlot, cycleSlot, false);
+    }
 
     @Override
     public void applyTo(InputState state) {
@@ -44,12 +64,16 @@ public record InputFrame(
         state.camY = camY;
         state.camZ = camZ;
         state.fire = fire;
+        state.fusion = fusion;
         state.moveMask = moveMask;
         if (selectSlot >= 0) {
             state.selectSlot = selectSlot;
         }
         if (cycleSlot != 0) {
             state.cycleSlot = cycleSlot;
+        }
+        if (dance > 0) {
+            state.dance = dance;
         }
     }
 

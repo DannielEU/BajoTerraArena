@@ -1,0 +1,17 @@
+{
+  "id": "megamorph_crystal",
+  "name": "Megamorph crystal",
+  "firstSpawnSeconds": 25,
+  "respawnSeconds": 45,
+  "radius": 1.3,
+  "requirement": "ANY",
+  "effects": [
+    {
+      "type": "megamorph",
+      "damage": 1.35,
+      "size": 1.7,
+      "fireRate": 1.2,
+      "durationSeconds": 12
+    }
+  ]
+}

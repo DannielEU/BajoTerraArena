@@ -43,6 +43,7 @@ namespace Bajoterra.Unity
         private Color _lastSlugColor = Color.clear;
         private bool _dead;
         private float _walkPhase;
+        private float _danceTime;
         private float _walkAmount;
 
         public PrimitiveCharacterModel(Transform parent, CharacterStyle style, float radius, float standingHeight, Color team)
@@ -151,6 +152,22 @@ namespace Bajoterra.Unity
             _walkAmount = Mathf.MoveTowards(_walkAmount, Mathf.Clamp(speed / 6f, 0f, 1.5f), pose.DeltaTime * 6f);
             _walkPhase += pose.DeltaTime * (4f + speed * 1.4f);
             Layout(pose.Height, _walkPhase, _walkAmount, pose.Airborne, pose.Pitch, pose.SlugColor);
+
+            // The stand-in's dance: hops on the beat and twists from side to side (a full spin in the third one).
+            if (pose.Dance > 0)
+            {
+                _danceTime += pose.DeltaTime;
+                float beat = _danceTime * Mathf.PI * 4f;
+                float hop = Mathf.Abs(Mathf.Sin(beat)) * 0.12f * _standing;
+                float twist = pose.Dance == 3 ? _danceTime * 360f : Mathf.Sin(beat * 0.5f) * (pose.Dance == 1 ? 25f : 45f);
+                _body.localPosition += new Vector3(0f, hop, 0f);
+                _body.localRotation = Quaternion.Euler(0f, twist, Mathf.Sin(beat * 0.5f) * 6f);
+            }
+            else
+            {
+                _danceTime = 0f;
+                _body.localRotation = Quaternion.identity;
+            }
         }
 
         /// <summary>Lays the parts out for the current hitbox height and animation state.</summary>

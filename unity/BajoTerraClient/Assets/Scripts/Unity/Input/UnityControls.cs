@@ -23,9 +23,13 @@ namespace Bajoterra.Unity
 
         public bool Fire { get; private set; }
 
+        public bool Fusion { get; private set; }
+
         public int SlotKey { get; private set; } = -1;
 
         public int Scroll { get; private set; }
+
+        public bool DancePressed { get; private set; }
 
         public bool ClickPressed { get; private set; }
 
@@ -38,8 +42,7 @@ namespace Bajoterra.Unity
 #if BAJOTERRA_INPUT_SYSTEM && ENABLE_INPUT_SYSTEM
         private static readonly Key[] SlotKeys =
         {
-            Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5,
-            Key.Digit6, Key.Digit7, Key.Digit8, Key.Digit9, Key.Digit0
+            Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5
         };
 
         public void Poll()
@@ -52,6 +55,8 @@ namespace Bajoterra.Unity
             PausePressed = false;
             DebugPressed = false;
             ScoreboardHeld = false;
+            Fusion = false;
+            DancePressed = false;
             if (keyboard != null)
             {
                 MoveX = (keyboard[Key.D].isPressed ? 1f : 0f) - (keyboard[Key.A].isPressed ? 1f : 0f);
@@ -66,11 +71,14 @@ namespace Bajoterra.Unity
                 PausePressed = keyboard[Key.Escape].wasPressedThisFrame;
                 DebugPressed = keyboard[Key.F3].wasPressedThisFrame;
                 ScoreboardHeld = keyboard[Key.Tab].isPressed;
+                Fusion = keyboard[Key.Q].isPressed;
+                DancePressed = keyboard[Key.B].wasPressedThisFrame;
             }
             if (mouse != null)
             {
                 Look = mouse.delta.ReadValue();
                 Fire = mouse.leftButton.isPressed;
+                Fusion |= mouse.rightButton.isPressed;
                 ClickPressed = mouse.leftButton.wasPressedThisFrame;
                 float wheel = mouse.scroll.ReadValue().y;
                 Scroll = wheel > 0.1f ? 1 : wheel < -0.1f ? -1 : 0;
@@ -126,13 +134,14 @@ namespace Bajoterra.Unity
             MoveZ = (Input.GetKey(KeyCode.W) ? 1f : 0f) - (Input.GetKey(KeyCode.S) ? 1f : 0f);
             Look = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y")) * LegacyMouseScale;
             Fire = Input.GetMouseButton(0);
+            Fusion = Input.GetKey(KeyCode.Q) || Input.GetMouseButton(1);
             ClickPressed = Input.GetMouseButtonDown(0);
             float wheel = Input.mouseScrollDelta.y;
             Scroll = wheel > 0.1f ? 1 : wheel < -0.1f ? -1 : 0;
             SlotKey = -1;
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 5; i++)
             {
-                KeyCode code = i == 9 ? KeyCode.Alpha0 : KeyCode.Alpha1 + i;
+                KeyCode code = KeyCode.Alpha1 + i;
                 if (Input.GetKeyDown(code))
                 {
                     SlotKey = i;
@@ -141,6 +150,7 @@ namespace Bajoterra.Unity
             PausePressed = Input.GetKeyDown(KeyCode.Escape);
             DebugPressed = Input.GetKeyDown(KeyCode.F3);
             ScoreboardHeld = Input.GetKey(KeyCode.Tab);
+            DancePressed = Input.GetKeyDown(KeyCode.B);
         }
 
         public bool IsMoveHeld(string moveId)

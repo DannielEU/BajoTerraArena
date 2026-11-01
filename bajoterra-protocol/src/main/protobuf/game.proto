@@ -38,7 +38,7 @@ message JoinRoom {
   sint32 team = 2;
 }
 
-// Picks the character and the ten slugs. An empty slug list asks the server for a balanced random loadout.
+// Picks the character and the five slugs. An empty slug list asks the server for a balanced random loadout.
 message SelectLoadout {
   string character_id = 1;
   repeated string slug_ids = 2;
@@ -62,8 +62,10 @@ message InputFrame {
   float cam_z = 9;
   bool fire = 10;            // fire button held
   uint32 move_mask = 11;     // bit i requests the i-th move of the character's move set (see Slot.move_ids)
-  sint32 select_slot = 12;   // 0-9 selects a slot, -1 no change
+  sint32 select_slot = 12;   // 0-4 selects a slot, -1 no change
   sint32 cycle_slot = 13;    // -1 / 0 / +1 moves the selection
+  bool fusion = 14;          // fusion button held: fires a fusion shot once CombatantState.fusion is full
+  uint32 dance = 15;         // starts celebration dance 1-3 (0 = none); moving, firing or a move stops it
 }
 
 message Ping {
@@ -137,6 +139,8 @@ message SlugInfo {
   float trail_radius = 14;         // the wall of fire it leaves under its flight (Infurnus): radius of each patch
   float trail_height = 15;         //   how tall the flames are
   uint32 trail_ticks = 16;         //   how long a patch burns (0 when it leaves no trail)
+  float tornado_radius = 17;       // it turns into a tornado where it lands (Tormato): its radius (0 when none)
+  float web_radius = 18;           // it spins a web trap where it lands (Arachnet): its radius (0 when none)
 }
 
 message CharacterInfo {
@@ -189,7 +193,7 @@ message Slot {
   float max_hp = 8;
   float max_shield = 9;
   repeated string move_ids = 10;   // the character's move set, in move_mask bit order
-  repeated string slug_ids = 11;   // the ten slugs of the loadout (only for your own slot)
+  repeated string slug_ids = 11;   // the five slugs of the loadout (only for your own slot)
 }
 
 message RoomState {
@@ -308,10 +312,12 @@ message CombatantState {
   Posture posture = 11;
   sint32 active_move = 12;     // index in ContentManifest.move_ids or -1
   uint32 selected_slot = 13;
-  repeated SlotState slots = 14;   // the ten loadout slots (full detail for you, same for allies and enemies)
+  repeated SlotState slots = 14;   // the five loadout slots (full detail for you, same for allies and enemies)
   repeated StatusState statuses = 15;
   float hitbox_height = 16;    // current hitbox height (shrinks while crouching)
   uint32 courage = 17;         // comeback level: how many combatants this one's team is down (0 = none)
+  float fusion = 18;           // fusion energy, 0..100: a fusion shot is ready at 100
+  uint32 dance = 19;           // celebration dance being danced (1-3), 0 = none; winners dance at the end of a round
 }
 
 message ProjectileState {
@@ -327,6 +333,8 @@ message ProjectileState {
   bool stuck = 10;             // a sticky slug that landed: it no longer flies and its fuse is burning
   uint32 fuse_ticks = 11;      // stuck slugs: ticks left before the explosion
   sint32 stuck_to = 12;        // stuck slugs: combatant it clings to (it moves with them), or -1 for the world
+  sint32 partner_slug = 13;    // a fusion shot: index of the second slug it carries, or -1
+  float radius = 14;           // collision radius (bigger than the slug's own while its slinger is megamorphed)
 }
 
 // A wall raised during the round (an ice wall): solid for movement, slugs and sight until broken or melted.
@@ -356,6 +364,36 @@ message HazardState {
   uint32 ticks_left = 7;
 }
 
+// A tornado spinning in the arena (Tormato): drags enemies of its owner in, lifts them, throws their slugs off course.
+message TornadoState {
+  uint32 id = 1;
+  sint32 slug_index = 2;
+  sint32 owner = 3;
+  float x = 4;                 // its foot
+  float y = 5;
+  float z = 6;
+  float radius = 7;
+  float eye_radius = 8;
+  float height = 9;
+  uint32 ticks_left = 10;
+  uint32 life_ticks = 11;
+  bool flaming = 12;           // it swept over a wall of fire and burns whoever it catches
+  bool freezing = 13;          // it swallowed an ice slug and freezes whoever it catches
+}
+
+// A web trap on the floor (Arachnet): catches the first enemy of its owner who steps on it.
+message WebState {
+  uint32 id = 1;
+  sint32 slug_index = 2;
+  sint32 owner = 3;
+  float x = 4;
+  float y = 5;
+  float z = 6;
+  float radius = 7;
+  uint32 ticks_left = 8;
+  uint32 life_ticks = 9;
+}
+
 message PickupState {
   uint32 index = 1;
   bool available = 2;
@@ -371,6 +409,8 @@ message Snapshot {
   LocalState local = 7;          // only in the snapshot sent to the player it describes
   repeated BarrierState barriers = 8;
   repeated HazardState hazards = 9;
+  repeated TornadoState tornadoes = 10;
+  repeated WebState webs = 11;
 }
 
 // What the receiving player's client needs, besides CombatantState, to continue the movement simulation from the
@@ -381,11 +421,17 @@ message LocalState {
   float knock_z = 3;
   bool grounded = 4;
   float status_speed_multiplier = 5;   // slows and freezes; the active move's own multiplier is not included
-  bool stunned = 6;
+  bool stunned = 6;                    // cannot move or start moves (stunned, or caught in a web)
   uint32 move_elapsed_ticks = 7;       // ticks since the active move started (CombatantState.active_move >= 0)
   float move_dir_x = 8;
   float move_dir_z = 9;
   repeated uint32 move_cooldown_ticks = 10;   // ticks left before each move of the move set can start again
+  float wall_normal_x = 11;            // outward normal of the wall within reach of a wall kick (0, 0 = none)
+  float wall_normal_z = 12;
+  uint32 wall_kicks = 13;              // wall kicks since last standing on the floor
+  float last_kick_x = 14;              // normal of the wall the last kick pushed off
+  float last_kick_z = 15;
+  uint32 last_move_mask = 16;          // move buttons held on the previous tick (a wall kick needs a fresh press)
 }
 
 enum EventKind {
@@ -414,6 +460,13 @@ enum EventKind {
   BARRIER_RAISED = 22;
   BARRIER_HIT = 23;
   BARRIER_GONE = 24;
+  TORNADO = 25;
+  DEFLECTED = 26;
+  WEB_SPUN = 27;
+  WEB_GONE = 28;
+  FUSION = 29;
+  BUBBLE = 30;
+  LASSO = 31;
 }
 
 // Fields a/b/value/x/y/z mean different things per kind; see the Javadoc of EventType in bajoterra-core.

@@ -27,7 +27,9 @@ public final class GameMap implements Identified {
     private final List<WaterPool> water;
     private final double navCellSize;
     private final SpatialGrid grid;
-    private final NavGraph nav;
+    /** Built on first use: generated arenas are checked (and many thrown away) before anybody navigates them. */
+    private NavGraph nav;
+    private final Object navLock = new Object();
     private final double[] coverX;
     private final double[] coverZ;
     private final double[] coverHeight;
@@ -68,7 +70,6 @@ public final class GameMap implements Identified {
         this.water = List.copyOf(water);
         this.navCellSize = navCellSize;
         this.grid = new SpatialGrid(obstacleList, minX, minZ, maxX, maxZ, GRID_CELL);
-        this.nav = NavGraph.generate(obstacleList, minX, minZ, maxX, maxZ, navCellSize);
         List<double[]> cover = computeCover();
         this.coverX = new double[cover.size()];
         this.coverZ = new double[cover.size()];
@@ -156,7 +157,12 @@ public final class GameMap implements Identified {
     }
 
     public NavGraph nav() {
-        return nav;
+        synchronized (navLock) {
+            if (nav == null) {
+                nav = NavGraph.generate(obstacleList, minX, minZ, maxX, maxZ, navCellSize);
+            }
+            return nav;
+        }
     }
 
     public double navCellSize() {

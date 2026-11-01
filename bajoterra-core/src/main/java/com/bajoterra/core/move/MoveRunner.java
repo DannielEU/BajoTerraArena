@@ -14,6 +14,7 @@ public final class MoveRunner {
     private boolean driven;
     private double drivenX;
     private double drivenZ;
+    private int lastMask;
 
     public MoveDefinition active() {
         return active;
@@ -41,6 +42,15 @@ public final class MoveRunner {
     /** Tick at which the move in the given slot may start again. */
     public int cooldownUntil(int slot) {
         return cooldownUntil[slot];
+    }
+
+    /** The move buttons held on the previous tick (a move that needs a fresh press checks it). */
+    public int lastMask() {
+        return lastMask;
+    }
+
+    void rememberMask(int mask) {
+        lastMask = mask;
     }
 
     /** Lets a behavior override the horizontal velocity for the current tick (input steering is ignored). */
@@ -91,6 +101,7 @@ public final class MoveRunner {
     public void reset() {
         finish();
         driven = false;
+        lastMask = 0;
         Arrays.fill(cooldownUntil, 0);
     }
 }

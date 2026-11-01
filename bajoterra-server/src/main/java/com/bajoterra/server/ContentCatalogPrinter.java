@@ -210,6 +210,9 @@ public final class ContentCatalogPrinter {
                     + "] a quien lo mire";
             case "ice_wall" -> "levanta un muro de hielo (" + e.path("hits").asText("2") + " impactos, " + duration(e)
                     + ")";
+            case "bubble" -> "burbuja (" + duration(e) + "): flota " + e.path("height").asText("1.6")
+                    + " m sin moverse ni disparar; el primer golpe la revienta";
+            case "lasso" -> "lazo: arrastra al rival hasta " + e.path("keep").asText("2.5") + " m de quien disparó";
             case "chain" -> "cadena " + e.path("jumps").asText(" 1") + "× [" + describeList(e.path("effects")) + "]";
             default -> type;
         };

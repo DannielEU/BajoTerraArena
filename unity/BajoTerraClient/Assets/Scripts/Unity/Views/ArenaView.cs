@@ -626,6 +626,25 @@ namespace Bajoterra.Unity
                         }
                         break;
                     }
+                case "megamorph_crystal":
+                    {
+                        // A big, many-sided crystal ringed by smaller ones: the prize everyone fights over.
+                        Mesh big = MeshKit.Crystal(0.32f, 1.2f, 7, Vector2.zero);
+                        GameObject core = Gfx.Make("Core", big, spinner, glow);
+                        core.transform.localPosition = new Vector3(0f, -0.55f, 0f);
+                        for (int k = 0; k < 4; k++)
+                        {
+                            float a = k * Mathf.PI * 0.5f;
+                            GameObject shard = Gfx.Make("Shard", MeshKit.Crystal(0.12f, 0.5f, 5, Vector2.zero), spinner, glow);
+                            shard.transform.localPosition = new Vector3(Mathf.Cos(a) * 0.5f, -0.4f, Mathf.Sin(a) * 0.5f);
+                            shard.transform.localRotation = Quaternion.Euler(Mathf.Sin(a) * 25f, 0f, -Mathf.Cos(a) * 25f);
+                        }
+                        GameObject band = Gfx.Make("Band", Billboard.QuadMesh(), spinner, MaterialFactory.GlowInstance(Textures.Ring, 1.8f));
+                        band.GetComponent<Renderer>().SetPropertyBlock(Tint(color));
+                        band.transform.localScale = Vector3.one * 1.6f;
+                        band.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                        break;
+                    }
                 default:
                     {
                         GameObject gem = Gfx.Make("Gem", MeshKit.Crystal(0.18f, 0.6f, 5, Vector2.zero), spinner, glow);

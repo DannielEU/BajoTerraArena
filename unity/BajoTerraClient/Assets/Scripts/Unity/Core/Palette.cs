@@ -19,6 +19,8 @@ namespace Bajoterra.Unity
         public static readonly Color Critical = new Color(1f, 0.86f, 0.18f);
         /// <summary>Courage (your team is outnumbered): the aura, the HUD badge and the banner.</summary>
         public static readonly Color Courage = new Color(1f, 0.66f, 0.12f);
+        public static readonly Color Megamorph = new Color(0.78f, 0.35f, 1f);
+        public static readonly Color Fusion = new Color(0.35f, 1f, 0.85f);
         /// <summary>A lit grenade: its blinking light and the blast circle on the floor.</summary>
         public static readonly Color Danger = new Color(1f, 0.16f, 0.1f);
 
@@ -55,6 +57,10 @@ namespace Bajoterra.Unity
                 case "regen": return new Color(0.4f, 1f, 0.5f);
                 case "blind": return new Color(0.15f, 0.15f, 0.2f);
                 case "overshield": return Overshield;
+                case "ensnare": return new Color(0.85f, 0.85f, 0.78f);
+                case "bubble": return new Color(0.55f, 0.85f, 1f);
+                case "lasso": return new Color(0.55f, 0.9f, 0.3f);
+                case "megamorph": return Megamorph;
                 default: return Hashed(statusId);
             }
         }
@@ -66,6 +72,7 @@ namespace Bajoterra.Unity
                 case "health_pack": return Health;
                 case "shield_cell": return Shield;
                 case "overshield_orb": return Overshield;
+                case "megamorph_crystal": return Megamorph;
                 default: return Hashed(pickupId);
             }
         }

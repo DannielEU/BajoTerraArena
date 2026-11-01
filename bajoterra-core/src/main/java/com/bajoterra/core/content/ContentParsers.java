@@ -133,7 +133,8 @@ final class ContentParsers {
                 effects.createAll(spec.list("effects")),
                 Math.max(1, ticks(spec, "respawn", 900)),
                 spec.optDouble("radius", 1.2, 0.2, 10),
-                spec.optEnum("requirement", PickupRequirement.class, PickupRequirement.ANY));
+                spec.optEnum("requirement", PickupRequirement.class, PickupRequirement.ANY),
+                ticks(spec, "firstSpawn", 0));
     }
 
     static SlugDefinition slug(Spec spec, EffectRegistry effects) {

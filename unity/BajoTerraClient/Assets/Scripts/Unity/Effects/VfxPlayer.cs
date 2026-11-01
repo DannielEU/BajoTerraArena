@@ -19,6 +19,23 @@ namespace Bajoterra.Unity
         private const int RingPoolSize = 12;
         private const int ExplosionPoolSize = 8;
         private const int NumberPoolSize = 32;
+        private const int RopePoolSize = 4;
+        private const int RopeBeads = 14;
+        private const float RopeSeconds = 0.75f;
+
+        private static readonly Color LassoColor = new Color(0.55f, 0.9f, 0.3f);
+        private static readonly Color BubbleColor = new Color(0.6f, 0.9f, 1f);
+        private static readonly Color FrostColor = new Color(0.7f, 0.95f, 1f);
+
+        /// <summary>Lariat's slimy rope: a sagging chain of glowing green beads from the thrower's blaster to its victim.</summary>
+        private sealed class Rope
+        {
+            public Transform[] Beads;
+            public Renderer[] Renderers;
+            public int From = -1;
+            public int To = -1;
+            public float Age = 99f;
+        }
 
         private sealed class Flash
         {
@@ -74,12 +91,14 @@ namespace Bajoterra.Unity
         private readonly Ring[] _rings = new Ring[RingPoolSize];
         private readonly Explosion[] _explosions = new Explosion[ExplosionPoolSize];
         private readonly FloatingNumber[] _numbers = new FloatingNumber[NumberPoolSize];
+        private readonly Rope[] _ropes = new Rope[RopePoolSize];
         private readonly MaterialPropertyBlock _block = new MaterialPropertyBlock();
         private int _nextBurst;
         private int _nextFlash;
         private int _nextRing;
         private int _nextExplosion;
         private int _nextNumber;
+        private int _nextRope;
         private Vector3 _cameraPosition;
 
         /// <summary>Raised when the local player takes damage (the HUD flashes the screen).</summary>
@@ -93,6 +112,15 @@ namespace Bajoterra.Unity
 
         /// <summary>Raised with (new level, previous level) when the local player's courage changes (0 = it ended).</summary>
         public event Action<int, int> YourCourageChanged;
+
+        /// <summary>Raised when the local player fires a fusion shot.</summary>
+        public event Action YouFused;
+
+        /// <summary>Raised when the local player takes the megamorph crystal.</summary>
+        public event Action YouMegamorphed;
+
+        /// <summary>Raised when the local player's tornado, or an ice slug of theirs, makes a freezing tornado.</summary>
+        public event Action FreezingTornado;
 
         /// <summary>Raised with a strength in metres when the camera should shake.</summary>
         public event Action<float> Shake;
@@ -128,6 +156,10 @@ namespace Bajoterra.Unity
             for (int i = 0; i < NumberPoolSize; i++)
             {
                 _numbers[i] = CreateNumber(i);
+            }
+            for (int i = 0; i < RopePoolSize; i++)
+            {
+                _ropes[i] = CreateRope(i);
             }
         }
 
@@ -210,6 +242,90 @@ namespace Bajoterra.Unity
                         _audio.PlayAt(_audio.Splish, position, 0.4f, 0.8f);
                     }
                     break;
+                case EventKind.Tornado:
+                    if (e.Value > 0f)
+                    {
+                        // A whirlwind spinning up: dust thrown out round its foot.
+                        Burst(position + Vector3.up * 0.4f, new Color(0.8f, 0.92f, 1f), 40, 6f, 0.2f);
+                        ShockRing(position + Vector3.up * 0.05f, new Color(0.75f, 0.95f, 1f), e.Value, 0.5f);
+                        _audio.PlayAt(_audio.TornadoRise, position, 1f, Random(0.9f, 1.1f));
+                    }
+                    else if (e.Value < -1.5f)
+                    {
+                        // It swallowed an ice slug: a frosty gust and a spray of snow.
+                        Burst(position + Vector3.up * 1.4f, FrostColor, 70, 6f, 0.2f);
+                        Burst(position + Vector3.up * 0.4f, Color.white, 30, 3f, 0.35f);
+                        ShockRing(position + Vector3.up * 0.05f, FrostColor, 3.5f, 0.6f);
+                        FlashAt(position + Vector3.up * 1.6f, FrostColor, 4f, 0.3f, 3f);
+                        _audio.PlayAt(_audio.FrostGust, position, 1f, Random(0.95f, 1.05f));
+                        if (e.Actor == _yourId || e.Subject == _yourId)
+                        {
+                            FreezingTornado?.Invoke();
+                        }
+                    }
+                    else
+                    {
+                        // It swept over a wall of fire and caught it.
+                        Burst(position + Vector3.up * 1.2f, new Color(1f, 0.55f, 0.15f), 50, 5f, 0.25f);
+                        FlashAt(position + Vector3.up * 1.5f, new Color(1f, 0.5f, 0.1f), 4f, 0.3f, 3f);
+                        _audio.PlayAt(_audio.FireWhoosh, position, 1f, 0.7f);
+                    }
+                    break;
+                case EventKind.Deflected:
+                    Burst(position, SlugColor(e.A), 16, 4f, 0.1f);
+                    FlashAt(position, new Color(0.8f, 0.95f, 1f), 1.4f, 0.12f, 1.2f);
+                    _audio.PlayAt(_audio.Deflect, position, 0.8f, Random(0.9f, 1.2f));
+                    break;
+                case EventKind.WebSpun:
+                    Burst(position + Vector3.up * 0.1f, new Color(0.95f, 0.95f, 0.9f), 14, 2.2f, 0.1f);
+                    _audio.PlayAt(_audio.WebSpin, position, 0.8f, Random(0.9f, 1.1f));
+                    break;
+                case EventKind.WebGone:
+                    if (e.A == 1)
+                    {
+                        Burst(position + Vector3.up * 0.5f, new Color(0.95f, 0.95f, 0.9f), 30, 3f, 0.15f);
+                        _audio.PlayAt(_audio.WebSnare, position, 1f, Random(0.95f, 1.05f));
+                    }
+                    else if (e.A == 2)
+                    {
+                        Burst(position + Vector3.up * 0.2f, new Color(1f, 0.55f, 0.15f), 20, 2.5f, 0.18f);
+                        _audio.PlayAt(_audio.FireWhoosh, position, 0.5f, 1.3f);
+                    }
+                    break;
+                case EventKind.Fusion:
+                    {
+                        // Two slugs leave the blaster as one: a flash in both colours and a burst of light.
+                        Color first = SlugColor(e.A);
+                        Color second = SlugColor(e.B);
+                        FlashAt(position, first, 2.6f, 0.2f, 3f);
+                        FlashAt(position, second, 1.8f, 0.3f, 2f);
+                        Burst(position, Color.Lerp(first, second, 0.5f), 30, 5f, 0.12f);
+                        ShockRing(position, second, 1.4f, 0.3f);
+                        _audio.PlayAt(_audio.FusionShot, position, 1f);
+                        if (e.Actor == _yourId)
+                        {
+                            YouFused?.Invoke();
+                            Shake?.Invoke(0.12f);
+                        }
+                        break;
+                    }
+                case EventKind.Bubble:
+                    if (e.A == 1)
+                    {
+                        Burst(position + Vector3.up * 0.9f, BubbleColor, 24, 2.4f, 0.16f);
+                        _audio.PlayAt(_audio.BubbleForm, position, 0.9f, Random(0.95f, 1.1f));
+                    }
+                    else if (_views.TryGetCenter(e.Subject, out Vector3 inside))
+                    {
+                        // Popped (or run out): a ring of droplets where it was.
+                        Burst(inside, BubbleColor, e.A == 0 ? 50 : 26, e.A == 0 ? 6f : 3f, 0.14f);
+                        ShockRing(inside, BubbleColor, 1.6f, 0.25f);
+                        _audio.PlayAt(_audio.BubblePop, inside, 1f, Random(0.9f, 1.15f));
+                    }
+                    break;
+                case EventKind.Lasso:
+                    OnLasso(e, position);
+                    break;
                 case EventKind.Damage:
                     OnDamage(e);
                     break;
@@ -258,6 +374,69 @@ namespace Bajoterra.Unity
             UpdateFlashes(deltaTime);
             UpdateRings(deltaTime);
             UpdateExplosions(deltaTime);
+            UpdateRopes(deltaTime);
+        }
+
+        private void OnLasso(GameEvent e, Vector3 position)
+        {
+            Rope rope = _ropes[_nextRope];
+            _nextRope = (_nextRope + 1) % RopePoolSize;
+            rope.From = e.Actor;
+            rope.To = e.Subject;
+            rope.Age = 0f;
+            Burst(position + Vector3.up * 0.9f, LassoColor, 24, 3f, 0.12f);
+            _audio.PlayAt(_audio.LassoCrack, position, 1f, Random(0.95f, 1.1f));
+            if (e.Subject == _yourId)
+            {
+                Shake?.Invoke(0.15f);
+            }
+        }
+
+        private void UpdateRopes(float deltaTime)
+        {
+            for (int r = 0; r < RopePoolSize; r++)
+            {
+                Rope rope = _ropes[r];
+                bool live = rope.Age < RopeSeconds;
+                rope.Age += deltaTime;
+                Vector3 from = Vector3.zero;
+                Vector3 to = Vector3.zero;
+                bool shown = live && _views.TryGetCenter(rope.From, out from) && _views.TryGetCenter(rope.To, out to);
+                float fade = 1f - Mathf.Clamp01((rope.Age - RopeSeconds * 0.6f) / (RopeSeconds * 0.4f));
+                for (int i = 0; i < RopeBeads; i++)
+                {
+                    Transform bead = rope.Beads[i];
+                    if (bead.gameObject.activeSelf != shown)
+                    {
+                        bead.gameObject.SetActive(shown);
+                    }
+                    if (!shown)
+                    {
+                        continue;
+                    }
+                    // The rope sags a little and crackles; it is taut at both ends.
+                    float t = i / (float)(RopeBeads - 1);
+                    float sag = Mathf.Sin(t * Mathf.PI) * 0.35f * (1f - Mathf.Clamp01(rope.Age * 3f));
+                    float buzz = Mathf.Sin(rope.Age * 70f + i * 2.1f) * 0.05f;
+                    bead.position = Vector3.Lerp(from + Vector3.up * 0.2f, to, t) + Vector3.up * (buzz - sag);
+                    bead.localScale = Vector3.one * (0.22f + 0.06f * Mathf.Sin(rope.Age * 40f + i));
+                    _block.SetColor("_Color", new Color(LassoColor.r, LassoColor.g, LassoColor.b, 0.9f * fade));
+                    rope.Renderers[i].SetPropertyBlock(_block);
+                }
+            }
+        }
+
+        private Rope CreateRope(int index)
+        {
+            var rope = new Rope { Beads = new Transform[RopeBeads], Renderers = new Renderer[RopeBeads] };
+            for (int i = 0; i < RopeBeads; i++)
+            {
+                Transform bead = Gfx.Halo(_root, "Rope " + index + " bead " + i, Vector3.zero, LassoColor, 0.22f);
+                bead.gameObject.SetActive(false);
+                rope.Beads[i] = bead;
+                rope.Renderers[i] = bead.GetComponent<Renderer>();
+            }
+            return rope;
         }
 
         // ------------------------------------------------------------------------------------------ handlers
@@ -366,6 +545,18 @@ namespace Bajoterra.Unity
             ShockRing(slot.Position.ToUnity() + Vector3.up * 0.1f, color, 2.2f, 0.45f);
             FlashAt(at, color, 3f, 0.2f, 2f);
             _audio.PlayAt(_audio.Pickup, at, 0.9f);
+            if (_content.Pickup(slot.PickupIndex).Id == "megamorph_crystal")
+            {
+                // Megamorphosis: a towering burst everybody sees and hears.
+                Burst(at, color, 80, 7f, 0.3f);
+                ShockRing(slot.Position.ToUnity() + Vector3.up * 0.1f, color, 6f, 0.7f);
+                FlashAt(at + Vector3.up, color, 6f, 0.5f, 5f);
+                _audio.PlayAt(_audio.Megamorph, at, 1f);
+                if (e.Subject == _yourId)
+                {
+                    YouMegamorphed?.Invoke();
+                }
+            }
         }
 
         private void OnMove(GameEvent e)
@@ -382,6 +573,13 @@ namespace Bajoterra.Unity
                 Burst(feet, dust, 10, 2.2f, 0.13f);
                 ShockRing(feet, dust, 1.1f, 0.25f);
                 _audio.PlayAt(_audio.Jump, feet, 0.45f);
+            }
+            else if (id == "wall_kick")
+            {
+                // A kick off a wall: a puff of rock dust and a ring where the feet left it.
+                Burst(center, dust, 16, 3.2f, 0.14f);
+                ShockRing(center, new Color(0.6f, 0.95f, 1f), 0.9f, 0.22f);
+                _audio.PlayAt(_audio.WallKick, center, 0.7f, Random(0.95f, 1.1f));
             }
             else if (id == "roll" || id == "dash")
             {

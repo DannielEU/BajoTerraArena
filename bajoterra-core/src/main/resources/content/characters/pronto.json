@@ -12,7 +12,8 @@
     "jump",
     "crouch",
     "roll",
-    "dash"
+    "dash",
+    "wall_kick"
   ],
   "blaster": {
     "fireIntervalSeconds": 0.7,

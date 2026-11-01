@@ -155,6 +155,31 @@ namespace Bajoterra.Client.Tests
         }
 
         [Test]
+        public void TheHudShowsTheFusionEnergyAWebAroundYouAndMegamorphosis()
+        {
+            MatchSession match = Session(you: 4);
+            CombatantState you = TestContent.Combatant(4, 0f, 0f);
+            you.Fusion = 100f;
+            you.Statuses.Add(new StatusState { Id = "ensnare", RemainingTicks = 50 });
+            you.Statuses.Add(new StatusState { Id = "megamorph", RemainingTicks = 300 });
+            match.OnSnapshot(TestContent.Snapshot(300, new[] { you }), 1.0);
+            var hud = new HudModel();
+
+            hud.Refresh(match, 0);
+
+            Assert.IsTrue(hud.FusionReady);
+            Assert.IsTrue(hud.Ensnared);
+            Assert.AreEqual(5f, hud.MegamorphSeconds, 1e-4f);
+            you.Fusion = 40f;
+            you.Statuses.Clear();
+            hud.Refresh(match, 0);
+            Assert.AreEqual(0.4f, hud.Fusion, 1e-4f);
+            Assert.IsFalse(hud.FusionReady);
+            Assert.IsFalse(hud.Ensnared);
+            Assert.AreEqual(0f, hud.MegamorphSeconds);
+        }
+
+        [Test]
         public void BlindnessFadesOverItsLastSecondAndEndsWithIt()
         {
             CombatantState state = TestContent.Combatant(4, 0f, 0f);
@@ -224,7 +249,8 @@ namespace Bajoterra.Client.Tests
             var input = new PlayerInput
             {
                 MoveX = -1f, MoveZ = 0.5f, AimYaw = 2f, AimPitch = -0.3f, HasCamera = true,
-                CameraPosition = new Vec3(1f, 2f, 3f), Fire = true, MoveMask = 5, SelectSlot = 7, CycleSlot = -1
+                CameraPosition = new Vec3(1f, 2f, 3f), Fire = true, MoveMask = 5, SelectSlot = 7, CycleSlot = -1,
+                Fusion = true
             };
 
             InputFrame frame = input.ToFrame(99);
@@ -240,6 +266,7 @@ namespace Bajoterra.Client.Tests
             Assert.AreEqual(5u, frame.MoveMask);
             Assert.AreEqual(7, frame.SelectSlot);
             Assert.AreEqual(-1, frame.CycleSlot);
+            Assert.IsTrue(frame.Fusion);
         }
 
         [Test]
@@ -248,8 +275,9 @@ namespace Bajoterra.Client.Tests
             var shots = new OneShotInputs();
             var input = PlayerInput.Idle;
 
+            shots.Select(2);
             shots.Select(4);
-            shots.Select(6);
+            shots.Dance(2);
             shots.Cycle(1);
             shots.Cycle(1);
             shots.Cycle(-1);
@@ -257,13 +285,16 @@ namespace Bajoterra.Client.Tests
             shots.Cycle(-1);
             shots.Drain(ref input);
 
-            Assert.AreEqual(6, input.SelectSlot, "the last request wins");
+            Assert.AreEqual(4, input.SelectSlot, "the last request wins");
             Assert.AreEqual(-1, input.CycleSlot, "net notches decide the direction");
+            Assert.AreEqual(2u, input.Dance);
+            Assert.AreEqual(2u, input.ToFrame(1).Dance, "the dance travels to the server");
 
             input = PlayerInput.Idle;
             shots.Drain(ref input);
             Assert.AreEqual(-1, input.SelectSlot);
             Assert.AreEqual(0, input.CycleSlot);
+            Assert.AreEqual(0u, input.Dance, "a dance is asked for once");
         }
 
         [Test]

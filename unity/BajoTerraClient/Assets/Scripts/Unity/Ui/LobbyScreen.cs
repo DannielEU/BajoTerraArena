@@ -17,7 +17,7 @@ namespace Bajoterra.Unity
     /// </summary>
     public sealed class LobbyScreen : UiScreen
     {
-        public const int LoadoutSize = 10;
+        public const int LoadoutSize = Bajoterra.Client.Hud.HudModel.SlotCount;
 
         /// <summary>
         /// Copies of one slug the server accepts by default (LoadoutValidator.DEFAULT_MAX_DUPLICATES). The server
@@ -312,10 +312,16 @@ namespace Bajoterra.Unity
                 var list = new StringBuilder();
                 for (int m = 0; m < moves.Length; m++)
                 {
-                    list.Append(m > 0 ? "  -  " : string.Empty).Append(MoveName(moves[m].Id));
+                    list.Append(m > 0 ? " - " : string.Empty).Append(MoveName(moves[m].Id));
                 }
                 Text moveText = UiKit.Label(button.transform, "Moves", list.ToString(), 19, TextAnchor.MiddleLeft, UiKit.TextDim);
                 UiKit.Place(moveText.rectTransform, new Vector2(0f, 0f), new Vector2(330f, 26f), new Vector2(180f, 14f));
+                // Pronto knows five moves: shrink the line rather than spill out of the card.
+                moveText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                moveText.verticalOverflow = VerticalWrapMode.Truncate;
+                moveText.resizeTextForBestFit = true;
+                moveText.resizeTextMinSize = 13;
+                moveText.resizeTextMaxSize = 19;
                 UiKit.AddShadow(moveText, 1.2f);
                 _heroCards.Add(card);
             }
@@ -343,6 +349,7 @@ namespace Bajoterra.Unity
                 case "crouch": return "Agacharse";
                 case "roll": return "Rodar";
                 case "dash": return "Dash";
+                case "wall_kick": return "Rebote";
                 default: return id;
             }
         }

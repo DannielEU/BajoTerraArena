@@ -192,6 +192,42 @@ namespace Bajoterra.Unity.Tests
             model.Destroy();
         }
 
+        [Test]
+        public void Every_hero_dances_the_three_celebration_dances_and_stops_when_told()
+        {
+            for (int hero = 0; hero < Ids.Length; hero++)
+            {
+                ICharacterModel model = Make(hero, new Vector3(hero * 3f, 0f, 0f));
+                Transform hand = Bone(model, "Hand.R");
+                Transform neck = Bone(model, "Neck");
+                Transform muzzle = Bone(model, "Muzzle");
+                Run(model, Standing(hero), 0.5f);
+                float handStill = hand.position.y;
+                for (int dance = 1; dance <= 3; dance++)
+                {
+                    CharacterPose pose = Standing(hero);
+                    pose.Dance = dance;
+                    Run(model, pose, 0.6f);
+                    float highest = float.MinValue;
+                    var reach = new Bounds(hand.position, Vector3.zero);
+                    for (int i = 0; i < 150; i++)
+                    {
+                        Run(model, pose, 1f / 60f);
+                        highest = Mathf.Max(highest, muzzle.position.y);
+                        reach.Encapsulate(hand.position);
+                    }
+                    Assert.Greater(reach.size.magnitude, 0.07f * Heights[hero], Ids[hero] + " moves the blaster in dance " + dance);
+                    if (dance != 2)
+                    {
+                        Assert.Greater(highest, neck.position.y, Ids[hero] + " raises the blaster in dance " + dance);
+                    }
+                }
+                Run(model, Standing(hero), 1f);
+                Assert.AreEqual(handStill, hand.position.y, 0.05f, Ids[hero] + " goes back to holding the blaster");
+                model.Destroy();
+            }
+        }
+
         // ------------------------------------------------------------------------------------------ gallery
 
         [UnityTest]
@@ -309,6 +345,27 @@ namespace Bajoterra.Unity.Tests
                     Run(models[i], rolling[i], shot == 0 ? 0.04f : 0.08f);
                 }
                 yield return Shoot(camera, dir, "gallery-8-roll-" + shot, new Vector3(0.3f, 1.3f, -10f), new Vector3(0.3f, 0.9f, 0f));
+            }
+
+            // The three celebration dances, from the front.
+            for (int i = 0; i < Ids.Length; i++)
+            {
+                models[i].Body.parent.rotation = Quaternion.Euler(0f, -20f, 0f);
+            }
+            for (int dance = 1; dance <= 3; dance++)
+            {
+                for (int i = 0; i < Ids.Length; i++)
+                {
+                    CharacterPose party = Standing(i);
+                    party.Dance = dance;
+                    Run(models[i], party, dance == 3 ? 1.6f : 0.62f);
+                }
+                yield return Shoot(camera, dir, "gallery-9-dance-" + dance, new Vector3(0.3f, 1.5f, 9.5f), new Vector3(0.3f, 1.1f, 0f));
+            }
+            for (int i = 0; i < Ids.Length; i++)
+            {
+                models[i].Body.parent.rotation = Quaternion.Euler(0f, 90f, 0f);
+                Run(models[i], Standing(i), 1f);
             }
 
             // Down.

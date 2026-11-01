@@ -14,6 +14,11 @@ import com.bajoterra.core.stats.Vitals;
  */
 public final class Combatant {
 
+    /** Fusion energy needed for a fusion shot. */
+    public static final double FUSION_FULL = 100.0;
+    /** Celebration dances every hero knows (1..DANCES). */
+    public static final int DANCES = 3;
+
     public final int id;
     public final int team;
     public final CharacterDefinition character;
@@ -41,8 +46,27 @@ public final class Combatant {
     public int nextFireTick;
     /** First tick at which a wall of fire can hurt this combatant again. */
     public int hazardReadyTick;
+    /** First tick at which a tornado can hurt this combatant again. */
+    public int windReadyTick;
     /** Courage level: how many combatants this one's team is down (0 when it is not outnumbered). */
     public int courage;
+    /** Fusion energy, 0 to {@link #FUSION_FULL}: once full the next shot can fuse two slugs into one. */
+    public double fusion;
+    /**
+     * Outward unit normal (x, z) of the wall within reach of the body's side after the last movement step, or zero
+     * when there is none (set by {@code World.resolveCombatant}; a wall kick pushes off it).
+     */
+    public double wallNormalX;
+    public double wallNormalZ;
+    /** Wall kicks since the body last stood on the floor. */
+    public int wallKicks;
+    /** Normal of the wall the last kick pushed off (the next kick must use another wall). */
+    public double lastKickX;
+    public double lastKickZ;
+    /** Celebration dance being danced (1..{@link #DANCES}), or 0. Purely for show: it never changes the fight. */
+    public int dance;
+    /** Ticks since the current dance started. */
+    public int danceTicks;
     /** Source that produces this combatant's input each tick; null for network-controlled players. */
     public InputSource brain;
 
@@ -72,6 +96,11 @@ public final class Combatant {
         return character.hitHeight() * stats.hitboxHeightMultiplier;
     }
 
+    /** True when the fusion energy is full. */
+    public boolean fusionReady() {
+        return fusion >= FUSION_FULL;
+    }
+
     /** Height of the hitbox centre above the ground plane. */
     public double centerY() {
         return pos.y + hitHeight() * 0.5;
@@ -95,6 +124,15 @@ public final class Combatant {
         input.reset();
         nextFireTick = 0;
         hazardReadyTick = 0;
+        windReadyTick = 0;
         courage = 0;
+        fusion = 0;
+        dance = 0;
+        danceTicks = 0;
+        wallNormalX = 0;
+        wallNormalZ = 0;
+        wallKicks = 0;
+        lastKickX = 0;
+        lastKickZ = 0;
     }
 }

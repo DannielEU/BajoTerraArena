@@ -12,6 +12,8 @@ public final class StatusSet {
 
     /** Maximum number of simultaneous statuses; when full the one closest to expiring is replaced. */
     public static final int CAPACITY = 8;
+    /** Tag of statuses that break as soon as their owner gets hurt ({@link #breakFragile}). */
+    public static final String FRAGILE = "fragile";
 
     private final StatusInstance[] slots = new StatusInstance[CAPACITY];
 
@@ -120,6 +122,22 @@ public final class StatusSet {
             }
         }
         return removed;
+    }
+
+    /**
+     * Breaks the statuses tagged {@code fragile} (a bubble) that have lasted at least {@code minAgeTicks}: their
+     * owner was just hurt. They end without {@code onExpire}. Returns how many broke.
+     */
+    public int breakFragile(int minAgeTicks) {
+        int broken = 0;
+        for (StatusInstance instance : slots) {
+            if (instance.active() && instance.ageTicks() >= minAgeTicks
+                    && instance.definition().hasTag(FRAGILE)) {
+                instance.stop();
+                broken++;
+            }
+        }
+        return broken;
     }
 
     public void clear() {

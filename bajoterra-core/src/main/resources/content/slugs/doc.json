@@ -5,7 +5,7 @@
   "role": "SUPPORT",
   "targeting": "ALLIES",
   "projectile": {
-    "speed": 40,
+    "speed": 44,
     "gravity": 2,
     "radius": 0.25,
     "lifetimeSeconds": 2.5,

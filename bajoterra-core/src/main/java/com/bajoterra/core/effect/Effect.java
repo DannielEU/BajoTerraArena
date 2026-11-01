@@ -36,4 +36,14 @@ public interface Effect {
     default boolean raisesWall() {
         return false;
     }
+
+    /** Radius in metres of the tornado this effect starts (0 when it starts none). */
+    default double tornadoRadius() {
+        return 0;
+    }
+
+    /** Radius in metres of the web trap this effect spins (0 when it spins none). */
+    default double webRadius() {
+        return 0;
+    }
 }

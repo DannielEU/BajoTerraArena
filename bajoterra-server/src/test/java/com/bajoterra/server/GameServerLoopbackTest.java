@@ -144,7 +144,7 @@ class GameServerLoopbackTest {
 
         List<ServerMessage> errors = drain(client).stream().filter(ServerMessage::hasError).toList();
         assertThat(errors).hasSize(2);
-        assertThat(errors.get(0).getError().getMessage()).contains("exactly 10");
+        assertThat(errors.get(0).getError().getMessage()).contains("exactly 5");
         assertThat(errors.get(1).getError().getMessage()).contains("Unknown character");
     }
 
@@ -172,8 +172,8 @@ class GameServerLoopbackTest {
         assertThat(start.getSlotsList().stream().filter(s -> s.getYou()).count()).isEqualTo(1);
         var you = start.getSlots(start.getYourCombatantId());
         assertThat(you.getYou()).isTrue();
-        assertThat(you.getSlugIdsCount()).as("you see your own ten slugs").isEqualTo(10);
-        assertThat(you.getMoveIdsList()).containsExactly("jump", "crouch", "roll");
+        assertThat(you.getSlugIdsCount()).as("you see your own five slugs").isEqualTo(5);
+        assertThat(you.getMoveIdsList()).containsExactly("jump", "crouch", "roll", "wall_kick");
         assertThat(start.getSlots(start.getYourCombatantId() == 0 ? 3 : 0).getSlugIdsCount())
                 .as("others' loadouts stay hidden").isZero();
         assertThat(start.getSlotsList().stream().filter(s -> s.getTeam() == 0).count()).isEqualTo(3);
@@ -192,7 +192,7 @@ class GameServerLoopbackTest {
         Snapshot snapshot = snapshots.get(snapshots.size() - 1);
         assertThat(snapshot.getCombatantsCount()).isEqualTo(6);
         for (CombatantState c : snapshot.getCombatantsList()) {
-            assertThat(c.getSlotsCount()).isEqualTo(10);
+            assertThat(c.getSlotsCount()).isEqualTo(5);
             assertThat(c.getHp()).isPositive();
             assertThat(c.getHitboxHeight()).isPositive();
         }

@@ -5,23 +5,94 @@
   "role": "CONTROL",
   "targeting": "ENEMIES",
   "projectile": {
-    "speed": 40,
-    "gravity": 2,
-    "radius": 0.25,
-    "lifetimeSeconds": 2.5,
+    "speed": 41.8,
+    "gravity": 3,
+    "radius": 0.20,
+    "lifetimeSeconds": 2.0,
     "pierce": 0
   },
-  "fireDelayMultiplier": 1.0,
-  "botWeight": 1.0,
+  "fireDelayMultiplier": 1.15,
+  "botWeight": 0.9,
   "onHit": [
     {
       "type": "damage",
-      "amount": 10
+      "amount": 8
     },
     {
-      "type": "knockback",
-      "force": 14,
-      "lift": 4
+      "type": "tornado",
+      "radius": 3.5,
+      "eyeRadius": 1.2,
+      "height": 4.5,
+      "durationSeconds": 3,
+      "drift": 2.5,
+      "pull": 24,
+      "lift": 3,
+      "allyLift": 12.5,
+      "periodSeconds": 0.5,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 4
+        }
+      ],
+      "frostEffects": [
+        {
+          "type": "freeze",
+          "durationSeconds": 0.9
+        }
+      ]
+    }
+  ],
+  "onWorldHit": [
+    {
+      "type": "tornado",
+      "radius": 3.5,
+      "eyeRadius": 1.2,
+      "height": 4.5,
+      "durationSeconds": 3.5,
+      "drift": 2.5,
+      "pull": 24,
+      "lift": 3,
+      "allyLift": 12.5,
+      "periodSeconds": 0.5,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 4
+        }
+      ],
+      "frostEffects": [
+        {
+          "type": "freeze",
+          "durationSeconds": 0.9
+        }
+      ]
+    }
+  ],
+  "onExpire": [
+    {
+      "type": "tornado",
+      "radius": 3.5,
+      "eyeRadius": 1.2,
+      "height": 4.5,
+      "durationSeconds": 3.5,
+      "drift": 2.5,
+      "pull": 24,
+      "lift": 3,
+      "allyLift": 12.5,
+      "periodSeconds": 0.5,
+      "effects": [
+        {
+          "type": "damage",
+          "amount": 4
+        }
+      ],
+      "frostEffects": [
+        {
+          "type": "freeze",
+          "durationSeconds": 0.9
+        }
+      ]
     }
   ]
 }

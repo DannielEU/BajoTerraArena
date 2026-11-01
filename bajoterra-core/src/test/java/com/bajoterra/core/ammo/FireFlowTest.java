@@ -100,8 +100,7 @@ class FireFlowTest {
     @Test
     void holdingFireNeverReusesASlugWithinThreeShots() {
         SlotConfig shooterSlot = SlotConfig.human(0, "eli",
-                List.of("infurnus", "flaringo", "hop_rock", "thresher", "rammstone", "tazerling", "arachnet",
-                        "frostfang", "tormato", "doc"));
+                List.of("infurnus", "flaringo", "hop_rock", "thresher", "rammstone"));
         GameSimulation sim = scripted("test_open", 3, shooterSlot, human(1, "eli", "doc"));
         startRound(sim);
         Combatant shooter = sim.combatants()[0];
@@ -164,11 +163,11 @@ class FireFlowTest {
     }
 
     @Test
-    void thereIsExactlyTenSlugsAndTheCharacterBlasterDefinesTheLock() {
+    void thereIsExactlyFiveSlugsAndTheCharacterBlasterDefinesTheLock() {
         GameSimulation sim = duel("flaringo");
         Combatant shooter = sim.combatants()[0];
 
-        assertThat(Loadout.SIZE).isEqualTo(10);
+        assertThat(Loadout.SIZE).isEqualTo(5);
         assertThat(shooter.loadout.reloadShotsOf(0))
                 .isEqualTo(CONTENT.characters().require("eli").blaster().reloadShots());
         assertThat(shooter.loadout.reloadShotsOf(0)).isEqualTo(3);

@@ -44,7 +44,8 @@ class MovementParityFixtureTest {
     private static final float QUARTER = (float) (Math.PI / 2);
 
     private static List<Scenario> scenarios() {
-        // Eli's move mask bits: 1 jump, 2 crouch, 4 roll. Pronto adds 8 dash.
+        // Eli's move mask bits: 1 jump, 2 crouch, 4 roll, 8 wall kick. Pronto: 1 jump, 2 crouch, 4 roll, 8 dash,
+        // 16 wall kick.
         return List.of(
                 new Scenario("walk_and_strafe", "eli", -25.03, 0.02, QUARTER, List.of(
                         new Hold(45, 0f, 1f, QUARTER, 0),
@@ -112,7 +113,29 @@ class MovementParityFixtureTest {
                 new Scenario("dash_down_the_ramp", "pronto", -15.53, 3.52, 0f, List.of(
                         new Hold(30, 0f, 1f, 0f, 0),
                         new Hold(12, 0f, 1f, 0f, 8),
-                        new Hold(60, 0f, 1f, 0f, 0))));
+                        new Hold(60, 0f, 1f, 0f, 0))),
+                // Run at the west edge of the arena, jump, and kick off it with a fresh press; a second kick off the
+                // same wall is refused.
+                new Scenario("wall_kick_off_the_edge", "eli", -27.03, 0.02, -QUARTER, List.of(
+                        new Hold(40, 0f, 1f, -QUARTER, 0),
+                        new Hold(1, 0f, 1f, -QUARTER, 9),
+                        new Hold(14, 0f, 1f, -QUARTER, 0),
+                        new Hold(1, 0f, 1f, -QUARTER, 8),
+                        new Hold(10, 0f, -1f, -QUARTER, 0),
+                        new Hold(1, 0f, -1f, -QUARTER, 8),
+                        new Hold(60, 0f, 0f, -QUARTER, 0))),
+                // Holding the button from the jump never kicks: the kick needs a fresh press.
+                new Scenario("held_jump_does_not_kick", "pronto", -27.03, 4.02, -QUARTER, List.of(
+                        new Hold(40, 0f, 1f, -QUARTER, 0),
+                        new Hold(50, 0f, 1f, -QUARTER, 17),
+                        new Hold(20, 0f, 0f, -QUARTER, 0))),
+                // Along the wall the slide scenario uses: jump next to it and kick off it.
+                new Scenario("wall_kick_off_cover", "eli", -6.03, 8.02, QUARTER, List.of(
+                        new Hold(60, 0f, 1f, QUARTER, 0),
+                        new Hold(1, 0f, 1f, QUARTER, 1),
+                        new Hold(12, 0f, 1f, QUARTER, 0),
+                        new Hold(1, 0f, 1f, QUARTER, 8),
+                        new Hold(60, 0f, 0f, QUARTER, 0))));
     }
 
     @Test

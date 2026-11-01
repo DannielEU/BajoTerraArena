@@ -24,12 +24,15 @@ public final class LocomotionStateMachine {
         runner.clearDrive();
         List<MoveDefinition> moveSet = c.character.moves();
         int mask = c.input.moveMask;
+        if (c.grounded) {
+            c.wallKicks = 0;
+        }
 
         MoveDefinition active = runner.active();
         if (active != null && shouldEnd(c, runner, active, mask)) {
             end(c, runner, arena);
         }
-        if (c.alive && !c.stats.stunned) {
+        if (c.alive && !c.stats.stunned && !c.stats.rooted) {
             for (int slot = 0; slot < moveSet.size(); slot++) {
                 if ((mask & (1 << slot)) != 0 && moveSet.get(slot) != runner.active()
                         && canStart(c, runner, moveSet.get(slot), slot, arena.tick())) {
@@ -45,10 +48,11 @@ public final class LocomotionStateMachine {
             runner.advance();
         }
         c.posture = computePosture(c, active);
+        runner.rememberMask(mask);
     }
 
     private static boolean shouldEnd(Combatant c, MoveRunner runner, MoveDefinition active, int mask) {
-        if (c.stats.stunned || !c.alive) {
+        if (c.stats.stunned || c.stats.rooted || !c.alive) {
             return true;
         }
         if (active.holdable()) {
@@ -66,7 +70,8 @@ public final class LocomotionStateMachine {
         if (active != null && !active.interruptible()) {
             return false;
         }
-        return (move.allowedFromMask() & c.posture.bit()) != 0;
+        return (move.allowedFromMask() & c.posture.bit()) != 0
+                && move.behavior().canStart(c, runner, (runner.lastMask() & (1 << slot)) == 0);
     }
 
     private static void start(Combatant c, MoveRunner runner, MoveDefinition move, int slot, CombatArena arena) {

@@ -35,6 +35,12 @@ namespace Bajoterra.Client.Interpolation
 
         /// <summary>Stuck slugs: the combatant it clings to, or -1 when it is stuck to the world.</summary>
         public int StuckTo;
+
+        /// <summary>A fusion shot: the index of the second slug it carries, or -1.</summary>
+        public int PartnerSlug;
+
+        /// <summary>Collision radius; bigger than the slug's own while its slinger is megamorphed (0 = unknown).</summary>
+        public float Radius;
     }
 
     public struct PickupFrame

@@ -13,7 +13,7 @@ class BotMatchTest {
 
     @Test
     void mirroredMatchesFinishWithoutErrorsAndAreBalanced() {
-        int matches = 100;
+        int matches = 200;
         int aWins = 0;
         int finished = 0;
         int teamZeroWins = 0;

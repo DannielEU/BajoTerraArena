@@ -68,7 +68,7 @@ class SmallServerTests {
             assertThat(state.getX()).isEqualTo((float) c.pos.x);
             assertThat(state.getHp()).isEqualTo((float) c.vitals.hp());
             assertThat(state.getAlive()).isEqualTo(c.alive);
-            assertThat(state.getSlotsCount()).isEqualTo(10);
+            assertThat(state.getSlotsCount()).isEqualTo(5);
             assertThat(state.getSelectedSlot()).isEqualTo(c.loadout.selected());
         }
         assertThat(snapshot.getProjectilesCount()).isEqualTo(sim.projectiles().activeCount());

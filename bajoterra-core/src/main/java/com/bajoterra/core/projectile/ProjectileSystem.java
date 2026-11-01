@@ -8,8 +8,11 @@ import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.event.EventType;
 import com.bajoterra.core.event.GameEvent;
 import com.bajoterra.core.hazard.HazardSystem;
+import com.bajoterra.core.hazard.Tornado;
+import com.bajoterra.core.hazard.TornadoSystem;
 import com.bajoterra.core.math.Vec3;
 import com.bajoterra.core.sim.SimulationConstants;
+import com.bajoterra.core.slug.Element;
 import com.bajoterra.core.slug.ProjectileSpec;
 import com.bajoterra.core.slug.SlugDefinition;
 import com.bajoterra.core.slug.TrailSpec;
@@ -26,6 +29,11 @@ import com.bajoterra.core.world.World;
  * the top of an enemy's hitbox is a headshot ({@link CriticalHits}). A sticky slug with a proximity fuse
  * (Phosphoro) also stops in mid-air, hovering, as soon as it comes that close to a combatant it can affect, facing
  * them.
+ *
+ * <p>A tornado of another team throws a slug that flies into it off course, once, sideways and up; an ice slug that
+ * flies into any tornado is swallowed instead and turns it into a freezing tornado. A fusion shot
+ * carries a second slug ({@link Projectile#partner}): wherever the first one takes effect, the second one's effects go
+ * off there too.
  */
 public final class ProjectileSystem {
 
@@ -35,6 +43,7 @@ public final class ProjectileSystem {
     private final World world;
     private final ProjectilePool pool;
     private final HazardSystem hazards;
+    private TornadoSystem tornadoes;
     private final EffectContext context = new EffectContext();
     private final Vec3 impactPoint = new Vec3();
     private final Vec3 travelDirection = new Vec3();
@@ -51,6 +60,11 @@ public final class ProjectileSystem {
         this.hazards = hazards;
     }
 
+    /** Lets the tornadoes of the arena throw slugs off course. */
+    public void setTornadoes(TornadoSystem newTornadoes) {
+        this.tornadoes = newTornadoes;
+    }
+
     public ProjectilePool pool() {
         return pool;
     }
@@ -62,6 +76,18 @@ public final class ProjectileSystem {
      * @return the projectile, or null when the pool is exhausted
      */
     public Projectile spawn(Combatant owner, SlugDefinition slug, Vec3 origin, Vec3 direction) {
+        return spawn(owner, slug, null, origin, direction);
+    }
+
+    /**
+     * Launches a slug, fused with {@code partner} (may be null) and as big as its slinger's
+     * {@link com.bajoterra.core.stats.StatBlock#projectileScale} makes it.
+     *
+     * @param direction unit direction of the launch
+     * @return the projectile, or null when the pool is exhausted
+     */
+    public Projectile spawn(Combatant owner, SlugDefinition slug, SlugDefinition partner, Vec3 origin,
+            Vec3 direction) {
         Projectile p = pool.acquire();
         if (p == null) {
             return null;
@@ -75,6 +101,9 @@ public final class ProjectileSystem {
         p.pierceLeft = spec.pierce();
         p.trailGap = -slug.trail().startAfter();
         p.trailLaid = 0;
+        p.radius = spec.radius() * (owner == null ? 1.0 : owner.stats.projectileScale);
+        p.partner = partner;
+        p.deflectedBy = 0;
         return p;
     }
 
@@ -98,6 +127,20 @@ public final class ProjectileSystem {
         if (spec.proximity() > 0 && stopNearTarget(p, spec.proximity())) {
             return;
         }
+        if (tornadoes != null && carriesIce(p)) {
+            // An ice slug that flies into a tornado (anybody's) is swallowed and turns it into a freezing tornado.
+            Tornado swirl = tornadoes.around(p.pos.x, p.pos.y, p.pos.z);
+            if (swirl != null && tornadoes.freeze(swirl, p.owner)) {
+                pool.release(p);
+                return;
+            }
+        }
+        if (tornadoes != null && p.deflectedBy == 0) {
+            Tornado wind = tornadoes.catching(p.pos.x, p.pos.y, p.pos.z, p.owner);
+            if (wind != null) {
+                deflect(p, wind);
+            }
+        }
         double dt = SimulationConstants.TICK_SECONDS;
         p.vel.y -= spec.gravity() * dt;
         travelDirection.set(p.vel).normalize();
@@ -112,14 +155,14 @@ public final class ProjectileSystem {
             double sy = dy * remaining;
             double sz = dz * remaining;
             double bestTime = slug.pierceWorld() ? -1
-                    : world.sweepProjectile(p.pos.x, p.pos.y, p.pos.z, sx, sy, sz, spec.radius());
+                    : world.sweepProjectile(p.pos.x, p.pos.y, p.pos.z, sx, sy, sz, p.radius);
             Combatant hit = null;
             for (Combatant candidate : arena.combatants()) {
                 if (!candidate.alive || candidate == p.owner || (p.hitMask & (1 << candidate.id)) != 0
                         || !slug.targeting().accepts(p.owner, candidate)) {
                     continue;
                 }
-                double t = sweepAgainst(candidate, p.pos, sx, sy, sz, spec.radius());
+                double t = sweepAgainst(candidate, p.pos, sx, sy, sz, p.radius);
                 if (t >= 0 && (bestTime < 0 || t < bestTime)) {
                     bestTime = t;
                     hit = candidate;
@@ -167,6 +210,10 @@ public final class ProjectileSystem {
         }
     }
 
+    private static boolean carriesIce(Projectile p) {
+        return p.slug.element() == Element.ICE || p.partner != null && p.partner.element() == Element.ICE;
+    }
+
     private void hitCombatant(Projectile p, Combatant victim) {
         p.owner.shotsHit++;
         boolean critical = victim.team != p.owner.team && CriticalHits.isHeadshot(victim, impactPoint.y);
@@ -183,6 +230,45 @@ public final class ProjectileSystem {
             context.setCriticalTarget(victim);
         }
         p.slug.onHit().apply(context);
+        SlugDefinition partner = p.partner;
+        if (partner != null) {
+            // Only once: a piercing first slug carries its partner to the first body only.
+            p.partner = null;
+            boolean direct = partner.onHit() != Effect.NONE && partner.targeting().accepts(p.owner, victim);
+            context.set(arena, p.owner, direct ? victim : null, partner, partner.targeting(), impactPoint,
+                    travelDirection);
+            (direct ? partner.onHit() : partner.onExpire()).apply(context);
+        }
+    }
+
+    /**
+     * A tornado's wind catches the slug: it is flung sideways round the tornado and up, losing most of its speed, and
+     * misses whatever it was flying at.
+     */
+    private void deflect(Projectile p, Tornado wind) {
+        p.deflectedBy = wind.id;
+        double speed = p.vel.length();
+        double rx = p.pos.x - wind.x;
+        double rz = p.pos.z - wind.z;
+        double flat = Math.sqrt(rx * rx + rz * rz);
+        if (flat < 1e-3) {
+            rx = p.vel.x;
+            rz = p.vel.z;
+            flat = Math.max(1e-3, Math.sqrt(rx * rx + rz * rz));
+        }
+        // Round the eye the way the wind spins (see TornadoSystem), and outwards a little.
+        double tx = (-rz + rx * 0.5) / flat;
+        double tz = (rx + rz * 0.5) / flat;
+        double along = speed * 0.45;
+        p.vel.set(tx * along, 7 + speed * 0.1, tz * along);
+        GameEvent event = arena.events().begin(EventType.DEFLECTED, arena.tick());
+        event.actor = wind.owner == null ? -1 : wind.owner.id;
+        event.subject = p.owner.id;
+        event.a = p.slug.index();
+        event.b = wind.id;
+        event.x = p.pos.x;
+        event.y = p.pos.y;
+        event.z = p.pos.z;
     }
 
     /**
@@ -295,6 +381,12 @@ public final class ProjectileSystem {
         event.z = impactPoint.z;
         context.set(arena, p.owner, null, p.slug, p.slug.targeting(), impactPoint, travelDirection);
         p.slug.onWorldHit().apply(context);
+        SlugDefinition partner = p.partner;
+        if (partner != null) {
+            p.partner = null;
+            context.set(arena, p.owner, null, partner, partner.targeting(), impactPoint, travelDirection);
+            (partner.onWorldHit() != Effect.NONE ? partner.onWorldHit() : partner.onExpire()).apply(context);
+        }
     }
 
     private void applyTickEffect(Projectile p) {
@@ -314,6 +406,17 @@ public final class ProjectileSystem {
         event.z = p.pos.z;
         context.set(arena, p.owner, null, p.slug, p.slug.targeting(), p.pos, travelDirection);
         p.slug.onExpire().apply(context);
+        SlugDefinition partner = p.partner;
+        if (partner != null) {
+            p.partner = null;
+            // A fused grenade that went off on somebody hits them with its partner too.
+            Combatant carrier = p.stuckTo != null && p.stuckTo.alive ? p.stuckTo : null;
+            boolean direct = carrier != null && partner.onHit() != Effect.NONE
+                    && partner.targeting().accepts(p.owner, carrier);
+            context.set(arena, p.owner, direct ? carrier : null, partner, partner.targeting(), p.pos,
+                    travelDirection);
+            (direct ? partner.onHit() : partner.onExpire()).apply(context);
+        }
         pool.release(p);
     }
 

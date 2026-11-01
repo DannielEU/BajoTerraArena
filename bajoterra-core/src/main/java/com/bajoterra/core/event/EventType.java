@@ -72,5 +72,43 @@ public enum EventType {
     /** A slug struck a wall. actor = shooter, a = hits it can still take, b = barrier id, xyz = impact point. */
     BARRIER_HIT,
     /** A wall is gone. a = 1 when it was broken, 0 when it melted; b = barrier id, xyz = middle of its foot. */
-    BARRIER_GONE
+    BARRIER_GONE,
+    /**
+     * A tornado started (Tormato), caught fire from a wall of fire it swept over, or swallowed an ice slug and
+     * became a freezing tornado. actor = who fired it, subject = who fired the ice slug (-2 only, else -1),
+     * a = slug index, b = tornado id, xyz = its foot, value = its radius when it started, -1 when it caught fire,
+     * -2 when it turned freezing.
+     */
+    TORNADO,
+    /**
+     * A tornado threw a slug off course. actor = the tornado's owner, subject = the shooter, a = slug index,
+     * b = tornado id, xyz = where the slug was caught.
+     */
+    DEFLECTED,
+    /**
+     * A web trap was spun (Arachnet). actor = who spun it, a = slug index, b = web id, xyz = its middle,
+     * value = radius.
+     */
+    WEB_SPUN,
+    /**
+     * A web trap is gone. a = 1 when it caught somebody (subject = them), 2 when fire burnt it, 0 when it faded;
+     * actor = who spun it, b = web id, xyz = its middle.
+     */
+    WEB_GONE,
+    /**
+     * A fusion shot was fired: two slugs at once in one projectile. actor = shooter, a = slug index of the first,
+     * b = slug index of the second, xyz = muzzle.
+     */
+    FUSION,
+    /**
+     * A bubble (Bubbaleone) trapped a combatant, or popped. actor = who blew it, subject = the one inside,
+     * a = 1 when it trapped them, 0 when it popped because a slug or a blast hit them, 2 when it simply ran out,
+     * xyz = the one inside.
+     */
+    BUBBLE,
+    /**
+     * A lasso (Lariat) caught a combatant and hauls them towards whoever threw it. actor = the thrower,
+     * subject = the one caught, xyz = the one caught, value = pull speed in m/s.
+     */
+    LASSO
 }

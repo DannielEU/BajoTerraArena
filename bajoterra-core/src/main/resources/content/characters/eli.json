@@ -11,7 +11,8 @@
   "moves": [
     "jump",
     "crouch",
-    "roll"
+    "roll",
+    "wall_kick"
   ],
   "blaster": {
     "fireIntervalSeconds": 0.7,

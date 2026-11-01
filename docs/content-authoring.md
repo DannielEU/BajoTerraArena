@@ -98,7 +98,7 @@ cada compañero de menos (máx. 2): +35 % de daño, +35 % de cadencia y −20 % 
 ganado restaura al instante el 50 % del escudo máximo (`Courage`; un `MatchRules` puede desactivarlo con
 `courageLevel`).
 
-**Reglas de 10 babosas:** cada jugador lleva exactamente 10 (se permiten repetidas, máximo 2 copias por defecto). Una
+**Reglas de 5 babosas:** cada jugador lleva exactamente 5 (se permiten repetidas, máximo 2 copias por defecto). Una
 babosa disparada queda bloqueada durante los **3 tiros siguientes** y vuelve a estar disponible en el cuarto.
 
 ## 2. Efectos disponibles
@@ -125,6 +125,12 @@ Todos aceptan los campos comunes de duración cuando son estados: `durationSecon
 | `stun` | duración | no puede moverse, disparar ni iniciar movimientos |
 | `regen` | `hps`, duración | cura en el tiempo |
 | `blind` | `spread?`, duración, `scaleDuration?` | ceguera: error aleatorio de puntería, pantalla en blanco para el jugador y los bots no ven a nadie; se desvanece en su último segundo; con `scaleDuration` dura menos si se vio de lado o de lejos |
+| `ensnare` | duración, `fireVulnerability?` (1,3) | enredado en una telaraña: no puede andar, saltar ni rodar, pero sí apuntar y disparar; el fuego le hace más daño |
+| `tornado` | `radius?` (3,5), `eyeRadius?` (1,2), `height?` (4,5), duración, `drift?` (m/s), `pull?` (m/s²), `lift?`, `allyLift?`, `periodSeconds?`, `effects[]`, `frostEffects[]?` | convierte la babosa en un tornado donde cae (sobre la víctima si la golpea): arrastra y eleva a los rivales, les aplica `effects` cada periodo en el ojo, desvía sus babosas, lanza hacia arriba una vez a quien lo disparó y a sus aliados; si pasa por fuego se vuelve tornado de fuego; si se traga una babosa de hielo (elemento `ICE`, de cualquier equipo) se vuelve tornado congelante: daño de hielo y `frostEffects` (p. ej. `freeze`) cada periodo en el ojo |
+| `bubble` | duración, `height?` (1,6), `rise?` (2,2 m/s) | encierra al objetivo en una burbuja: no puede moverse, disparar ni usar movimientos y flota hasta `height` metros; cualquier daño recibido después de formarse la revienta (etiqueta `fragile`) |
+| `lasso` | duración, `keep?` (2,5 m), `maxPull?` (55 m/s), `lift?` (3,5) | arrastra al objetivo hacia quien disparó hasta quedar a `keep` metros (salta coberturas bajas, los muros lo paran); mientras dura no puede andar pero sí disparar |
+| `web` | `radius?` (1,5), duración, `effects[]` | teje una telaraña trampa en el suelo donde cae (al pie del muro si choca con uno): el primer rival que la pisa sufre `effects` y la telaraña se gasta; el fuego la quema; 3 por lanzador |
+| `megamorph` | `damage?` (1,35), `size?` (1,7), `fireRate?` (1,2), duración | megamorfosis: las babosas que dispara son gigantes, hacen más daño y salen más rápido |
 
 ## 3. Nuevo efecto (una clase)
 
@@ -185,7 +191,7 @@ Y ya se puede usar en cualquier babosa: `{ "type": "poison", "dps": 6, "duration
 | `blocksFiring` | no se puede disparar mientras dura (rodar) |
 | `speedMultiplier`, `hitboxHeightMultiplier` | modificadores mientras está activo |
 | `invulnerable` | `{ "fromSeconds": 0.05, "toSeconds": 0.35 }` ventana de invulnerabilidad |
-| `behavior` | `impulse` (`vertical`, `horizontal`: empuje inicial, p. ej. saltar) o `drive` (`speed`: movimiento dirigido, p. ej. rodar/dash) |
+| `behavior` | `impulse` (`vertical`, `horizontal`: empuje inicial, p. ej. saltar), `drive` (`speed`: movimiento dirigido, p. ej. rodar/dash) o `wallkick` (`vertical`, `push`, `maxKicks`: rebote en pared; solo arranca en el aire con un muro a 0,3 m del costado, con una pulsación nueva y en un muro distinto al del rebote anterior) |
 
 Para añadirlo a un personaje, agrega su id a `"moves"` en el JSON del personaje (el orden define el bit del
 `move_mask` en el protocolo: **agregar un movimiento no cambia el protocolo**).
@@ -214,6 +220,7 @@ Para añadirlo a un personaje, agrega su id a `"moves"` en el JSON del personaje
 ```
 
 Usa los **mismos efectos** que las babosas: curar con un objeto y con la babosa de un aliado es el mismo código.
+`firstSpawnSeconds` retrasa su primera aparición en cada ronda (el cristal de megamorfosis sale a los 25 s).
 `requirement`: `ANY NEEDS_HP NEEDS_SHIELD NEEDS_HP_OR_SHIELD` (para no gastarlo a vida completa).
 
 ## 7. Arenas generadas (el modo por defecto)
@@ -221,7 +228,7 @@ Usa los **mismos efectos** que las babosas: curar con un objeto y con la babosa 
 El servidor juega cada partida en una arena nueva: el id de mapa especial `aleatoria`
 (`ArenaGenerator.MAP_ID`) genera una a partir de la semilla de la partida (misma semilla, misma arena; las
 repeticiones siguen funcionando). `ArenaLayout` construye la mitad oeste con piezas diseñadas —pilares, bloques, cajas,
-muros, colinas y balcones con rampas, una pieza central— dejando pasillos de al menos 2 m, y la refleja en la mitad este
+muros, colinas y balcones con rampas, una pieza central— en una arena de 76×50 a 86×58 m, dejando pasillos de al menos 2 m, y la refleja en la mitad este
 (espejo o giro de 180°), así que los dos equipos tienen siempre la misma arena. Una candidata solo se acepta si pasa
 `ArenaGenerator.problems` (las comprobaciones de abajo más: todo el suelo se puede recorrer, los spawns no se ven entre
 sí, al menos 4 coberturas en cada tercio, ningún pasillo central abierto más del 65 % del largo y entre el 8 % y el

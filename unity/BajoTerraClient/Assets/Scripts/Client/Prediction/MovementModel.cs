@@ -29,6 +29,12 @@ namespace Bajoterra.Client.Prediction
         /// <summary>How far down a body that was standing is pulled back onto the ground (World.SNAP_DOWN).</summary>
         public const double SnapDown = 0.35;
 
+        /// <summary>How far beyond the side of a body a wall still counts for a wall kick (World.WALL_REACH).</summary>
+        public const double WallReach = 0.3;
+
+        /// <summary>A wall whose normal is this close (cosine) to the last kick's is the same wall (WallKickBehavior).</summary>
+        public const double SameWall = 0.5;
+
         public const double TickSeconds = 1.0 / 60.0;
 
         /// <summary>Advances the body by one simulation tick under <paramref name="input"/>.</summary>
@@ -47,6 +53,10 @@ namespace Bajoterra.Client.Prediction
 
             // ----- LocomotionStateMachine.update
             int mask = (int)input.MoveMask;
+            if (body.Grounded)
+            {
+                body.WallKicks = 0;
+            }
             if (body.ActiveSlot >= 0 && ShouldEnd(body, mask))
             {
                 EndMove(body);
@@ -76,6 +86,7 @@ namespace Bajoterra.Client.Prediction
                 body.Elapsed++;
             }
             body.Posture = ComputePosture(body);
+            body.LastMask = mask;
             body.HitHeightNow = body.HitHeight * hitboxMultiplier;
 
             // ----- MovementSystem.integrate
@@ -154,7 +165,22 @@ namespace Bajoterra.Client.Prediction
             {
                 return false;
             }
-            return (body.Moves[slot].Info.AllowedFromMask & (1u << (int)body.Posture)) != 0;
+            if ((body.Moves[slot].Info.AllowedFromMask & (1u << (int)body.Posture)) == 0)
+            {
+                return false;
+            }
+            MoveRule rule = body.Moves[slot];
+            if (rule.Kind != BehaviorKind.WallKick)
+            {
+                return true;
+            }
+            // WallKickBehavior.canStart
+            bool fresh = (body.LastMask & (1 << slot)) == 0;
+            if (!fresh || body.Grounded || body.WallKicks >= rule.MaxKicks || (body.WallNX == 0.0 && body.WallNZ == 0.0))
+            {
+                return false;
+            }
+            return body.WallKicks == 0 || body.WallNX * body.LastKickX + body.WallNZ * body.LastKickZ < SameWall;
         }
 
         private static void StartMove(PredictedBody body, int slot, double moveX, double moveZ)
@@ -190,6 +216,16 @@ namespace Bajoterra.Client.Prediction
                 }
                 body.KnockX += dirX * rule.Horizontal;
                 body.KnockZ += dirZ * rule.Horizontal;
+            }
+            else if (rule.Kind == BehaviorKind.WallKick)
+            {
+                body.VelY = rule.Vertical;
+                body.Grounded = false;
+                body.KnockX = body.WallNX * rule.Horizontal;
+                body.KnockZ = body.WallNZ * rule.Horizontal;
+                body.WallKicks++;
+                body.LastKickX = body.WallNX;
+                body.LastKickZ = body.WallNZ;
             }
         }
 
@@ -235,6 +271,85 @@ namespace Bajoterra.Client.Prediction
                 body.VelY = 0.0;
             }
             body.Grounded = body.Y <= ground + 0.02 && body.VelY <= 0.001;
+            SenseWall(body, map, radius);
+        }
+
+        /// <summary>World.senseWall: the closest wall within reach of the body's side, as an outward normal.</summary>
+        private static void SenseWall(PredictedBody body, ArenaMap map, double radius)
+        {
+            double reach = radius + WallReach;
+            double best = reach * reach;
+            double nx = 0.0;
+            double nz = 0.0;
+            double feet = body.Y;
+            double top = feet + body.HitHeightNow;
+            ObstacleBox[] barriers = map.Barriers;
+            for (int i = 0; i < map.BarrierCount; i++)
+            {
+                ObstacleBox b = barriers[i];
+                if (b.MaxY - feet > StepHeight && b.MinY < top)
+                {
+                    Closer(body, b.MinX, b.MaxX, b.MinZ, b.MaxZ, body.X, body.Z, ref best, ref nx, ref nz);
+                }
+            }
+            ObstacleBox[] obstacles = map.Obstacles;
+            for (int i = 0; i < obstacles.Length; i++)
+            {
+                ObstacleBox o = obstacles[i];
+                double px = Math.Min(Math.Max(body.X, o.MinX), o.MaxX);
+                double pz = Math.Min(Math.Max(body.Z, o.MinZ), o.MaxZ);
+                if (!o.BlocksMovement || o.TopAt(px, pz) - feet <= StepHeight || o.MinY >= top)
+                {
+                    continue;
+                }
+                Closer(body, o.MinX, o.MaxX, o.MinZ, o.MaxZ, px, pz, ref best, ref nx, ref nz);
+            }
+            double west = body.X - map.MinX;
+            double east = map.MaxX - body.X;
+            double south = body.Z - map.MinZ;
+            double north = map.MaxZ - body.Z;
+            if (west * west < best)
+            {
+                best = west * west;
+                nx = 1.0;
+                nz = 0.0;
+            }
+            if (east * east < best)
+            {
+                best = east * east;
+                nx = -1.0;
+                nz = 0.0;
+            }
+            if (south * south < best)
+            {
+                best = south * south;
+                nx = 0.0;
+                nz = 1.0;
+            }
+            if (north * north < best)
+            {
+                nx = 0.0;
+                nz = -1.0;
+            }
+            body.WallNX = nx;
+            body.WallNZ = nz;
+        }
+
+        private static void Closer(PredictedBody body, double minX, double maxX, double minZ, double maxZ, double px,
+            double pz, ref double best, ref double nx, ref double nz)
+        {
+            px = Math.Min(Math.Max(body.X, minX), maxX);
+            pz = Math.Min(Math.Max(body.Z, minZ), maxZ);
+            double dx = body.X - px;
+            double dz = body.Z - pz;
+            double d2 = dx * dx + dz * dz;
+            if (d2 < best && d2 > 1e-12)
+            {
+                double d = Math.Sqrt(d2);
+                best = d2;
+                nx = dx / d;
+                nz = dz / d;
+            }
         }
 
         private static double GroundHeightAt(ArenaMap map, double x, double z, double feetY, double radius)

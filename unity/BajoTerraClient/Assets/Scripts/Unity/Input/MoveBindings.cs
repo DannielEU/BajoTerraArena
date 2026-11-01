@@ -29,6 +29,7 @@ namespace Bajoterra.Unity
         private static readonly Dictionary<string, MoveKey[]> Table = new Dictionary<string, MoveKey[]>
         {
             { "jump", new[] { MoveKey.Space } },
+            { "wall_kick", new[] { MoveKey.Space } },
             { "crouch", new[] { MoveKey.C, MoveKey.LeftCtrl } },
             { "roll", new[] { MoveKey.LeftShift } },
             { "dash", new[] { MoveKey.F } },
@@ -36,7 +37,8 @@ namespace Bajoterra.Unity
             { "double_jump", new[] { MoveKey.Space } }
         };
 
-        private static readonly MoveKey[] Spare = { MoveKey.Q, MoveKey.E, MoveKey.R, MoveKey.X, MoveKey.Z };
+        // Q fires a fusion shot, so it is not handed out to moves.
+        private static readonly MoveKey[] Spare = { MoveKey.E, MoveKey.R, MoveKey.X, MoveKey.Z };
 
         /// <summary>Keys for a move id; unknown moves get a spare key based on their name so they are still reachable.</summary>
         public static MoveKey[] KeysFor(string moveId)

@@ -1,0 +1,29 @@
+{
+  "id": "lariat",
+  "name": "Lariat",
+  "element": "WATER",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 55,
+    "gravity": 2,
+    "radius": 0.27,
+    "lifetimeSeconds": 0.55,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.1,
+  "botWeight": 0.85,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 7
+    },
+    {
+      "type": "lasso",
+      "durationSeconds": 0.7,
+      "keep": 2.5,
+      "maxPull": 55,
+      "lift": 3.5
+    }
+  ]
+}

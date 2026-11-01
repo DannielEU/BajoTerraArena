@@ -204,6 +204,12 @@ class Clips:
         self.crouch_lean = None
         self.crouch_drop = None
         self._calibrate_crouch()
+        # Degrees each upper arm hangs further back than straight down in the rest pose (Pronto holds his rifle at his
+        # side): the dances raise those arms that much more so the blaster still ends up overhead.
+        self.arm_back = {}
+        for s in 'LR':
+            v = J['elbow' + s] - J['shoulder' + s]
+            self.arm_back[s] = max(0.0, -math.degrees(math.atan2(v.z, -v.y)) - 90.0)
 
     def ankle(self, s):
         a = self.J['ankle' + s]
@@ -346,6 +352,85 @@ class Clips:
         P['hips_t'] = (0, 0, lerp(base['hips_t'][2], ball_z, ramp))
         return P
 
+    # ---- celebration dances (loops: t in 0..1, the pose at 1 equals the pose at 0) -------------------------------
+    def dance_cheer(self, t):
+        """Dance1: four little hops on the beat with both arms pumping the blaster over the head."""
+        P = self.stand()
+        k = self.k
+        beat = 4 * 2 * math.pi * t
+        hop = max(0.0, math.sin(beat))
+        lift = hop * 0.09 * k
+        squat = 0.04 * k * max(0.0, -math.sin(beat))
+        P['hips_t'] = (0, 0, P['hips_t'][2] + lift - squat)
+        for s in 'LR':
+            sx = 1 if s == 'L' else -1
+            a = self.ankle(s)
+            P['foot' + s] = V((a.x * 1.3, a.y, a.z + lift))
+            P['foot_r' + s] = (-10 * hop, 0, 0)
+            P['pole' + s] = V((sx * 0.15, -1, 0.1))
+        pump = 0.5 + 0.5 * math.sin(beat - 0.6)
+        P['spine_r'] = (-3.0, 0, 0)
+        P['chest_r'] = (-6.0 - 4 * pump, 0, 0)
+        P['head_r'] = (-10.0 + 8 * hop, 0, 0)
+        for s in 'LR':
+            sx = 1 if s == 'L' else -1
+            # Raised (X) and spread outwards (Y) in a V, pumping on the beat.
+            P['uarm_r' + s] = (-70 - 25 * pump - self.arm_back[s], sx * (25 + 10 * pump), 0)
+            P['larm_r' + s] = (-30 * (1 - pump), 0, 0)
+        return P
+
+    def dance_shuffle(self, t):
+        """Dance2: steps from side to side, hips swaying and twisting, arms swinging bent across the body."""
+        P = self.stand()
+        k = self.k
+        ph = 2 * 2 * math.pi * t
+        side = math.sin(ph)
+        shift = 0.07 * k * side
+        dip = 0.035 * k * abs(math.cos(ph))
+        P['hips_t'] = (shift, 0, P['hips_t'][2] - dip)
+        P['hips_r'] = (0, -7 * side, 12 * side)
+        P['spine_r'] = (2.0, 6 * side, -7 * side)
+        P['chest_r'] = (1.0, 4 * side, -9 * side)
+        P['head_r'] = (-2.0, -8 * side, 10 * side)
+        for s in 'LR':
+            sx = 1 if s == 'L' else -1
+            a = self.ankle(s)
+            # The foot on the far side lifts and taps in as the hips sway away from it.
+            lift = max(0.0, -sx * side) ** 1.5 * 0.11 * k
+            P['foot' + s] = V((a.x * 1.35 + shift * 0.5, a.y, a.z + lift))
+            P['foot_r' + s] = (-15 * lift / (0.11 * k), 0, 0)
+            P['pole' + s] = V((sx * 0.2, -1, 0.1))
+            P['uarm_r' + s] = (-45 - 10 * sx * side, 0, 28 * side)
+            P['larm_r' + s] = (-55, 0, 0)
+        return P
+
+    def dance_spin(self, t):
+        """Dance3: a hop and a full spin with the arms flung out, then a "ta-da!" pose with the blaster held high."""
+        P = self.stand()
+        k = self.k
+        turn = smooth(t / 0.45)
+        spin = 360.0 * turn
+        R = E(0, 0, spin)
+        out = math.sin(math.pi * min(1.0, t / 0.45))
+        lift = 0.07 * k * math.sin(math.pi * min(1.0, t / 0.45))
+        tada = smooth((t - 0.45) / 0.12) * (1 - smooth((t - 0.88) / 0.12))
+        bounce = 0.03 * k * math.sin(max(0.0, t - 0.57) * 2 * math.pi * 3) * tada
+        P['hips_t'] = (0, 0, P['hips_t'][2] + lift - bounce)
+        P['hips_r'] = (0, 0, spin)
+        for s in 'LR':
+            sx = 1 if s == 'L' else -1
+            a = self.ankle(s)
+            P['foot' + s] = R @ V((a.x * 1.15, a.y, a.z + lift))
+            P['pole' + s] = R @ V((sx * 0.1, -1, 0.1))
+        P['chest_r'] = (-8 * tada, 0, 0)
+        P['head_r'] = (-12 * tada, 8 * tada, 0)
+        # Arms out like a spinning top, then the right one (with the blaster) goes up and the left one to the hip.
+        P['uarm_rL'] = (-20 * out + 35 * tada, 0, 80 * out + 70 * tada)
+        P['larm_rL'] = (-70 * tada, 0, 0)
+        P['uarm_rR'] = (-20 * out - (85 + self.arm_back['R']) * tada, -25 * tada, -80 * out)
+        P['larm_rR'] = (-10 * tada, 0, 0)
+        return P
+
     def dead(self):
         P = self.crouch_pose(lean=18, drop=0.35 * self.leg)
         for s in 'LR':
@@ -389,6 +474,9 @@ def author_all(rig, clips):
     add('Air', 24, lambda f, n: clips.air(f / n))
     add('Roll', 15, lambda f, n: clips.roll(f, n))
     add('Dead', 2, lambda f, n: clips.dead())
+    add('Dance1', 60, lambda f, n: clips.dance_cheer(f / n))
+    add('Dance2', 60, lambda f, n: clips.dance_shuffle(f / n))
+    add('Dance3', 72, lambda f, n: clips.dance_spin(f / n))
     rig.obj.animation_data.action = acts['Idle']
     rig.actions = acts
     return out

@@ -11,6 +11,14 @@ import java.util.Map;
  */
 public interface MoveBehavior {
 
+    /**
+     * Extra condition for the move to start, on top of its posture and cooldown: {@code freshPress} is true when the
+     * button was not held on the previous tick. Any move may start by default.
+     */
+    default boolean canStart(Combatant self, MoveRunner runner, boolean freshPress) {
+        return true;
+    }
+
     /** Called on the tick the move starts. */
     default void onStart(Combatant self, MoveRunner runner, CombatArena arena) {
         // no-op by default

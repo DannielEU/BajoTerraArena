@@ -30,6 +30,18 @@ namespace Bajoterra.Unity
         public readonly AudioClip IceShatter = ProceduralAudio.IceShatter();
         public readonly AudioClip FireLoop = ProceduralAudio.FireLoop();
         public readonly AudioClip FireWhoosh = ProceduralAudio.FireWhoosh();
+        public readonly AudioClip WindLoop = ProceduralAudio.WindLoop();
+        public readonly AudioClip TornadoRise = ProceduralAudio.TornadoRise();
+        public readonly AudioClip Deflect = ProceduralAudio.Deflect();
+        public readonly AudioClip WebSpin = ProceduralAudio.WebSpin();
+        public readonly AudioClip WebSnare = ProceduralAudio.WebSnare();
+        public readonly AudioClip BubbleForm = ProceduralAudio.BubbleForm();
+        public readonly AudioClip BubblePop = ProceduralAudio.BubblePop();
+        public readonly AudioClip LassoCrack = ProceduralAudio.LassoCrack();
+        public readonly AudioClip FrostGust = ProceduralAudio.FrostGust();
+        public readonly AudioClip FusionShot = ProceduralAudio.FusionShot();
+        public readonly AudioClip FusionReady = ProceduralAudio.FusionReady();
+        public readonly AudioClip Megamorph = ProceduralAudio.Megamorph();
         public readonly AudioClip Critical = ProceduralAudio.Critical();
         public readonly AudioClip Courage = ProceduralAudio.Courage();
         public readonly AudioClip Heal = ProceduralAudio.Heal();
@@ -38,6 +50,7 @@ namespace Bajoterra.Unity
         public readonly AudioClip Defeat = ProceduralAudio.Defeat();
         public readonly AudioClip Jump = ProceduralAudio.Jump();
         public readonly AudioClip Roll = ProceduralAudio.Roll();
+        public readonly AudioClip WallKick = ProceduralAudio.WallKick();
         public readonly AudioClip CountdownBeep = ProceduralAudio.Beep(660f, 0.18f);
         public readonly AudioClip GoBeep = ProceduralAudio.Beep(990f, 0.35f);
         public readonly AudioClip Whistle = ProceduralAudio.Whistle();
@@ -145,10 +158,10 @@ namespace Bajoterra.Unity
         {
             source.playOnAwake = false;
             // Real-world falloff: full volume up to 4 m from the camera (your own hero is ~3.5 m in front of it),
-            // then half as loud each time the distance doubles: -8 dB at 10 m, -22 dB across the cavern.
+            // then half as loud each time the distance doubles: -8 dB at 10 m, -26 dB across the widest arena.
             source.rolloffMode = AudioRolloffMode.Logarithmic;
             source.minDistance = 4f;
-            source.maxDistance = 75f;
+            source.maxDistance = 105f;
             // Sounds stay where they started; without this, moving a pooled voice to a new sound reads as a huge
             // velocity and the Doppler effect warps the start of the sound.
             source.dopplerLevel = 0f;

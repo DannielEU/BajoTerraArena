@@ -22,11 +22,17 @@ namespace Bajoterra.Unity
 
         bool Fire { get; }
 
+        /// <summary>True while the fusion shot button (Q or the right mouse button) is held.</summary>
+        bool Fusion { get; }
+
         /// <summary>True while the key bound to the move with this id is held.</summary>
         bool IsMoveHeld(string moveId);
 
-        /// <summary>Slot key pressed this frame (0-9), or -1.</summary>
+        /// <summary>Slot key pressed this frame (0-4), or -1.</summary>
         int SlotKey { get; }
+
+        /// <summary>True on the frame the dance key (B) is pressed.</summary>
+        bool DancePressed { get; }
 
         /// <summary>Mouse wheel notch this frame: -1, 0 or 1.</summary>
         int Scroll { get; }

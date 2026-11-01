@@ -14,6 +14,13 @@ import java.util.SplittableRandom;
  */
 public final class CombatArena {
 
+    /** Fusion energy gained per point of damage dealt to enemies or of help given to allies. */
+    public static final double FUSION_PER_POINT = 0.7;
+    /** Fusion energy every living combatant gains per second anyway. */
+    public static final double FUSION_PER_SECOND = 1.2;
+    /** Ticks a bubble must have lasted before a hit pops it (the hit that blew it, and its splash, do not). */
+    private static final int BUBBLE_GRACE_TICKS = 6;
+
     private final Combatant[] combatants;
     private final DamagePipeline pipeline;
     private final EventBuffer events;
@@ -111,6 +118,9 @@ public final class CombatArena {
             target.damageTaken += dealt;
             if (source != null) {
                 source.damageDealt += dealt;
+                if (source.team != target.team) {
+                    chargeFusion(source, dealt);
+                }
             }
             GameEvent record = events.begin(EventType.DAMAGE, tick);
             record.actor = source == null ? -1 : source.id;
@@ -118,11 +128,35 @@ public final class CombatArena {
             record.a = element.ordinal();
             record.b = critical ? 1 : 0;
             record.value = dealt;
+            popBubble(source, target);
         }
         if (target.vitals.isDefeated()) {
             defeat(target, source);
         }
         return dealt;
+    }
+
+    /** Whatever hurts somebody trapped in a bubble pops it (not the hit that blew it: it must have formed first). */
+    private void popBubble(Combatant source, Combatant target) {
+        if (target.statuses.breakFragile(BUBBLE_GRACE_TICKS) == 0) {
+            return;
+        }
+        target.vel.y = Math.min(target.vel.y, 0);
+        GameEvent record = events.begin(EventType.BUBBLE, tick);
+        record.actor = source == null ? -1 : source.id;
+        record.subject = target.id;
+        record.a = 0;
+        record.x = target.pos.x;
+        record.y = target.pos.y;
+        record.z = target.pos.z;
+    }
+
+    /**
+     * Adds fusion energy for {@code amount} points of damage dealt to an enemy or of help given to an ally (see
+     * {@link Combatant#fusion}); it also fills up slowly on its own, see {@link #FUSION_PER_SECOND}.
+     */
+    public static void chargeFusion(Combatant c, double amount) {
+        c.fusion = Math.min(Combatant.FUSION_FULL, c.fusion + amount * FUSION_PER_POINT);
     }
 
     /** Heals a combatant, honouring their heal-received multiplier. Returns the amount healed. */
@@ -134,6 +168,9 @@ public final class CombatArena {
         if (healed > 0) {
             if (source != null) {
                 source.healingDone += healed;
+                if (source != target) {
+                    chargeFusion(source, healed);
+                }
             }
             GameEvent record = events.begin(EventType.HEAL, tick);
             record.actor = source == null ? -1 : source.id;
@@ -152,6 +189,9 @@ public final class CombatArena {
         if (restored > 0) {
             if (source != null) {
                 source.healingDone += restored;
+                if (source != target) {
+                    chargeFusion(source, restored);
+                }
             }
             GameEvent record = events.begin(EventType.SHIELD_RESTORED, tick);
             record.actor = source == null ? -1 : source.id;

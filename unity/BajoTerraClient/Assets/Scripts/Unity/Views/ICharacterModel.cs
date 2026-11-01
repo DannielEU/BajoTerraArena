@@ -24,6 +24,9 @@ namespace Bajoterra.Unity
 
         /// <summary>Colour of the selected slug, for the blaster's slug dial.</summary>
         public Color SlugColor;
+
+        /// <summary>Celebration dance being danced (1-3), or 0.</summary>
+        public int Dance;
     }
 
     /// <summary>The visible body of one combatant.</summary>

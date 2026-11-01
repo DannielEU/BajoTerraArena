@@ -49,6 +49,12 @@ namespace Bajoterra.Unity
             public AudioSource FuseSound;
             public readonly Dictionary<int, Transform> Models = new Dictionary<int, Transform>();
             public Transform Model;
+            /// <summary>A fusion shot's second slug: a glowing orb that circles the first one.</summary>
+            public Transform PartnerOrb;
+            public Renderer PartnerOrbRenderer;
+            public bool Fused;
+            /// <summary>How much bigger than usual it flies (megamorphosis), 1 normally.</summary>
+            public float Giant = 1f;
             public int Stamp;
             public bool Sticky;
             public bool Flash;
@@ -135,6 +141,14 @@ namespace Bajoterra.Unity
                 PoseModel(visual, p, time);
                 float halo = visual.Model != null ? 1.9f : 2.6f;
                 visual.Halo.localScale = Vector3.one * (size * halo * pulse);
+                if (visual.Fused)
+                {
+                    float spin = time * 14f + visual.Phase;
+                    float orbit = size * 1.1f + 0.2f;
+                    visual.PartnerOrb.localPosition = new Vector3(Mathf.Cos(spin) * orbit, Mathf.Sin(spin * 1.3f) * orbit * 0.5f,
+                        Mathf.Sin(spin) * orbit);
+                    visual.PartnerOrb.localScale = Vector3.one * (size * 1.5f * pulse);
+                }
                 bool lit = lights < MaxLights || p.Stuck || visual.Flash;
                 visual.Light.enabled = lit;
                 if (lit)
@@ -175,7 +189,8 @@ namespace Bajoterra.Unity
 
         private float BallSize(ProjectileFrame p)
         {
-            return _content.Slug(p.SlugIndex).ProjectileRadius * 2.4f;
+            float own = _content.Slug(p.SlugIndex).ProjectileRadius;
+            return (p.Radius > own ? p.Radius : own) * 2.4f;
         }
 
         /// <summary>
@@ -235,7 +250,9 @@ namespace Bajoterra.Unity
             visual.Color = color;
             visual.Phase = p.Id * 1.7f;
             visual.Facing = Quaternion.identity;
-            visual.ModelHeight = info.ProjectileRadius * 2.8f;
+            // A megamorphed slinger's slugs fly in their giant form.
+            visual.Giant = p.Radius > info.ProjectileRadius + 1e-3f ? p.Radius / info.ProjectileRadius : 1f;
+            visual.ModelHeight = info.ProjectileRadius * 2.8f * visual.Giant;
             ShowModel(visual, (int)p.SlugIndex, info.Id);
             bool modelled = visual.Model != null;
             visual.Ball.gameObject.SetActive(!modelled);
@@ -246,10 +263,22 @@ namespace Bajoterra.Unity
             visual.Light.color = color;
             visual.Light.intensity = flash ? 3.2f : 1.7f;
             visual.Light.range = flash ? 10f : 6.5f;
-            float width = Mathf.Max(0.16f, info.ProjectileRadius * (flash ? 3.4f : 2.6f));
+            float width = Mathf.Max(0.16f, info.ProjectileRadius * visual.Giant * (flash ? 3.4f : 2.6f));
             visual.Trail.widthMultiplier = width;
             visual.Trail.startColor = new Color(color.r, color.g, color.b, 0.9f);
             visual.Trail.endColor = new Color(color.r, color.g, color.b, 0f);
+            visual.Fused = p.PartnerSlug >= 0;
+            visual.PartnerOrb.gameObject.SetActive(visual.Fused);
+            if (visual.Fused)
+            {
+                // Two slugs in one: the second circles the first, and the trail runs from one colour into the other.
+                SlugInfo partner = _content.Slug(p.PartnerSlug);
+                Color second = Palette.Element(_content.ElementName((int)partner.Element));
+                SetColor(visual.PartnerOrbRenderer, new Color(second.r, second.g, second.b, 0.85f));
+                visual.Trail.widthMultiplier = width * 1.6f;
+                visual.Trail.endColor = new Color(second.r, second.g, second.b, 0f);
+                visual.Light.intensity *= 1.6f;
+            }
             visual.Root.position = p.Position.ToUnity();
             visual.Trail.Clear();
             visual.Trail.emitting = true;
@@ -430,6 +459,11 @@ namespace Bajoterra.Unity
             flare.localPosition = Vector3.zero;
             flare.gameObject.SetActive(false);
 
+            Transform orb = Gfx.Halo(root.transform, "Partner", root.transform.position, Color.white, 1f, Textures.Flare);
+            orb.SetParent(root.transform, false);
+            orb.localPosition = Vector3.zero;
+            orb.gameObject.SetActive(false);
+
             Light light = Gfx.AddPointLight(root.transform, "Light", root.transform.position, Color.white, 6.5f, 1.7f);
             light.transform.localPosition = Vector3.zero;
 
@@ -465,6 +499,8 @@ namespace Bajoterra.Unity
                 Flare = flare,
                 FlareRenderer = flare.GetComponent<Renderer>(),
                 FlareSpin = flare.GetComponent<Billboard>(),
+                PartnerOrb = orb,
+                PartnerOrbRenderer = orb.GetComponent<Renderer>(),
                 BlastRing = ring,
                 BlastRingRenderer = ring.GetComponent<Renderer>(),
                 BlastFill = fill,

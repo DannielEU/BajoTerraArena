@@ -36,7 +36,7 @@ public final class Fixtures {
     /** Ten slugs cycling through the given ids (tests that need a specific slug on every slot). */
     public static List<String> loadout(String... ids) {
         List<String> list = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < com.bajoterra.core.ammo.Loadout.SIZE; i++) {
             list.add(ids[i % ids.length]);
         }
         return list;

@@ -4,6 +4,9 @@ import com.bajoterra.core.entity.Combatant;
 import com.bajoterra.core.entity.InputSource;
 import com.bajoterra.core.entity.InputState;
 import com.bajoterra.core.hazard.Hazard;
+import com.bajoterra.core.hazard.Tornado;
+import com.bajoterra.core.hazard.Web;
+import com.bajoterra.core.item.Pickup;
 import com.bajoterra.core.math.Trig;
 import com.bajoterra.core.math.Vec3;
 import com.bajoterra.core.move.MoveDefinition;
@@ -26,7 +29,14 @@ import java.util.List;
  * (heal a wounded ally, else attack a visible enemy, else hunt the last known position, else patrol); aiming,
  * movement and the trigger are updated every tick from those decisions. A bot that notices an enemy grenade stuck
  * next to it runs out of the blast for a moment, whatever the tree chose, and one that notices a blinding slug
- * about to go off turns its eyes away from it (a blinded bot sees nobody until it wears off). Nothing here
+ * about to go off turns its eyes away from it (a blinded bot sees nobody until it wears off). It steps out of
+ * enemy tornadoes and around the enemy webs it notices, goes for the megamorph crystal and for health when it has
+ * nothing to fight, and fires a fusion shot as soon as its energy is full.
+ *
+ * <p>Getting about: the bot steers for the farthest point of its path it can walk to in a straight line (body-wide
+ * sweeps against the world, ice walls included), so it neither hugs corners nor walks into the wall between it and
+ * the nearest waypoint. When it makes no progress it backs off along the freest direction, only jumps when what
+ * stops it is low enough to jump onto, and after a few failed tries gives up on that spot for a while. Nothing here
  * allocates after construction.
  */
 public final class BotBrain implements InputSource {
@@ -49,6 +59,25 @@ public final class BotBrain implements InputSource {
     static final double BLIND_SIGHT = 0.35;
     /** A flying blinding slug is worth looking away from when it has fewer ticks than this left to go off. */
     private static final int FLASH_WARNING_TICKS = 40;
+    /** Height above its feet at which the bot checks that a straight walk is clear. */
+    private static final double WALK_PROBE_HEIGHT = 0.5;
+    /** Highest obstacle (above the feet) a bot tries to jump onto when it is stuck against it. */
+    private static final double JUMPABLE = 1.05;
+    /** Farthest a bot walks straight to its waypoint without asking the path. */
+    private static final double DIRECT_RANGE = 14.0;
+    /** A target out of sight for at most this many ticks is still the bot's target (it does not shoot at it). */
+    private static final int TARGET_GRACE_TICKS = 24;
+    /** Ticks after its last hit during which a hurt bot that took cover stays there once the enemy is out of sight. */
+    private static final int HOLD_COVER_TICKS = 150;
+    /** Metres by which another way must be shorter before the bot gives up the one it took. */
+    private static final double ROUTE_HYSTERESIS = 2.5;
+    /** Path waypoints looked ahead for one in a straight line of sight. */
+    private static final int LOOK_AHEAD = 6;
+    /** Failed progress checks in a row before the bot gives up on where it was going. */
+    private static final int GIVE_UP_AFTER = 3;
+    /** How far away a bot without a fight goes for each kind of pickup. */
+    private static final double CRYSTAL_RANGE = 48.0;
+    private static final double HEALTH_RANGE = 26.0;
 
     private BotProfile profile;
     private double skill;
@@ -122,6 +151,24 @@ public final class BotBrain implements InputSource {
                 ctx -> ctx.target != null ? Status.SUCCESS : Status.FAILURE,
                 this::chooseAttackSlug,
                 this::beginAttack);
+        BtNode holdCover = ctx -> {
+            // Hurt and hidden from the enemy it ran from: stay behind the cover a moment to recover before hunting.
+            int tick = ctx.sim().tickCount();
+            if (ctx.coverIndex < 0 || tick - ctx.lastHurtTick > HOLD_COVER_TICKS
+                    || ctx.self().vitals.totalFraction() > profile.retreatHealth() + 0.25) {
+                return Status.FAILURE;
+            }
+            GameMap map = ctx.sim().map();
+            ctx.intent = BotContext.Intent.NONE;
+            ctx.waypointX = map.coverX(ctx.coverIndex);
+            ctx.waypointZ = map.coverZ(ctx.coverIndex);
+            boolean there = Trig.hypot(ctx.waypointX - ctx.self().pos.x, ctx.waypointZ - ctx.self().pos.z) < 0.9;
+            ctx.hasWaypoint = !there;
+            ctx.moveSpeedFactor = there ? 0.0 : 1.0;
+            ctx.inCover = there;
+            ctx.wantCrouch = there && map.coverHeight(ctx.coverIndex) < LOW_COVER_HEIGHT;
+            return Status.SUCCESS;
+        };
         BtNode hunt = ctx -> {
             if (ctx.sim().tickCount() - ctx.lastSeenTick > profile.memoryTicks()) {
                 return Status.FAILURE;
@@ -138,7 +185,7 @@ public final class BotBrain implements InputSource {
             chooseSearchGoal(ctx);
             return Status.SUCCESS;
         };
-        return new Selector(healAlly, attack, hunt, patrol);
+        return new Selector(healAlly, attack, holdCover, hunt, patrol);
     }
 
     private void plan(int tick) {
@@ -157,10 +204,218 @@ public final class BotBrain implements InputSource {
         if (tree.tick(context) == Status.FAILURE) {
             context.intent = BotContext.Intent.NONE;
         }
+        seekPickup();
         planWall(tick);
         avoidGrenades(tick);
         avoidFire();
+        avoidTornadoes();
         avoidFlashes(tick);
+        planRoute(tick);
+    }
+
+    /**
+     * Goes for a pickup worth having: the megamorph crystal whenever it is up (and, in a fight, when it is only a few
+     * steps away), health or shield when hurt and there is nobody to fight. Pickups on top of hills are left alone
+     * (bots keep to the floor).
+     */
+    private void seekPickup() {
+        Combatant self = context.self();
+        // An enemy seen a moment ago is still the fight, even round a corner.
+        boolean fighting = context.intent != BotContext.Intent.NONE
+                || context.sim().tickCount() - context.lastSeenTick < 120;
+        double bestScore = 0;
+        Pickup best = null;
+        for (Pickup pickup : context.sim().pickups()) {
+            if (!pickup.available || pickup.pos.y > self.pos.y + 0.3
+                    || !pickup.definition.requirement().satisfiedBy(self)) {
+                continue;
+            }
+            double distance = Trig.hypot(pickup.pos.x - self.pos.x, pickup.pos.z - self.pos.z);
+            double range;
+            double value;
+            switch (pickup.definition.id()) {
+                case "megamorph_crystal" -> {
+                    range = fighting ? 7.0 : CRYSTAL_RANGE;
+                    value = 1.0;
+                }
+                case "health_pack" -> {
+                    range = fighting ? 4.0 : HEALTH_RANGE;
+                    value = self.vitals.hpFraction() < 0.65 ? 0.9 : 0;
+                }
+                case "shield_cell" -> {
+                    range = fighting ? 4.0 : HEALTH_RANGE * 0.7;
+                    value = self.vitals.shield() < self.vitals.maxShield() * 0.5 ? 0.6 : 0;
+                }
+                default -> {
+                    range = fighting ? 4.0 : 14.0;
+                    value = 0.4;
+                }
+            }
+            double score = value * (1 - distance / range);
+            if (score > bestScore) {
+                bestScore = score;
+                best = pickup;
+            }
+        }
+        if (best == null) {
+            return;
+        }
+        context.waypointX = best.pos.x;
+        context.waypointZ = best.pos.z;
+        context.hasWaypoint = true;
+        context.moveSpeedFactor = 1.0;
+        context.inCover = false;
+        context.coverIndex = -1;
+        context.wantCrouch = false;
+    }
+
+    /** A bot caught near an enemy tornado runs out of its reach, away from its eye. */
+    private void avoidTornadoes() {
+        Combatant self = context.self();
+        Tornado wind = context.sim().tornadoes().enemyAt(self, self.pos.x, self.pos.z, 1.0);
+        if (wind == null) {
+            return;
+        }
+        double awayX = self.pos.x - wind.x;
+        double awayZ = self.pos.z - wind.z;
+        double length = Trig.hypot(awayX, awayZ);
+        if (length < 1e-3) {
+            awayX = -Trig.sin(self.yaw);
+            awayZ = -Trig.cos(self.yaw);
+            length = 1;
+        }
+        double out = wind.spec.radius() + 2.0;
+        context.waypointX = self.pos.x + awayX / length * out;
+        context.waypointZ = self.pos.z + awayZ / length * out;
+        context.hasWaypoint = true;
+        context.moveSpeedFactor = 1.0;
+        context.inCover = false;
+        context.wantCrouch = false;
+    }
+
+    // ------------------------------------------------------------------------------------------ getting about
+
+    /**
+     * Works out where to steer this decision cycle: the waypoint itself when it is close and in a clear straight
+     * line, otherwise the farthest node of the path towards it that is.
+     */
+    private void planRoute(int tick) {
+        context.hasRoute = false;
+        if (!context.hasWaypoint || context.moveSpeedFactor <= 0) {
+            return;
+        }
+        double goalX = context.waypointX;
+        double goalZ = context.waypointZ;
+        if (tick < context.detourUntilTick) {
+            goalX = context.detourX;
+            goalZ = context.detourZ;
+        }
+        route(context.self(), goalX, goalZ);
+    }
+
+    private void route(Combatant self, double goalX, double goalZ) {
+        context.hasRoute = true;
+        context.routeX = goalX;
+        context.routeZ = goalZ;
+        if (Trig.hypot(goalX - self.pos.x, goalZ - self.pos.z) < DIRECT_RANGE && walkable(self, goalX, goalZ)) {
+            return;
+        }
+        NavGraph nav = context.sim().map().nav();
+        if (nav.size() == 0) {
+            return;
+        }
+        int to = reachableNodeNear(goalX, goalZ, self);
+        int from = to < 0 ? -1 : entryNode(self, to);
+        if (from < 0 || to < 0) {
+            return;
+        }
+        int best = from;
+        int current = from;
+        for (int k = 0; k < LOOK_AHEAD && current != to; k++) {
+            int next = nav.nextNode(current, to);
+            if (next < 0 || !walkable(self, nav.nodeX(next), nav.nodeZ(next))) {
+                break;
+            }
+            best = next;
+            current = next;
+        }
+        if (best == to && walkable(self, goalX, goalZ)) {
+            return;
+        }
+        if (best == from && Trig.hypot(nav.nodeX(from) - self.pos.x, nav.nodeZ(from) - self.pos.z) < 0.8) {
+            // Standing on the node already: head for the next one even if a corner hides it.
+            int next = from == to ? -1 : nav.nextNode(from, to);
+            if (next >= 0 && walkable(self, nav.nodeX(next), nav.nodeZ(next))) {
+                best = next;
+            } else {
+                return;
+            }
+        }
+        context.routeX = nav.nodeX(best);
+        context.routeZ = nav.nodeZ(best);
+    }
+
+    /** True when the bot's body fits along a straight walk from where it stands to (x, z), at its own height. */
+    private boolean walkable(Combatant self, double x, double z) {
+        double y = self.pos.y + WALK_PROBE_HEIGHT;
+        return context.sim().world().hasClearShot(self.pos.x, y, self.pos.z, x, y, z, self.hitRadius() + 0.05);
+    }
+
+    /**
+     * The path node to join the path at: among the nodes the bot can walk to in a straight line, the one with the
+     * shortest way to {@code to} counting the walk to it. Weighing the whole way (not just the nearest node) keeps the
+     * choice steady from one decision to the next, so the bot does not swing between a node ahead and one behind.
+     */
+    private int entryNode(Combatant self, int to) {
+        NavGraph nav = context.sim().map().nav();
+        int best = -1;
+        double bestCost = Double.MAX_VALUE;
+        for (int i = 0; i < nav.size(); i++) {
+            double walk = Trig.hypot(nav.nodeX(i) - self.pos.x, nav.nodeZ(i) - self.pos.z);
+            if (walk > 10.0) {
+                continue;
+            }
+            double cost = walk + nav.pathLength(i, to);
+            if (cost < bestCost && walkable(self, nav.nodeX(i), nav.nodeZ(i))) {
+                bestCost = cost;
+                best = i;
+            }
+        }
+        int previous = context.entryNode;
+        if (best >= 0 && previous >= 0 && previous != best && context.entryTarget == to) {
+            // Two ways round an obstacle often cost about the same: stick to the one already taken.
+            double walk = Trig.hypot(nav.nodeX(previous) - self.pos.x, nav.nodeZ(previous) - self.pos.z);
+            if (walk <= 10.0 && walk + nav.pathLength(previous, to) <= bestCost + ROUTE_HYSTERESIS
+                    && walkable(self, nav.nodeX(previous), nav.nodeZ(previous))) {
+                best = previous;
+            }
+        }
+        if (best < 0) {
+            best = nav.nearestNode(self.pos.x, self.pos.z);
+        }
+        context.entryNode = best;
+        context.entryTarget = to;
+        return best;
+    }
+
+    /** Nearest path node from which (x, z) can be walked to in a straight line, or the nearest one at all. */
+    private int reachableNodeNear(double x, double z, Combatant self) {
+        NavGraph nav = context.sim().map().nav();
+        World world = context.sim().world();
+        double y = self.pos.y + WALK_PROBE_HEIGHT;
+        double radius = self.hitRadius() + 0.05;
+        int best = -1;
+        double bestDistance = 12.0 * 12.0;
+        for (int i = 0; i < nav.size(); i++) {
+            double dx = nav.nodeX(i) - x;
+            double dz = nav.nodeZ(i) - z;
+            double d = dx * dx + dz * dz;
+            if (d < bestDistance && world.hasClearShot(nav.nodeX(i), y, nav.nodeZ(i), x, y, z, radius)) {
+                bestDistance = d;
+                best = i;
+            }
+        }
+        return best >= 0 ? best : nav.nearestNode(x, z);
     }
 
     /**
@@ -358,11 +613,18 @@ public final class BotBrain implements InputSource {
             }
         }
         context.ally = ally;
+        Combatant previous = context.target;
         context.target = profile.selector().select(context);
+        context.targetHidden = false;
         if (context.target != null) {
             context.lastSeenTick = tick;
             context.lastSeenX = context.target.pos.x;
             context.lastSeenZ = context.target.pos.z;
+        } else if (previous != null && previous.alive && !blinded
+                && tick - context.lastSeenTick <= TARGET_GRACE_TICKS) {
+            // Lost from sight an instant ago (a corner, a step): still the target, but nothing to shoot at.
+            context.target = previous;
+            context.targetHidden = true;
         }
     }
 
@@ -417,20 +679,109 @@ public final class BotBrain implements InputSource {
         }
     }
 
-    /** Every half second checks whether the bot made progress; if not it sidesteps and jumps for a moment. */
+    /**
+     * Every half second checks whether the bot made progress. If not, it gets unstuck: it walks for a moment along
+     * the freest direction near the one it wanted (jumping only when what blocks it is low enough to jump onto), and
+     * after {@link #GIVE_UP_AFTER} failures in a row it heads somewhere else for a few seconds.
+     */
     private void updateStuck(int tick) {
         Combatant self = context.self();
         if (tick - context.lastCheckTick < 30) {
             return;
         }
         double moved = Trig.hypot(self.pos.x - context.lastCheckX, self.pos.z - context.lastCheckZ);
-        if (context.hasWaypoint && moved < 0.4 && context.moveSpeedFactor > 0.1 && !context.inCover
-                && context.intent != BotContext.Intent.HEAL) {
-            context.unstickUntilTick = tick + 24;
+        boolean held = self.stats.rooted || self.stats.stunned || !self.grounded;
+        boolean wanted = context.hasRoute && context.moveSpeedFactor > 0.1 && !context.inCover
+                && context.intent != BotContext.Intent.HEAL
+                && Trig.hypot(context.routeX - self.pos.x, context.routeZ - self.pos.z) > 1.0;
+        // Going somewhere fixed, what counts is getting closer to it: a bot swinging back and forth moves, yet
+        // gets nowhere. In a fight the spot to stand on moves with the bot, so there plain movement counts.
+        boolean detour = tick < context.detourUntilTick;
+        double goalX = detour ? context.detourX : context.waypointX;
+        double goalZ = detour ? context.detourZ : context.waypointZ;
+        double goalDistance = Trig.hypot(goalX - self.pos.x, goalZ - self.pos.z);
+        boolean sameGoal = Trig.hypot(goalX - context.lastGoalX, goalZ - context.lastGoalZ) < 1.0;
+        boolean fixedGoal = context.intent == BotContext.Intent.NONE || detour;
+        boolean progressed = fixedGoal && sameGoal
+                ? context.lastGoalDistance - goalDistance >= 0.4 || goalDistance < 1.5
+                : moved >= 0.4;
+        if (wanted && !held && !progressed) {
+            context.stuckCount++;
+            escape(tick);
+        } else if (progressed) {
+            context.stuckCount = 0;
         }
         context.lastCheckTick = tick;
         context.lastCheckX = self.pos.x;
         context.lastCheckZ = self.pos.z;
+        context.lastGoalX = goalX;
+        context.lastGoalZ = goalZ;
+        context.lastGoalDistance = goalDistance;
+    }
+
+    private void escape(int tick) {
+        Combatant self = context.self();
+        World world = context.sim().world();
+        double wantX = context.routeX - self.pos.x;
+        double wantZ = context.routeZ - self.pos.z;
+        double length = Math.max(1e-6, Trig.hypot(wantX, wantZ));
+        wantX /= length;
+        wantZ /= length;
+        double feet = self.pos.y;
+        double radius = self.hitRadius() + 0.05;
+        double probe = 1.6;
+        // Something low right in front: jump onto it rather than walk round.
+        boolean blockedLow = !world.hasClearShot(self.pos.x, feet + WALK_PROBE_HEIGHT, self.pos.z,
+                self.pos.x + wantX * probe, feet + WALK_PROBE_HEIGHT, self.pos.z + wantZ * probe, radius);
+        boolean clearHigh = world.hasClearShot(self.pos.x, feet + JUMPABLE + 0.3, self.pos.z,
+                self.pos.x + wantX * probe, feet + JUMPABLE + 0.3, self.pos.z + wantZ * probe, radius);
+        var random = context.sim().arena().random();
+        if (blockedLow && clearHigh && context.jumpSlot >= 0 && context.stuckCount <= 1) {
+            context.escapeX = wantX;
+            context.escapeZ = wantZ;
+            context.escapeJump = true;
+            context.escapeUntilTick = tick + 14;
+            return;
+        }
+        double base = Trig.atan2(wantX, wantZ);
+        double bestScore = -Double.MAX_VALUE;
+        double bestX = -wantX;
+        double bestZ = -wantZ;
+        for (int i = 1; i < 8; i++) {
+            double angle = base + i * Math.PI / 4;
+            double dx = Trig.sin(angle);
+            double dz = Trig.cos(angle);
+            if (!world.hasClearShot(self.pos.x, feet + WALK_PROBE_HEIGHT, self.pos.z, self.pos.x + dx * probe * 1.4,
+                    feet + WALK_PROBE_HEIGHT, self.pos.z + dz * probe * 1.4, radius)) {
+                continue;
+            }
+            double score = dx * wantX + dz * wantZ + random.nextDouble() * 0.4;
+            if (score > bestScore) {
+                bestScore = score;
+                bestX = dx;
+                bestZ = dz;
+            }
+        }
+        context.escapeX = bestX;
+        context.escapeZ = bestZ;
+        context.escapeJump = false;
+        context.escapeUntilTick = tick + 20 + 10 * context.stuckCount;
+        if (context.stuckCount >= GIVE_UP_AFTER) {
+            // That spot cannot be reached from here: go somewhere else for a while.
+            NavGraph nav = context.sim().map().nav();
+            if (nav.size() > 0) {
+                int node = random.nextInt(nav.size());
+                context.detourX = nav.nodeX(node);
+                context.detourZ = nav.nodeZ(node);
+                context.detourUntilTick = tick + 150;
+            }
+            context.coverIndex = -1;
+            context.stuckCount = 0;
+            if (context.intent == BotContext.Intent.NONE) {
+                // A roaming goal it cannot reach: pick another one next time.
+                context.hasWaypoint = false;
+            }
+        }
     }
 
     private Status chooseAttackSlug(BotContext ctx) {
@@ -462,7 +813,7 @@ public final class BotBrain implements InputSource {
 
     private Status beginAttack(BotContext ctx) {
         ctx.intent = BotContext.Intent.ATTACK;
-        ctx.wantFire = true;
+        ctx.wantFire = !ctx.targetHidden;
         planPositioning(ctx);
         return Status.SUCCESS;
     }
@@ -511,6 +862,7 @@ public final class BotBrain implements InputSource {
             ctx.waypointZ = self.pos.z + awayZ / length * 5;
             ctx.hasWaypoint = true;
             ctx.moveSpeedFactor = 1.0;
+            keepInSight(ctx, target);
         } else {
             if (tick >= ctx.strafeUntilTick) {
                 ctx.strafeSign = ctx.sim().arena().random().nextBoolean() ? 1 : -1;
@@ -523,7 +875,33 @@ public final class BotBrain implements InputSource {
             ctx.waypointZ = self.pos.z + (toX / length) * ctx.strafeSign * 4;
             ctx.hasWaypoint = true;
             ctx.moveSpeedFactor = 0.8;
+            if (!seesFrom(ctx, ctx.waypointX, ctx.waypointZ, target)) {
+                // That side ducks out of sight round a corner: strafe the other way.
+                ctx.strafeSign = -ctx.strafeSign;
+                ctx.waypointX = self.pos.x + (-toZ / length) * ctx.strafeSign * 4;
+                ctx.waypointZ = self.pos.z + (toX / length) * ctx.strafeSign * 4;
+            }
+            keepInSight(ctx, target);
         }
+    }
+
+    /**
+     * A fighting bot does not step to where it would lose sight of its target (and then step back to find it again,
+     * dancing at a corner): when the spot it picked is hidden from the target, it holds its ground and shoots.
+     */
+    private void keepInSight(BotContext ctx, Combatant target) {
+        if (!seesFrom(ctx, ctx.waypointX, ctx.waypointZ, target)) {
+            ctx.hasWaypoint = false;
+            ctx.moveSpeedFactor = 0.0;
+        }
+    }
+
+    /** True when a bot standing at (x, z), at its own eye height, would see the target's chest. */
+    private boolean seesFrom(BotContext ctx, double x, double z, Combatant target) {
+        Combatant self = ctx.self();
+        double eyeY = self.pos.y + self.hitHeight() * EYE_FRACTION;
+        return ctx.sim().world().hasLineOfSight(x, eyeY, z, target.pos.x,
+                target.pos.y + target.hitHeight() * CHEST_FRACTION, target.pos.z);
     }
 
     /** Behind low cover the bot crouches, and stands up for short moments to shoot. */
@@ -650,6 +1028,8 @@ public final class BotBrain implements InputSource {
                 || tick - context.spottedTick[focus.id] >= profile.reactionTicks();
         input.fire = aimed && reacted && (context.wantFire || walling) && remainingYaw < tolerance
                 && remainingPitch < tolerance;
+        // Full fusion energy goes into the next attack.
+        input.fusion = input.fire && !walling && context.intent == BotContext.Intent.ATTACK && self.fusionReady();
         int wanted = walling ? context.wallSlot : context.slot;
         if (aimed && self.loadout.selected() != wanted && self.loadout.isAvailable(wanted)) {
             input.selectSlot = wanted;
@@ -665,11 +1045,25 @@ public final class BotBrain implements InputSource {
             context.dodgeTicksLeft--;
             setMoveFromWorldDirection(self, context.dodgeX, context.dodgeZ, 1.0);
             input.moveMask |= 1 << context.rollSlot;
+        } else if (tick < context.escapeUntilTick) {
+            setMoveFromWorldDirection(self, context.escapeX, context.escapeZ, 1.0);
+            if (context.escapeJump && context.jumpSlot >= 0 && self.grounded) {
+                input.moveMask |= 1 << context.jumpSlot;
+            }
         } else if (context.hasWaypoint && context.moveSpeedFactor > 0) {
             steerToWaypoint(self, tick);
         }
         if (context.wantCrouch && context.crouchSlot >= 0 && self.grounded) {
             input.moveMask |= 1 << context.crouchSlot;
+        }
+        // In the air next to a wall while dodging or getting unstuck: kick off it, past the apex of the jump.
+        boolean evading = context.dodgeTicksLeft > 0 || tick < context.escapeUntilTick;
+        boolean wall = self.wallNormalX != 0 || self.wallNormalZ != 0;
+        if (evading && wall && !self.grounded && self.vel.y < 2.0 && context.wallKickSlot >= 0 && !context.kickHeld) {
+            input.moveMask |= 1 << context.wallKickSlot;
+            context.kickHeld = true;
+        } else {
+            context.kickHeld = false;
         }
     }
 
@@ -714,43 +1108,73 @@ public final class BotBrain implements InputSource {
     }
 
     private void steerToWaypoint(Combatant self, int tick) {
-        GameMap map = context.sim().map();
-        NavGraph nav = map.nav();
-        double goalX = context.waypointX;
-        double goalZ = context.waypointZ;
-        double nextX = goalX;
-        double nextZ = goalZ;
-        World world = context.sim().world();
-        boolean direct = world.hasClearShot(self.pos.x, 0.5, self.pos.z, goalX, 0.5, goalZ, 0.0)
-                && Trig.hypot(goalX - self.pos.x, goalZ - self.pos.z) < 8;
-        if (!direct && nav.size() > 0) {
-            int from = nav.nearestNode(self.pos.x, self.pos.z);
-            int to = nav.nearestNode(goalX, goalZ);
-            if (from >= 0 && to >= 0 && from != to) {
-                int hop = nav.nextNode(from, to);
-                if (hop >= 0) {
-                    nextX = nav.nodeX(hop);
-                    nextZ = nav.nodeZ(hop);
-                }
+        if (!context.hasRoute) {
+            planRoute(tick);
+            if (!context.hasRoute) {
+                return;
             }
         }
-        double dx = nextX - self.pos.x;
-        double dz = nextZ - self.pos.z;
+        boolean detour = tick < context.detourUntilTick;
+        double goalX = detour ? context.detourX : context.waypointX;
+        double goalZ = detour ? context.detourZ : context.waypointZ;
+        double dx = context.routeX - self.pos.x;
+        double dz = context.routeZ - self.pos.z;
         double length = Trig.hypot(dx, dz);
+        boolean atGoal = Math.abs(context.routeX - goalX) < 1e-9 && Math.abs(context.routeZ - goalZ) < 1e-9;
+        if (length < 0.8 && !atGoal) {
+            // Reached a node of the path before the next decision: look further along it now.
+            planRoute(tick);
+            dx = context.routeX - self.pos.x;
+            dz = context.routeZ - self.pos.z;
+            length = Trig.hypot(dx, dz);
+        }
         if (length < 0.35) {
+            if (detour && atGoal) {
+                context.detourUntilTick = 0;
+            }
             return;
         }
         double dirX = dx / length;
         double dirZ = dz / length;
-        if (tick < context.unstickUntilTick) {
+        Web web = noticedWebAhead(self, dirX, dirZ);
+        if (web != null) {
+            // Go round it, on the side away from its middle.
+            double side = (web.x - self.pos.x) * dirZ - (web.z - self.pos.z) * dirX;
+            double sign = side > 0 ? -1 : 1;
             double swap = dirX;
-            dirX = -dirZ;
-            dirZ = swap;
-            if (context.jumpSlot >= 0 && self.grounded) {
-                self.input.moveMask |= 1 << context.jumpSlot;
-            }
+            dirX = -dirZ * sign * 0.8 + dirX * 0.2;
+            dirZ = swap * sign * 0.8 + dirZ * 0.2;
         }
         setMoveFromWorldDirection(self, dirX, dirZ, context.moveSpeedFactor);
+    }
+
+    /**
+     * An enemy web just ahead of the bot that it noticed. Each web is judged once: a good bot nearly always spots
+     * one, a weak bot sometimes walks into it.
+     */
+    private Web noticedWebAhead(Combatant self, double dirX, double dirZ) {
+        Web[] webs = context.sim().webs().webs();
+        for (int i = 0; i < webs.length; i++) {
+            Web w = webs[i];
+            if (!w.active || w.owner == null || w.owner.team == self.team) {
+                continue;
+            }
+            double reach = w.spec.radius() + self.hitRadius() + 1.4;
+            double ax = self.pos.x + dirX * 1.2 - w.x;
+            double az = self.pos.z + dirZ * 1.2 - w.z;
+            if (ax * ax + az * az > reach * reach) {
+                continue;
+            }
+            if (context.webJudged[i] != w.id) {
+                context.webJudged[i] = w.id;
+                context.webNoticed[i] = context.sim().arena().random().nextDouble()
+                        < 0.55 + 0.45 * profile.dodgeChance();
+            }
+            if (context.webNoticed[i]) {
+                return w;
+            }
+        }
+        return null;
     }
 
     /** Converts a world direction into the strafe/forward axes relative to the bot's facing. */
@@ -763,17 +1187,19 @@ public final class BotBrain implements InputSource {
         self.input.moveX = (dirX * rightX + dirZ * rightZ) * factor;
     }
 
-    /** Finds the indices of the roll, crouch and jump moves in this character's move set. */
+    /** Finds the indices of the roll, crouch, jump and wall kick moves in this character's move set. */
     private void resolveMoveSlots(Combatant self) {
         context.rollSlot = -1;
         context.crouchSlot = -1;
         context.jumpSlot = -1;
+        context.wallKickSlot = -1;
         List<MoveDefinition> moves = self.character.moves();
         for (int i = 0; i < moves.size(); i++) {
             switch (moves.get(i).id()) {
                 case "roll" -> context.rollSlot = i;
                 case "crouch" -> context.crouchSlot = i;
                 case "jump" -> context.jumpSlot = i;
+                case "wall_kick" -> context.wallKickSlot = i;
                 default -> {
                     // other moves are not used by the AI
                 }

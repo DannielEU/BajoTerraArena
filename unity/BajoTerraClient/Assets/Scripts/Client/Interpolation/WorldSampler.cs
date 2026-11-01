@@ -104,6 +104,8 @@ namespace Bajoterra.Client.Interpolation
                 frame.Projectiles[count].Stuck = to.Stuck;
                 frame.Projectiles[count].FuseTicks = (int)to.FuseTicks;
                 frame.Projectiles[count].StuckTo = to.Stuck ? to.StuckTo : -1;
+                frame.Projectiles[count].PartnerSlug = to.PartnerSlug;
+                frame.Projectiles[count].Radius = to.Radius;
                 count++;
             }
             frame.ProjectileCount = count;

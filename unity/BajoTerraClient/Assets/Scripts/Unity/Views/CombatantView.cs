@@ -43,6 +43,17 @@ namespace Bajoterra.Unity
         private readonly Transform _dazzle;
         private readonly TextMesh _dazedLabel;
         private float _dazedTime;
+        private readonly Transform _cocoon;
+        private readonly Transform[] _strands = new Transform[4];
+        private readonly Transform _aura;
+        private readonly Renderer _auraRenderer;
+        private readonly Light _auraLight;
+        private readonly MaterialPropertyBlock _auraBlock = new MaterialPropertyBlock();
+        private float _wrapTime;
+        private readonly Transform _bubble;
+        private readonly Renderer _bubbleRenderer;
+        private readonly Transform _bubbleGlint;
+        private float _bubbleTime;
         private readonly ArenaMap _map;
         private readonly ContentCatalog _content;
         private readonly float _radius;
@@ -144,6 +155,35 @@ namespace Bajoterra.Unity
             _dazedLabel.fontSize = 64;
             _dazedLabel.color = new Color(1f, 0.96f, 0.7f);
             _dazed.gameObject.SetActive(false);
+
+            // Caught in a web: strands of silk wound round the body.
+            _cocoon = new GameObject("Cocoon").transform;
+            _cocoon.SetParent(_root, false);
+            Material silk = MaterialFactory.GlowInstance(WebViews.Texture, 1.3f);
+            for (int i = 0; i < _strands.Length; i++)
+            {
+                GameObject strand = Gfx.Make("Strand " + i, Billboard.QuadMesh(), _cocoon, silk);
+                Gfx.NoShadows(strand);
+                _strands[i] = strand.transform;
+            }
+            _cocoon.gameObject.SetActive(false);
+
+            // Bubbaleone's bubble: a soapy, rim-lit sphere wobbling round the hero, with a highlight glinting on it.
+            _bubble = Gfx.Primitive(PrimitiveType.Sphere, "Bubble", _root,
+                MaterialFactory.Fresnel(new Color(0.65f, 0.9f, 1f), 2.2f, 2.0f, 0.06f)).transform;
+            _bubbleRenderer = _bubble.GetComponent<Renderer>();
+            Gfx.NoShadows(_bubble.gameObject);
+            _bubbleGlint = Gfx.Halo(_bubble, "Glint", Vector3.zero, new Color(1f, 1f, 1f, 0.8f), 0.18f);
+            _bubbleGlint.localPosition = new Vector3(-0.22f, 0.28f, -0.3f);
+            _bubble.gameObject.SetActive(false);
+
+            // Megamorphosis: a purple glow round the hero that everybody can see from afar.
+            _aura = Gfx.Halo(_root, "Megamorph aura", Vector3.zero, Palette.Megamorph, 1f);
+            _aura.SetParent(_root, false);
+            _auraRenderer = _aura.GetComponent<Renderer>();
+            _auraLight = Gfx.AddPointLight(_root, "Megamorph light", _root.position, Palette.Megamorph, 7f, 0f);
+            _aura.gameObject.SetActive(false);
+            _auraLight.enabled = false;
             ApplyHeight(_height);
         }
 
@@ -222,12 +262,14 @@ namespace Bajoterra.Unity
                 Rolling = rolling,
                 Fall = _fall,
                 Pitch = frame.Pitch,
-                SlugColor = SelectedSlugColor(state)
+                SlugColor = SelectedSlugColor(state),
+                Dance = alive && state != null ? (int)state.Dance : 0
             };
             _model.Pose(in pose);
 
             UpdateShield(state, alive, deltaTime, lookup);
             UpdateDazed(state, alive, deltaTime);
+            UpdateWrapAndAura(state, alive, deltaTime);
             UpdateTag(state, alive, camera, lookup);
             UpdateCourage(state, alive);
             _ring.gameObject.SetActive(alive);
@@ -314,6 +356,72 @@ namespace Bajoterra.Unity
             _dazzle.localScale = Vector3.one * (0.9f * level);
             _dazedLabel.gameObject.SetActive(!_isYou);
             _dazedLabel.transform.localPosition = new Vector3(0f, head + 0.95f + 0.05f * Mathf.Sin(_dazedTime * 5f), 0f);
+        }
+
+        /// <summary>Silk round a hero caught in a web, and a pulsing purple aura round a megamorphed one.</summary>
+        private void UpdateWrapAndAura(CombatantState state, bool alive, float deltaTime)
+        {
+            bool wrapped = alive && state != null && Bajoterra.Client.Hud.HudModel.StatusTicks(state, "ensnare") > 0;
+            if (_cocoon.gameObject.activeSelf != wrapped)
+            {
+                _cocoon.gameObject.SetActive(wrapped);
+                _wrapTime = 0f;
+            }
+            _wrapTime += deltaTime;
+            if (wrapped)
+            {
+                float wind = Mathf.Clamp01(_wrapTime / 0.2f);
+                for (int i = 0; i < _strands.Length; i++)
+                {
+                    float y = _height * (0.2f + 0.2f * i);
+                    _strands[i].localPosition = new Vector3(0f, y, 0f);
+                    _strands[i].localRotation = Quaternion.Euler(90f + (i % 2 == 0 ? 14f : -14f), i * 47f + _wrapTime * 20f, 0f);
+                    _strands[i].localScale = Vector3.one * (_radius * 3.2f * wind);
+                }
+            }
+
+            uint bubble = alive && state != null ? Bajoterra.Client.Hud.HudModel.StatusTicks(state, "bubble") : 0;
+            bool floating = bubble > 0;
+            if (_bubble.gameObject.activeSelf != floating)
+            {
+                _bubble.gameObject.SetActive(floating);
+                _bubbleTime = 0f;
+            }
+            if (floating)
+            {
+                _bubbleTime += deltaTime;
+                // It swells in, wobbles like soap and trembles in its last half second before it bursts.
+                float grow = Mathf.Clamp01(_bubbleTime / 0.25f);
+                float size = Mathf.Max(_height * 1.25f, _radius * 3f) * (0.4f + 0.6f * grow);
+                float wobble = 0.05f * Mathf.Sin(_bubbleTime * 7f);
+                float tremble = bubble < 30 ? 0.03f * Mathf.Sin(_bubbleTime * 60f) : 0f;
+                _bubble.localPosition = new Vector3(0f, _height * 0.5f, 0f);
+                _bubble.localScale = new Vector3(size * (1f + wobble + tremble), size * (1f - wobble), size * (1f + wobble - tremble));
+                _bubble.localRotation = Quaternion.Euler(0f, _bubbleTime * 40f, 0f);
+                float hue = Mathf.Repeat(0.52f + 0.06f * Mathf.Sin(_bubbleTime * 2.3f), 1f);
+                Color tint = Color.HSVToRGB(hue, 0.35f, 1f);
+                _auraBlock.SetColor("_Color", new Color(tint.r, tint.g, tint.b, _isYou ? 0.5f : 0.9f));
+                _bubbleRenderer.SetPropertyBlock(_auraBlock);
+            }
+
+            uint megamorph = alive && state != null ? Bajoterra.Client.Hud.HudModel.StatusTicks(state, "megamorph") : 0;
+            bool glowing = megamorph > 0;
+            if (_aura.gameObject.activeSelf != glowing)
+            {
+                _aura.gameObject.SetActive(glowing);
+                _auraLight.enabled = glowing;
+            }
+            if (glowing)
+            {
+                float beat = 0.85f + 0.15f * Mathf.Sin(_wrapTime * 6f);
+                float ending = Mathf.Clamp01(megamorph / 60f);
+                _aura.localPosition = new Vector3(0f, _height * 0.5f, 0f);
+                _aura.localScale = Vector3.one * (Mathf.Max(_height, _radius * 2f) * 1.6f * beat);
+                _auraBlock.SetColor("_Color", Palette.WithAlpha(Palette.Megamorph, (_isYou ? 0.18f : 0.38f) * ending));
+                _auraRenderer.SetPropertyBlock(_auraBlock);
+                _auraLight.transform.localPosition = new Vector3(0f, _height * 0.6f, 0f);
+                _auraLight.intensity = 2.2f * beat * ending;
+            }
         }
 
         private void UpdateCourage(CombatantState state, bool alive)

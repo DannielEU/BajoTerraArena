@@ -12,7 +12,7 @@ namespace Bajoterra.Unity
     /// A hero made in Blender (<c>unity/art/blender</c>, exported to <c>Resources/Models/&lt;id&gt;.fbx</c>): a skinned
     /// body that holds its blaster in both hands, and thirteen clips that are blended by the state the server reports.
     /// Standing and crouched idle, running in four directions (standing and crouched), a mid-air pose, the roll and a
-    /// defeated pose. The weights come from what is really happening: the speed and direction the body moves in, how
+    /// defeated pose, plus three celebration dances. The weights come from what is really happening: the speed and direction the body moves in, how
     /// much the hitbox has shrunk (crouch), whether the active move is the roll, whether it is in the air. Aiming
     /// tilts the spine afterwards, so the blaster follows the camera. The blaster's slug dial glows in the colour of
     /// the selected slug, like the primitive stand-in did.
@@ -30,6 +30,9 @@ namespace Bajoterra.Unity
             "Air", "Roll", "Dead"
         };
 
+        /// <summary>Celebration dances (optional: a model without them simply does not dance).</summary>
+        private static readonly string[] DanceNames = { "Dance1", "Dance2", "Dance3" };
+
         /// <summary>The height each hero was modelled at: the server's hitbox for that character. The model is scaled to the real one.</summary>
         private static readonly Dictionary<string, float> AuthoredHeights = new Dictionary<string, float>
         {
@@ -46,6 +49,13 @@ namespace Bajoterra.Unity
         private readonly float[] _length = new float[ClipCount];
         private readonly float[] _weight = new float[ClipCount];
         private readonly float[] _time = new float[ClipCount];
+        private readonly AnimationClipPlayable[] _dancePlayers = new AnimationClipPlayable[3];
+        private readonly float[] _danceLength = new float[3];
+        private readonly float[] _danceWeight = new float[3];
+        private int _danceCount;
+        private int _currentDance;
+        private float _danceTime;
+        private float _dance;
 
         private readonly Transform _spine;
         private readonly Transform _chest;
@@ -74,8 +84,8 @@ namespace Bajoterra.Unity
         private bool _wasRolling;
         private bool _dead;
 
-        private RiggedCharacterModel(Transform parent, string id, GameObject prefab, AnimationClip[] clips, float scale,
-            float standingHeight, Color team)
+        private RiggedCharacterModel(Transform parent, string id, GameObject prefab, AnimationClip[] clips,
+            AnimationClip[] dances, float scale, float standingHeight, Color team)
         {
             _standing = standingHeight;
             _cycleDistance = 2.2f * (standingHeight / 1.8f);
@@ -106,7 +116,8 @@ namespace Bajoterra.Unity
             _graph = PlayableGraph.Create("Hero " + id);
             _graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
             AnimationPlayableOutput output = AnimationPlayableOutput.Create(_graph, "Pose", _animator);
-            _mixer = AnimationMixerPlayable.Create(_graph, ClipCount);
+            _danceCount = dances[0] != null && dances[1] != null && dances[2] != null ? 3 : 0;
+            _mixer = AnimationMixerPlayable.Create(_graph, ClipCount + _danceCount);
             output.SetSourcePlayable(_mixer);
             for (int i = 0; i < ClipCount; i++)
             {
@@ -115,6 +126,14 @@ namespace Bajoterra.Unity
                 _graph.Connect(_players[i], 0, _mixer, i);
                 _mixer.SetInputWeight(i, 0f);
                 _length[i] = Mathf.Max(0.01f, clips[i].length);
+            }
+            for (int i = 0; i < _danceCount; i++)
+            {
+                _dancePlayers[i] = AnimationClipPlayable.Create(_graph, dances[i]);
+                _dancePlayers[i].SetApplyFootIK(false);
+                _graph.Connect(_dancePlayers[i], 0, _mixer, ClipCount + i);
+                _mixer.SetInputWeight(ClipCount + i, 0f);
+                _danceLength[i] = Mathf.Max(0.01f, dances[i].length);
             }
 
             // The imported materials only carry the colours: swap them for the game's own shaders.
@@ -169,6 +188,7 @@ namespace Bajoterra.Unity
                 return null;
             }
             var clips = new AnimationClip[ClipCount];
+            var dances = new AnimationClip[DanceNames.Length];
             foreach (AnimationClip clip in Resources.LoadAll<AnimationClip>(ResourcePath + id))
             {
                 string name = clip.name;
@@ -177,10 +197,16 @@ namespace Bajoterra.Unity
                     continue;
                 }
                 int bar = name.LastIndexOf('|');
-                int index = Array.IndexOf(ClipNames, bar >= 0 ? name.Substring(bar + 1) : name);
+                string bare = bar >= 0 ? name.Substring(bar + 1) : name;
+                int index = Array.IndexOf(ClipNames, bare);
                 if (index >= 0)
                 {
                     clips[index] = clip;
+                }
+                int dance = Array.IndexOf(DanceNames, bare);
+                if (dance >= 0)
+                {
+                    dances[dance] = clip;
                 }
             }
             for (int i = 0; i < ClipCount; i++)
@@ -191,7 +217,7 @@ namespace Bajoterra.Unity
                     return null;
                 }
             }
-            return new RiggedCharacterModel(parent, id, prefab, clips, standingHeight / authored, standingHeight, team);
+            return new RiggedCharacterModel(parent, id, prefab, clips, dances, standingHeight / authored, standingHeight, team);
         }
 
         public Transform Body
@@ -257,6 +283,25 @@ namespace Bajoterra.Unity
             _roll = Mathf.MoveTowards(_roll, pose.Rolling ? 1f : 0f, dt * (pose.Rolling ? 18f : 9f));
             float dead = Mathf.Clamp01(pose.Fall);
 
+            // A dance takes over the whole body while it lasts (the server stops it as soon as the hero moves).
+            bool dancing = _danceCount > 0 && pose.Dance > 0 && !pose.Airborne && !pose.Rolling;
+            if (dancing && pose.Dance - 1 != _currentDance)
+            {
+                _currentDance = Mathf.Clamp(pose.Dance - 1, 0, _danceCount - 1);
+                _danceTime = 0f;
+            }
+            if (dancing && _dance <= 0f)
+            {
+                _danceTime = 0f;
+            }
+            _danceTime += dt;
+            _dance = Mathf.MoveTowards(_dance, dancing ? 1f : 0f, dt * (dancing ? 5f : 8f));
+            for (int i = 0; i < _danceCount; i++)
+            {
+                _danceWeight[i] = i == _currentDance ? _dance * (1f - dead) : 0f;
+            }
+            float still = 1f - _dance * (1f - dead);
+
             // Clip weights: stand/crouch x idle/run, then air, roll and defeated take over in that order. They sum to 1.
             float stand = 1f - _crouch;
             float f = Mathf.Max(0f, d.y), b = Mathf.Max(0f, -d.y), r = Mathf.Max(0f, d.x), l = Mathf.Max(0f, -d.x);
@@ -267,7 +312,7 @@ namespace Bajoterra.Unity
             l /= sum;
             float runStand = _move * stand;
             float runCrouch = _move * _crouch;
-            float rest = (1f - _air) * (1f - _roll) * (1f - dead);
+            float rest = (1f - _air) * (1f - _roll) * (1f - dead) * still;
             _weight[Idle] = (1f - _move) * stand * rest;
             _weight[CrouchIdle] = (1f - _move) * _crouch * rest;
             _weight[RunF] = runStand * f * rest;
@@ -278,8 +323,8 @@ namespace Bajoterra.Unity
             _weight[CrouchRunB] = runCrouch * b * rest;
             _weight[CrouchRunL] = runCrouch * l * rest;
             _weight[CrouchRunR] = runCrouch * r * rest;
-            _weight[Air] = _air * (1f - _roll) * (1f - dead);
-            _weight[Roll] = _roll * (1f - dead);
+            _weight[Air] = _air * (1f - _roll) * (1f - dead) * still;
+            _weight[Roll] = _roll * (1f - dead) * still;
             _weight[Dead] = dead;
 
             float cycleTime = _gait - Mathf.Floor(_gait);
@@ -308,7 +353,7 @@ namespace Bajoterra.Unity
             Evaluate();
 
             // Aim: the camera pitch tilts the spine (the arms carry the blaster with it) and the head half-counters it.
-            float aim = (1f - _roll) * (1f - dead);
+            float aim = (1f - _roll) * (1f - dead) * (1f - _dance);
             float degrees = -pose.Pitch * Mathf.Rad2Deg * aim;
             Vector3 axis = _body.right;
             Tilt(_spine, axis, degrees * 0.4f);
@@ -355,6 +400,14 @@ namespace Bajoterra.Unity
                 if (_weight[i] > 1e-4f)
                 {
                     _players[i].SetTime(_time[i]);
+                }
+            }
+            for (int i = 0; i < _danceCount; i++)
+            {
+                _mixer.SetInputWeight(ClipCount + i, _danceWeight[i]);
+                if (_danceWeight[i] > 1e-4f)
+                {
+                    _dancePlayers[i].SetTime(Mathf.Repeat(_danceTime, _danceLength[i]));
                 }
             }
             _graph.Evaluate(0f);

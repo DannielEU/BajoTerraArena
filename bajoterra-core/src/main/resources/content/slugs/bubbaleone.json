@@ -1,0 +1,28 @@
+{
+  "id": "bubbaleone",
+  "name": "Bubbaleone",
+  "element": "WATER",
+  "role": "CONTROL",
+  "targeting": "ENEMIES",
+  "projectile": {
+    "speed": 39.6,
+    "gravity": 4,
+    "radius": 0.32,
+    "lifetimeSeconds": 2.5,
+    "pierce": 0
+  },
+  "fireDelayMultiplier": 1.1,
+  "botWeight": 0.9,
+  "onHit": [
+    {
+      "type": "damage",
+      "amount": 6
+    },
+    {
+      "type": "bubble",
+      "durationSeconds": 2.4,
+      "height": 1.6,
+      "rise": 2.2
+    }
+  ]
+}

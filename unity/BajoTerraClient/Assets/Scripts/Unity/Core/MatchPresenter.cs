@@ -28,12 +28,15 @@ namespace Bajoterra.Unity
         private readonly WaterView _water;
         private readonly BarrierViews _barriers;
         private readonly FireTrailViews _fire;
+        private readonly TornadoViews _tornadoes;
+        private readonly WebViews _webs;
         private readonly CombatantViews _combatants;
         private readonly ProjectileViews _projectiles;
         private readonly VfxPlayer _vfx;
         private readonly HudModel _model = new HudModel();
         private readonly MoveMask _moveMask;
         private readonly OneShotInputs _oneShots = new OneShotInputs();
+        private uint _nextDance;
         private readonly FixedStepClock _inputClock = new FixedStepClock();
         private readonly StringBuilder _debug = new StringBuilder(256);
         private string _debugText = string.Empty;
@@ -43,6 +46,7 @@ namespace Bajoterra.Unity
         private int _spectateId = -1;
         private bool _wasAlive = true;
         private float _lastBlind;
+        private bool _fusionWasReady;
 
         public MatchPresenter(GameClient client, GameSettings settings, IControls controls, Camera camera,
             HudScreen hud, AudioPlayer audio, Transform parent)
@@ -61,6 +65,8 @@ namespace Bajoterra.Unity
             _water = new WaterView(_root, _match.Map, _match.Content, audio);
             _barriers = new BarrierViews(_root);
             _fire = new FireTrailViews(_root, _match.Content, audio);
+            _tornadoes = new TornadoViews(_root, audio);
+            _webs = new WebViews(_root, _match.YourTeam, _match.TeamOf);
             _combatants = new CombatantViews(_root, _match);
             _projectiles = new ProjectileViews(_root, _match.Content, _match.Map, audio);
             _vfx = new VfxPlayer(_root, _match.Content, _match.Map, audio, _combatants, _match.YourId, _match.YourTeam,
@@ -75,6 +81,9 @@ namespace Bajoterra.Unity
             _vfx.YouHitAnEnemy += _hud.HitMarker;
             _vfx.YouLandedACritical += _hud.Critical;
             _vfx.YourCourageChanged += OnCourage;
+            _vfx.YouFused += OnFused;
+            _vfx.FreezingTornado += OnFreezingTornado;
+            _vfx.YouMegamorphed += OnMegamorphed;
             _vfx.Shake += _camera.Shake;
             _camera.SetAim(_match.Map.Spawns.Length > 0 ? SpawnYaw() : 0f, 0.15f);
             _hud.SetStatsVisible(settings.ShowStats);
@@ -132,10 +141,13 @@ namespace Bajoterra.Unity
             _water.Apply(frame, deltaTime);
             _barriers.Apply(_match.Latest, deltaTime);
             _fire.Apply(_match.Latest, deltaTime, _camera.Camera != null ? _camera.Camera.transform.position : Vector3.zero);
+            _tornadoes.Apply(_match.Latest, deltaTime);
+            _webs.Apply(_match.Latest, deltaTime);
             _vfx.Update(deltaTime, _camera.Camera);
 
             _model.Refresh(_match, _client.PingMs);
             HearTheFlash();
+            AnnounceFusion();
             AnnounceCountdown();
             UpdateDebug(deltaTime);
             _hud.Refresh(_model, _match, deltaTime, _debugText);
@@ -163,6 +175,9 @@ namespace Bajoterra.Unity
             _vfx.YouHitAnEnemy -= _hud.HitMarker;
             _vfx.YouLandedACritical -= _hud.Critical;
             _vfx.YourCourageChanged -= OnCourage;
+            _vfx.YouFused -= OnFused;
+            _vfx.FreezingTornado -= OnFreezingTornado;
+            _vfx.YouMegamorphed -= OnMegamorphed;
             _vfx.Shake -= _camera.Shake;
             _hud.SetScoreboard(false);
             _hud.SetDefeat(false, null, Color.white, null);
@@ -173,6 +188,8 @@ namespace Bajoterra.Unity
             _water.Destroy();
             _barriers.Destroy();
             _fire.Destroy();
+            _tornadoes.Destroy();
+            _webs.Destroy();
             if (_root != null)
             {
                 Object.Destroy(_root.gameObject);
@@ -283,6 +300,12 @@ namespace Bajoterra.Unity
             {
                 _oneShots.Cycle(-_controls.Scroll);
             }
+            if (_controls.DancePressed)
+            {
+                // Each press dances the next of the three celebration dances.
+                _nextDance = _nextDance % 3 + 1;
+                _oneShots.Dance(_nextDance);
+            }
         }
 
         private void SendInputs(float deltaTime, bool alive)
@@ -296,6 +319,7 @@ namespace Bajoterra.Unity
                     input.MoveX = _controls.MoveX;
                     input.MoveZ = _controls.MoveZ;
                     input.Fire = _controls.Fire;
+                    input.Fusion = _controls.Fusion;
                     uint mask = 0;
                     for (int bit = 0; bit < _moveMask.Count; bit++)
                     {
@@ -313,6 +337,32 @@ namespace Bajoterra.Unity
                 _oneShots.Drain(ref input);
                 _client.SendInput(input);
             }
+        }
+
+        /// <summary>A chime the moment your fusion energy fills up.</summary>
+        private void AnnounceFusion()
+        {
+            bool ready = _model.FusionReady;
+            if (ready && !_fusionWasReady)
+            {
+                _audio.PlayUi(_audio.FusionReady, 0.55f);
+            }
+            _fusionWasReady = ready;
+        }
+
+        private void OnFused()
+        {
+            _hud.Banner(UiText.FusionBanner, Palette.Fusion, 1.4f);
+        }
+
+        private void OnFreezingTornado()
+        {
+            _hud.Banner(UiText.FreezingTornado, Palette.Status("freeze"), 1.4f);
+        }
+
+        private void OnMegamorphed()
+        {
+            _hud.Banner(UiText.MegamorphBanner, Palette.Megamorph, 2.2f, UiText.MegamorphDetail);
         }
 
         private void AnnounceCountdown()
@@ -358,6 +408,21 @@ namespace Bajoterra.Unity
                     // Every match has its own arena: the first round says which one.
                     _hud.Banner(UiText.Round + " " + e.A, Color.white, 2.2f,
                         e.A == 1 ? UiText.ArenaIntro(_match.Map.Name) : UiText.FightNow);
+                    break;
+                case EventKind.PickupRespawned:
+                    if (e.A >= 0 && e.A < _match.Map.Pickups.Length
+                        && _match.Content.Pickup(_match.Map.Pickups[e.A].PickupIndex).Id == "megamorph_crystal")
+                    {
+                        _hud.Banner(UiText.MegamorphBanner, Palette.Megamorph, 2f, UiText.MegamorphCrystalUp);
+                        _audio.PlayUi(_audio.FusionReady, 0.4f);
+                    }
+                    break;
+                case EventKind.Knockback:
+                    // Only a tornado jump throws you straight up without pushing you anywhere.
+                    if (e.Subject == _match.YourId && e.Value <= 0f)
+                    {
+                        _hud.Banner(UiText.TornadoJump, Palette.Element("AIR"), 1.2f);
+                    }
                     break;
                 case EventKind.RoundEnded:
                     if (e.A < 0)

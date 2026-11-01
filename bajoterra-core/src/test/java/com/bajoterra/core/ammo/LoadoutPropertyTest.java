@@ -23,7 +23,7 @@ class LoadoutPropertyTest {
     @Provide
     Arbitrary<List<Op>> operations() {
         Arbitrary<Op> op = Arbitraries.integers().between(0, 3).flatMap(kind ->
-                Arbitraries.integers().between(0, 9).map(slot -> new Op(kind, slot)));
+                Arbitraries.integers().between(0, 4).map(slot -> new Op(kind, slot)));
         return op.list().ofMinSize(1).ofMaxSize(200);
     }
 
@@ -37,8 +37,8 @@ class LoadoutPropertyTest {
     }
 
     @Property
-    void neverMoreThanReloadShotsSlotsAreLockedAndTheTenSlugsAreConserved(
-            @ForAll @IntRange(min = 0, max = 9) int reloadShots,
+    void neverMoreThanReloadShotsSlotsAreLockedAndTheFiveSlugsAreConserved(
+            @ForAll @IntRange(min = 0, max = 4) int reloadShots,
             @ForAll("operations") List<Op> operations) {
         Loadout loadout = loadout(reloadShots);
         SlugDefinition[] original = new SlugDefinition[Loadout.SIZE];
@@ -76,8 +76,8 @@ class LoadoutPropertyTest {
 
     @Property
     void aSlotFiredAtShotNIsAvailableExactlyFromShotNPlusReload(
-            @ForAll @IntRange(min = 1, max = 9) int reloadShots,
-            @ForAll @IntRange(min = 0, max = 9) int firstSlot) {
+            @ForAll @IntRange(min = 1, max = 4) int reloadShots,
+            @ForAll @IntRange(min = 0, max = 4) int firstSlot) {
         Loadout loadout = loadout(reloadShots);
         loadout.select(firstSlot);
         loadout.fireSelected();

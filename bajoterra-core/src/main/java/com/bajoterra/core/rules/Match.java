@@ -106,6 +106,7 @@ public final class Match {
         GameEvent event = arena.events().begin(EventType.ROUND_ENDED, arena.tick());
         event.a = result;
         event.b = roundNumber;
+        listener.onRoundEnd(result);
         return true;
     }
 

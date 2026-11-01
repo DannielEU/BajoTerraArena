@@ -9,6 +9,7 @@ import com.bajoterra.core.effect.Effect;
  *
  * @param respawnTicks ticks until the pickup becomes available again after being taken
  * @param radius horizontal distance at which a combatant collects it
+ * @param firstSpawnTicks ticks into each round before it first shows up (0 = there from the start)
  */
 public record PickupDefinition(
         String id,
@@ -17,15 +18,22 @@ public record PickupDefinition(
         Effect effect,
         int respawnTicks,
         double radius,
-        PickupRequirement requirement) implements Identified {
+        PickupRequirement requirement,
+        int firstSpawnTicks) implements Identified {
 
     public PickupDefinition {
-        if (id == null || id.isBlank() || respawnTicks <= 0 || !(radius > 0)) {
+        if (id == null || id.isBlank() || respawnTicks <= 0 || !(radius > 0) || firstSpawnTicks < 0) {
             throw new IllegalArgumentException("Invalid pickup '" + id + "'");
         }
     }
 
+    /** A pickup that is there from the start of every round. */
+    public PickupDefinition(String id, int index, String name, Effect effect, int respawnTicks, double radius,
+            PickupRequirement requirement) {
+        this(id, index, name, effect, respawnTicks, radius, requirement, 0);
+    }
+
     public PickupDefinition withIndex(int newIndex) {
-        return new PickupDefinition(id, newIndex, name, effect, respawnTicks, radius, requirement);
+        return new PickupDefinition(id, newIndex, name, effect, respawnTicks, radius, requirement, firstSpawnTicks);
     }
 }

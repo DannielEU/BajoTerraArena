@@ -29,6 +29,12 @@ public final class Projectile {
     public double trailGap;
     /** Metres of trail laid so far. */
     public double trailLaid;
+    /** Collision radius: the slug's own, grown while its slinger is megamorphed. */
+    public double radius;
+    /** The second slug of a fusion shot, whose effects go off together with this one's; null for a plain shot. */
+    public SlugDefinition partner;
+    /** Id of the tornado that already threw this slug off course (0 = none: each slug is thrown once). */
+    public int deflectedBy;
     /** Horizontal unit direction a stuck slug faces: the way it was flying, or towards whoever stopped it. */
     public double stuckDirX;
     public double stuckDirZ;

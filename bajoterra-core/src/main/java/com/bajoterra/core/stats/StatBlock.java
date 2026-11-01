@@ -29,6 +29,10 @@ public final class StatBlock {
     public boolean invulnerable;
     /** Cannot move, fire or start moves while true. */
     public boolean stunned;
+    /** Cannot move or start moves while true, but can still aim and fire (caught in a web). */
+    public boolean rooted;
+    /** Multiplies the size of the slugs this combatant fires (megamorphosis). */
+    public double projectileScale = 1.0;
 
     private final double[] elementTaken = new double[Element.COUNT];
 
@@ -48,6 +52,8 @@ public final class StatBlock {
         blindness = 0;
         invulnerable = false;
         stunned = false;
+        rooted = false;
+        projectileScale = 1.0;
         Arrays.fill(elementTaken, 1.0);
     }
 

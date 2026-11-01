@@ -8,13 +8,19 @@ import com.bajoterra.core.ammo.SlotSelectionPolicy;
 import com.bajoterra.core.character.CharacterDefinition;
 import com.bajoterra.core.combat.CombatArena;
 import com.bajoterra.core.combat.DamagePipeline;
+import com.bajoterra.core.combat.Structures;
 import com.bajoterra.core.content.Content;
 import com.bajoterra.core.entity.Combatant;
+import com.bajoterra.core.entity.InputState;
 import com.bajoterra.core.event.EventBuffer;
 import com.bajoterra.core.event.EventType;
 import com.bajoterra.core.event.GameEvent;
 import com.bajoterra.core.hazard.Hazard;
 import com.bajoterra.core.hazard.HazardSystem;
+import com.bajoterra.core.hazard.Tornado;
+import com.bajoterra.core.hazard.TornadoSystem;
+import com.bajoterra.core.hazard.Web;
+import com.bajoterra.core.hazard.WebSystem;
 import com.bajoterra.core.item.Pickup;
 import com.bajoterra.core.item.PickupDefinition;
 import com.bajoterra.core.item.PickupSystem;
@@ -29,6 +35,8 @@ import com.bajoterra.core.rules.Courage;
 import com.bajoterra.core.rules.Match;
 import com.bajoterra.core.rules.MatchListener;
 import com.bajoterra.core.slug.SlugDefinition;
+import com.bajoterra.core.slug.TornadoSpec;
+import com.bajoterra.core.slug.WebSpec;
 import com.bajoterra.core.world.Barrier;
 import com.bajoterra.core.world.GameMap;
 import com.bajoterra.core.world.PickupSpawn;
@@ -50,6 +58,8 @@ public final class GameSimulation implements MatchListener {
 
     /** Capacity of the projectile pool; plenty for six combatants. */
     public static final int MAX_PROJECTILES = 128;
+    /** Longest a dance lasts if nobody stops it (8 s). */
+    private static final int DANCE_TICKS = 8 * SimulationConstants.TICKS_PER_SECOND;
     /** Capacity of the event ring. */
     public static final int EVENT_CAPACITY = 4096;
 
@@ -63,6 +73,8 @@ public final class GameSimulation implements MatchListener {
     private final ProjectilePool pool;
     private final ProjectileSystem projectiles;
     private final HazardSystem hazards;
+    private final TornadoSystem tornadoes;
+    private final WebSystem webs;
     private final FireController fireController;
     private final MovementSystem movement;
     private final LocomotionStateMachine locomotion = new LocomotionStateMachine();
@@ -79,6 +91,7 @@ public final class GameSimulation implements MatchListener {
         this.config = config;
         this.map = resolveMap(content, config);
         this.world = new World(map);
+        map.nav();
         this.slots = BotFiller.fill(config, content);
         SplittableRandom loadoutRandom = new SplittableRandom(config.seed() ^ 0xA5A5A5A5L);
 
@@ -90,10 +103,32 @@ public final class GameSimulation implements MatchListener {
                 DamagePipeline.standard(content.elementChart(), config.friendlyFire()),
                 new EventBuffer(EVENT_CAPACITY), config.seed());
         arena.setSight(world::hasLineOfSight);
-        arena.setStructures(this::raiseWall);
+        arena.setStructures(new Structures() {
+            @Override
+            public boolean raiseWall(Combatant owner, int slugIndex, double x, double y, double z, double dirX,
+                    double dirZ, double width, double height, double thickness, int hits, int ticks) {
+                return GameSimulation.this.raiseWall(owner, slugIndex, x, y, z, dirX, dirZ, width, height,
+                        thickness, hits, ticks);
+            }
+
+            @Override
+            public boolean spawnTornado(Combatant owner, SlugDefinition slug, double x, double y, double z,
+                    double dirX, double dirZ, TornadoSpec spec) {
+                return tornadoes.spawn(owner, slug, spec, x, y, z, dirX, dirZ) != null;
+            }
+
+            @Override
+            public boolean spinWeb(Combatant owner, SlugDefinition slug, double x, double y, double z,
+                    WebSpec spec) {
+                return webs.spin(owner, slug, spec, x, y, z) != null;
+            }
+        });
         this.pool = new ProjectilePool(MAX_PROJECTILES);
         this.hazards = new HazardSystem(arena);
+        this.tornadoes = new TornadoSystem(arena, world, hazards);
+        this.webs = new WebSystem(arena, world, hazards);
         this.projectiles = new ProjectileSystem(arena, world, pool, hazards);
+        projectiles.setTornadoes(tornadoes);
         this.fireController = new FireController(arena, world, projectiles, SlotSelectionPolicy.MANUAL);
         this.movement = new MovementSystem(world);
         this.pickups = new PickupSystem(arena, createPickups());
@@ -195,6 +230,7 @@ public final class GameSimulation implements MatchListener {
                 Courage.modify(c);
                 locomotion.update(c, arena);
                 movement.integrate(c);
+                dance(c);
             }
         }
         for (int k = 0; k < count; k++) {
@@ -205,11 +241,15 @@ public final class GameSimulation implements MatchListener {
         }
         projectiles.step();
         hazards.step();
+        tornadoes.step();
+        webs.step();
         meltBarriers();
         for (Combatant c : combatants) {
             if (c.alive) {
                 c.statuses.tick(c, arena);
                 c.vitals.tick();
+                CombatArena.chargeFusion(c, CombatArena.FUSION_PER_SECOND * SimulationConstants.TICK_SECONDS
+                        / CombatArena.FUSION_PER_POINT);
             }
         }
         pickups.update();
@@ -225,6 +265,8 @@ public final class GameSimulation implements MatchListener {
         pool.releaseAll();
         world.clearBarriers();
         hazards.clear();
+        tornadoes.clear();
+        webs.clear();
         pickups.resetAll();
         placeCombatants();
         for (Combatant c : combatants) {
@@ -234,12 +276,48 @@ public final class GameSimulation implements MatchListener {
         }
     }
 
+    /** The survivors of the team that won the round celebrate it with a dance each (until the next round). */
+    @Override
+    public void onRoundEnd(int winnerTeam) {
+        for (Combatant c : combatants) {
+            if (c.alive && c.team == winnerTeam) {
+                c.dance = 1 + Math.floorMod(c.id + arena.tick() / 7, Combatant.DANCES);
+                c.danceTicks = 0;
+            }
+        }
+    }
+
+    /**
+     * Starts the dance a player asked for (standing on the floor and free to move) and stops it as soon as they move,
+     * fire, use a move, leave the floor or are held, or after {@link #DANCE_TICKS}. A dance is only for show.
+     */
+    private static void dance(Combatant c) {
+        InputState in = c.input;
+        boolean held = c.stats.stunned || c.stats.rooted || !c.grounded;
+        if (in.dance > 0 && in.dance <= Combatant.DANCES && !held) {
+            c.dance = in.dance;
+            c.danceTicks = 0;
+        }
+        in.dance = 0;
+        if (c.dance == 0) {
+            return;
+        }
+        boolean busy = Math.abs(in.moveX) > 0.2 || Math.abs(in.moveZ) > 0.2 || in.fire || in.fusion
+                || in.moveMask != 0;
+        if (busy || held || ++c.danceTicks >= DANCE_TICKS) {
+            c.dance = 0;
+            c.danceTicks = 0;
+        }
+    }
+
     @Override
     public void onMatchEnd(int winnerTeam) {
         director.afterRound(match.lastRoundWinner(), arena);
         pool.releaseAll();
         world.clearBarriers();
         hazards.clear();
+        tornadoes.clear();
+        webs.clear();
     }
 
     /**
@@ -289,6 +367,16 @@ public final class GameSimulation implements MatchListener {
     /** The walls of fire burning on the floor. */
     public HazardSystem hazards() {
         return hazards;
+    }
+
+    /** The tornadoes spinning in the arena. */
+    public TornadoSystem tornadoes() {
+        return tornadoes;
+    }
+
+    /** The web traps on the floor. */
+    public WebSystem webs() {
+        return webs;
     }
 
     /**
@@ -389,6 +477,19 @@ public final class GameSimulation implements MatchListener {
             if (hazard.active) {
                 hash = mix(hash, hazard.id);
                 hash = mix(hash, hazard.ticksLeft);
+            }
+        }
+        for (Tornado tornado : tornadoes.tornadoes()) {
+            if (tornado.active) {
+                hash = mix(hash, tornado.id);
+                hash = mix(hash, Double.doubleToLongBits(tornado.x));
+                hash = mix(hash, Double.doubleToLongBits(tornado.z));
+            }
+        }
+        for (Web web : webs.webs()) {
+            if (web.active) {
+                hash = mix(hash, web.id);
+                hash = mix(hash, web.ticksLeft);
             }
         }
         for (int i = 0; i < pool.capacity(); i++) {

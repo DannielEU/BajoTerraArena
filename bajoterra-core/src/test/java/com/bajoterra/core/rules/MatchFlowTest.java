@@ -233,16 +233,16 @@ class MatchFlowTest {
     }
 
     @Test
-    void everyCombatantCarriesExactlyTenSlugs() {
+    void everyCombatantCarriesExactlyFiveSlugs() {
         GameSimulation sim = new GameSimulation(CONTENT, MatchConfig.builder("caverna").seed(4).build());
 
         for (Combatant c : sim.combatants()) {
             int slugs = 0;
-            for (int slot = 0; slot < 10; slot++) {
+            for (int slot = 0; slot < 5; slot++) {
                 assertThat(c.loadout.slug(slot)).isNotNull();
                 slugs++;
             }
-            assertThat(slugs).isEqualTo(10);
+            assertThat(slugs).isEqualTo(5);
         }
     }
 
@@ -265,6 +265,6 @@ class MatchFlowTest {
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new GameSimulation(CONTENT, config))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("exactly 10");
+                .hasMessageContaining("exactly 5");
     }
 }

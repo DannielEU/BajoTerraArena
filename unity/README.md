@@ -36,7 +36,7 @@ material por defecto del pipeline).
 4. En el menú principal pulsa **JUGAR** → **"Jugar contra bots"**: arranca el servidor Java como proceso hijo y se
    conecta; o escribe la dirección de un servidor que ya esté corriendo y pulsa **Conectar**. **CONTROLES** lista las teclas
    y **AJUSTES** permite cambiar sensibilidad, campo de visión, volúmenes y la información de depuración.
-5. Entra a una sala, elige personaje y tus 10 babosas (o déjalas aleatorias) y pulsa **¡Listo!**. Los huecos hasta 3 contra
+5. Entra a una sala, elige personaje y tus 5 babosas (o déjalas aleatorias) y pulsa **¡Listo!**. Los huecos hasta 3 contra
    3 se rellenan con bots.
 
 También hay un menú **Bajoterra → Server** en el editor para compilar, arrancar y parar el servidor.

@@ -490,6 +490,14 @@
       ]
     },
     {
+      "item": "megamorph_crystal",
+      "pos": [
+        0,
+        0,
+        -4
+      ]
+    },
+    {
       "item": "health_pack",
       "pos": [
         -15.5,

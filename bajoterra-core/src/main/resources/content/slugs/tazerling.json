@@ -5,7 +5,7 @@
   "role": "CONTROL",
   "targeting": "ENEMIES",
   "projectile": {
-    "speed": 55,
+    "speed": 60.5,
     "gravity": 1,
     "radius": 0.25,
     "lifetimeSeconds": 2.5,

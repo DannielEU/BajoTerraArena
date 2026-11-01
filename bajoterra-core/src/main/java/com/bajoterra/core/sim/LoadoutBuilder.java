@@ -10,18 +10,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.SplittableRandom;
 
-/** Generates sensible ten-slug loadouts for bots and for players who did not pick one. */
+/** Generates sensible five-slug loadouts for bots and for players who did not pick one. */
 public final class LoadoutBuilder {
 
-    private static final int SUPPORT_SLOTS = 2;
-    private static final int CONTROL_SLOTS = 3;
+    private static final int SUPPORT_SLOTS = 1;
+    private static final int CONTROL_SLOTS = 1;
 
     private LoadoutBuilder() {
         throw new AssertionError("Utility class, not instantiable");
     }
 
     /**
-     * Picks two support slugs, three control slugs and fills the rest with damage slugs, respecting the duplicate
+     * Picks one support slug, one control slug and fills the rest with damage slugs, respecting the duplicate
      * limit and falling back to any slug when a role runs out. Deterministic for a given random source.
      */
     public static List<String> balanced(Registry<SlugDefinition> catalog, SplittableRandom random,

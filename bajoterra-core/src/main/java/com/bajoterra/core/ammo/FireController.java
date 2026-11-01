@@ -15,6 +15,10 @@ import com.bajoterra.core.world.World;
 /**
  * Turns fire input into projectiles: validates the shot (alive, not stunned, interval elapsed, selected slug
  * unlocked), works out where the slug starts and where it flies, launches it and starts the lock on the slot.
+ *
+ * <p>With full fusion energy, the fusion button fires a fusion shot: the selected slug and the next available one
+ * ({@link Loadout#fusionPartner()}) leave the blaster together as one projectile, both slots are locked and the energy
+ * is spent.
  */
 public final class FireController {
 
@@ -24,6 +28,8 @@ public final class FireController {
     private static final double MUZZLE_FORWARD = 0.55;
     /** Fraction of the hitbox height at which the blaster sits. */
     private static final double MUZZLE_HEIGHT_FRACTION = 0.72;
+    /** A fusion shot takes the blaster this much longer to recover from than its slower slug alone. */
+    private static final double FUSION_DELAY = 1.25;
 
     private final CombatArena arena;
     private final World world;
@@ -54,8 +60,9 @@ public final class FireController {
             }
         }
         input.consumeEdges();
-        if (input.fire && canFire(c)) {
-            fire(c);
+        boolean fusion = input.fusion && c.fusionReady();
+        if ((input.fire || fusion) && canFire(c)) {
+            fire(c, fusion);
         }
     }
 
@@ -68,14 +75,28 @@ public final class FireController {
                 && !LocomotionStateMachine.blocksFiring(c);
     }
 
-    private void fire(Combatant c) {
+    private void fire(Combatant c, boolean fusion) {
         computeShot(c);
         int slot = c.loadout.selected();
+        int partnerSlot = fusion ? c.loadout.fusionPartner() : -1;
         SlugDefinition slug = c.loadout.fireSelected();
-        projectiles.spawn(c, slug, origin, direction);
+        SlugDefinition partner = partnerSlot >= 0 ? c.loadout.fireAlongside(partnerSlot) : null;
+        projectiles.spawn(c, slug, partner, origin, direction);
         c.shotsFired++;
+        double delay = slug.fireDelayMultiplier();
+        if (partner != null) {
+            c.fusion = 0;
+            delay = Math.max(delay, partner.fireDelayMultiplier()) * FUSION_DELAY;
+            GameEvent fused = arena.events().begin(EventType.FUSION, arena.tick());
+            fused.actor = c.id;
+            fused.a = slug.index();
+            fused.b = partner.index();
+            fused.x = origin.x;
+            fused.y = origin.y;
+            fused.z = origin.z;
+        }
         int interval = Math.max(1, (int) Math.round(c.character.blaster().fireIntervalTicks()
-                * slug.fireDelayMultiplier() * c.stats.fireIntervalMultiplier));
+                * delay * c.stats.fireIntervalMultiplier));
         c.nextFireTick = arena.tick() + interval;
         selectionPolicy.afterFire(c.loadout, slot);
 

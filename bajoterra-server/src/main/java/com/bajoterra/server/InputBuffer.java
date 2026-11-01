@@ -4,14 +4,15 @@ import com.bajoterra.core.sim.InputFrame;
 
 /**
  * Collects the input frames a client sent between two simulation ticks. Held values (movement, aim, fire) come from
- * the newest frame; one-shot values (slot selection and cycling) are kept until a tick consumes them, so a frame
- * that arrives together with a newer one cannot lose a slot change.
+ * the newest frame; one-shot values (slot selection and cycling, starting a dance) are kept until a tick consumes
+ * them, so a frame that arrives together with a newer one cannot lose a slot change.
  */
 final class InputBuffer {
 
     private com.bajoterra.protocol.generated.InputFrame latest;
     private int pendingSelect = -1;
     private int pendingCycle;
+    private int pendingDance;
 
     /** Records a frame received from the network. */
     void accept(com.bajoterra.protocol.generated.InputFrame frame) {
@@ -21,6 +22,9 @@ final class InputBuffer {
         }
         if (frame.getCycleSlot() != 0) {
             pendingCycle = frame.getCycleSlot();
+        }
+        if (frame.getDance() > 0) {
+            pendingDance = frame.getDance();
         }
     }
 
@@ -34,9 +38,11 @@ final class InputBuffer {
         }
         InputFrame frame = new InputFrame(combatantId, latest.getSequence(), latest.getMoveX(), latest.getMoveZ(),
                 latest.getAimYaw(), latest.getAimPitch(), latest.getHasCamera(), latest.getCamX(), latest.getCamY(),
-                latest.getCamZ(), latest.getFire(), latest.getMoveMask(), pendingSelect, pendingCycle);
+                latest.getCamZ(), latest.getFire(), latest.getMoveMask(), pendingSelect, pendingCycle,
+                latest.getFusion(), pendingDance);
         pendingSelect = -1;
         pendingCycle = 0;
+        pendingDance = 0;
         return frame;
     }
 }

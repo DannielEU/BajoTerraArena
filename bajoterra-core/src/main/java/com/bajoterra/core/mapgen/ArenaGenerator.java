@@ -66,21 +66,26 @@ public final class ArenaGenerator {
 
     /** Everything that keeps a map from playing well; empty when it is good. Hand-made maps pass it too. */
     public static List<String> problems(GameMap map, Content content) {
-        List<String> problems = new ArrayList<>(ContentValidator.mapProblems(map, content));
-        if (!problems.isEmpty()) {
-            return problems;
-        }
-        checkReachability(map, problems);
-        checkSpawnsHidden(map, problems);
-        checkCover(map, problems);
-        double open = longestOpenLane(map);
-        if (open > MAX_OPEN_LANE * (map.maxX() - map.minX())) {
-            problems.add("a lane is open for " + Math.round(open) + " m with nothing to hide behind");
-        }
+        // The quick checks first: most rejected candidates fail one of them, before the costly ones run.
+        List<String> problems = new ArrayList<>();
         double occupancy = occupancy(map);
         if (occupancy < MIN_OCCUPANCY || occupancy > MAX_OCCUPANCY) {
             problems.add("solids cover " + Math.round(occupancy * 100) + " % of the floor");
         }
+        double open = longestOpenLane(map);
+        if (open > MAX_OPEN_LANE * (map.maxX() - map.minX())) {
+            problems.add("a lane is open for " + Math.round(open) + " m with nothing to hide behind");
+        }
+        checkCover(map, problems);
+        checkSpawnsHidden(map, problems);
+        if (!problems.isEmpty()) {
+            return problems;
+        }
+        problems.addAll(ContentValidator.mapProblems(map, content));
+        if (!problems.isEmpty()) {
+            return problems;
+        }
+        checkReachability(map, problems);
         return problems;
     }
 

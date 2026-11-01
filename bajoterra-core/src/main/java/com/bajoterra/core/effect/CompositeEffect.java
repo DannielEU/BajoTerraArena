@@ -55,6 +55,24 @@ public final class CompositeEffect implements Effect {
         return false;
     }
 
+    @Override
+    public double tornadoRadius() {
+        double largest = 0;
+        for (Effect child : children) {
+            largest = Math.max(largest, child.tornadoRadius());
+        }
+        return largest;
+    }
+
+    @Override
+    public double webRadius() {
+        double largest = 0;
+        for (Effect child : children) {
+            largest = Math.max(largest, child.webRadius());
+        }
+        return largest;
+    }
+
     public int size() {
         return children.length;
     }

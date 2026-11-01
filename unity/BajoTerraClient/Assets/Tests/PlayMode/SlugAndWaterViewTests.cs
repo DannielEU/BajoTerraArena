@@ -23,8 +23,8 @@ namespace Bajoterra.Unity.Tests
     {
         private static readonly string[] SlugIds =
         {
-            "aquabeek", "arachnet", "armashelt", "boon_doc", "doc", "flaringo", "frostcrawler", "frostfang", "grenuke",
-            "hop_rock", "infurnus", "phosphoro", "rammstone", "tazerling", "thresher", "tormato"
+            "aquabeek", "arachnet", "armashelt", "boon_doc", "bubbaleone", "doc", "flaringo", "frostcrawler", "frostfang",
+            "grenuke", "hop_rock", "infurnus", "lariat", "phosphoro", "rammstone", "tazerling", "thresher", "tormato"
         };
 
         private const int FlashFuse = 90;

@@ -25,6 +25,7 @@ public final class ProjectilePool {
                 p.slug = null;
                 p.stuck = false;
                 p.stuckTo = null;
+                p.partner = null;
                 p.stuckDirX = 0;
                 p.stuckDirZ = 0;
                 activeCount++;
@@ -40,6 +41,7 @@ public final class ProjectilePool {
             p.owner = null;
             p.slug = null;
             p.stuckTo = null;
+            p.partner = null;
             activeCount--;
         }
     }

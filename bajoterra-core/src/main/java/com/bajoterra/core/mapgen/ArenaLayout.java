@@ -27,6 +27,9 @@ final class ArenaLayout {
         HALF_TURN
     }
 
+    /** Smallest length (west to east) and depth (north to south) of an arena; each grows by up to 10 and 8 m. */
+    static final int MIN_WIDTH = 76;
+    static final int MIN_DEPTH = 50;
     /** Free space kept between separate structures, so two combatants can pass side by side. */
     static final double GAP = 2.5;
     /** The smaller gap allowed for the pieces that break up open lanes (still a comfortable corridor). */
@@ -55,6 +58,9 @@ final class ArenaLayout {
     static final double MAX_POOL = 1.9;
     /** Free floor between the pool and any solid or pickup. */
     static final double POOL_CLEARANCE = 1.0;
+
+    /** The pickup that grants megamorphosis, contested on the middle line. */
+    static final String MEGAMORPH = "megamorph_crystal";
 
     private static final String[] PLACES = {
         "Gruta", "Caverna", "Sima", "Galería", "Hondonada", "Cripta", "Bóveda", "Cueva", "Grieta", "Madriguera"
@@ -112,8 +118,8 @@ final class ArenaLayout {
 
     ArenaLayout(SplittableRandom random) {
         this.random = random;
-        this.halfW = (56 + 2 * random.nextInt(5)) / 2.0;
-        this.halfD = (36 + 2 * random.nextInt(5)) / 2.0;
+        this.halfW = (MIN_WIDTH + 2 * random.nextInt(6)) / 2.0;
+        this.halfD = (MIN_DEPTH + 2 * random.nextInt(5)) / 2.0;
         this.symmetry = random.nextBoolean() ? Symmetry.MIRROR : Symmetry.HALF_TURN;
     }
 
@@ -329,7 +335,7 @@ final class ArenaLayout {
                     }
                 }
             }
-            int inner = 1 + random.nextInt(2);
+            int inner = 2 + random.nextInt(2);
             for (int k = 0; k < inner; k++) {
                 for (int attempt = 0; attempt < 10; attempt++) {
                     double x = innerFrom + random.nextDouble() * Math.max(0.5, -3 - innerFrom);
@@ -364,7 +370,7 @@ final class ArenaLayout {
     private void fill() {
         double target = MIN_FILL + random.nextDouble() * (MAX_FILL - MIN_FILL);
         double total = 4 * halfW * halfD;
-        for (int attempt = 0; attempt < 120 && occupied() / total < target; attempt++) {
+        for (int attempt = 0; attempt < 300 && occupied() / total < target; attempt++) {
             // Anywhere in the west half; the spawn area itself is reserved, so pieces only go beside it.
             double x = -halfW + WALL_MARGIN + 1 + random.nextDouble() * (halfW - WALL_MARGIN - 3);
             double z = (random.nextDouble() * 2 - 1) * (halfD - WALL_MARGIN - 1.5);
@@ -388,7 +394,7 @@ final class ArenaLayout {
      */
     private void breakOpenLanes() {
         double limit = ArenaGenerator.MAX_OPEN_LANE * 2 * halfW * 0.85;
-        for (int pass = 0; pass < 30; pass++) {
+        for (int pass = 0; pass < 60; pass++) {
             List<double[]> runs = openRuns(limit);
             boolean placed = false;
             for (double[] run : runs) {
@@ -564,7 +570,10 @@ final class ArenaLayout {
 
     // ------------------------------------------------------------------------------------------ pickups
 
-    /** Health and shield on both halves (hill tops count), and the overshield on the middle line. */
+    /**
+     * Health and shield on both halves (hill tops count), and the overshield and the megamorph crystal on the middle
+     * line, where both teams have as far to go.
+     */
     private void placePickups() {
         int health = 0;
         int shields = 0;
@@ -584,15 +593,37 @@ final class ArenaLayout {
                 sharedPickups.add(new PickupSpawn("overshield_orb", 0, 0, 0));
             } else {
                 // Off the centre, a pair keeps both symmetries: (0, z) and (0, -z).
-                for (double z = 3; z < halfD - 3; z += 1) {
-                    if (free(0, z, 1.6) && free(0, -z, 1.6)) {
-                        sharedPickups.add(new PickupSpawn("overshield_orb", 0, 0, z));
-                        sharedPickups.add(new PickupSpawn("overshield_orb", 0, 0, -z));
-                        break;
-                    }
-                }
+                middlePair("overshield_orb", 3);
             }
         }
+        if (free(0, 0, 1.6) && sharedPickups.stream().noneMatch(p -> p.x() == 0 && p.z() == 0)) {
+            sharedPickups.add(new PickupSpawn(MEGAMORPH, 0, 0, 0));
+        } else {
+            middlePair(MEGAMORPH, 4);
+        }
+    }
+
+    /**
+     * Puts a pickup at (0, z) and (0, -z) on the middle line, for the smallest z from {@code from} that is free on
+     * both sides and away from the pickups already there: a pair keeps both symmetries.
+     */
+    private void middlePair(String item, double from) {
+        for (double z = from; z < halfD - 3; z += 1) {
+            if (free(0, z, 1.6) && free(0, -z, 1.6) && clearOfShared(z, 3) && clearOfShared(-z, 3)) {
+                sharedPickups.add(new PickupSpawn(item, 0, 0, z));
+                sharedPickups.add(new PickupSpawn(item, 0, 0, -z));
+                return;
+            }
+        }
+    }
+
+    private boolean clearOfShared(double z, double distance) {
+        for (PickupSpawn p : sharedPickups) {
+            if (Math.abs(p.x()) < distance && Math.abs(p.z() - z) < distance) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void groundPickup(String item) {

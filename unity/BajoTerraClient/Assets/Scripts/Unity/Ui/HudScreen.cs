@@ -109,6 +109,13 @@ namespace Bajoterra.Unity
         private readonly Image _courageBadge;
         private readonly Text _courageText;
         private readonly Text _grenadeWarning;
+        private readonly Text _ensnared;
+        private readonly Image _megamorphBadge;
+        private readonly Text _megamorphText;
+        private readonly RectTransform _fusionPanel;
+        private readonly UiBar _fusion;
+        private readonly Text _fusionLabel;
+        private readonly Image _fusionGlow;
 
         private MatchSession _bound;
         private int _lastHp = -1;
@@ -128,6 +135,8 @@ namespace Bajoterra.Unity
         private float _criticalTime = 99f;
         private int _lastCourage = -1;
         private int _lastGrenadeTenths = -1;
+        private int _lastMegamorphSeconds = -1;
+        private bool _lastFusionReady;
         private float _scoreboardTimer;
         private bool _debugVisible;
         private bool _statsVisible;
@@ -188,6 +197,12 @@ namespace Bajoterra.Unity
             UiKit.Place(_grenadeWarning.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(1000f, 80f), new Vector2(0f, -150f));
             UiKit.Painted(_grenadeWarning, new Color(1f, 0.75f, 0.6f), Palette.Danger);
             _grenadeWarning.gameObject.SetActive(false);
+            _ensnared = UiKit.Label(Root, "Ensnared", UiText.Ensnared + "\n<size=26>" + UiText.EnsnaredDetail + "</size>", 48,
+                TextAnchor.MiddleCenter, Color.white);
+            _ensnared.supportRichText = true;
+            UiKit.Place(_ensnared.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(900f, 110f), new Vector2(0f, -230f));
+            UiKit.Painted(_ensnared, new Color(1f, 1f, 0.95f), new Color(0.62f, 0.6f, 0.5f));
+            _ensnared.gameObject.SetActive(false);
 
             // ----- bottom centre: vitals
             _vitals = UiKit.Rect("Vitals", Root);
@@ -213,6 +228,16 @@ namespace Bajoterra.Unity
             UiKit.Strong(_courageText);
             UiKit.Stretch(_courageText.rectTransform);
             _courageBadge.gameObject.SetActive(false);
+            // Megamorphosis: a purple badge above the courage one while your slugs are giant.
+            _megamorphBadge = UiKit.Card(_vitals, "Megamorph", Color.white, 8);
+            UiKit.Edge(_megamorphBadge.transform, UiKit.Ink, 8, 2);
+            UiKit.Gradient(_megamorphBadge, UiKit.Lighter(Palette.Megamorph, 0.45f), UiKit.Darker(Palette.Megamorph, 0.25f));
+            UiKit.Place(_megamorphBadge.rectTransform, new Vector2(0.5f, 1f), new Vector2(300f, 34f), new Vector2(0f, 86f));
+            _megamorphText = UiKit.Label(_megamorphBadge.transform, "Text", string.Empty, 22, TextAnchor.MiddleCenter, Color.white);
+            _megamorphText.font = UiKit.DisplayFont;
+            UiKit.Strong(_megamorphText);
+            UiKit.Stretch(_megamorphText.rectTransform);
+            _megamorphBadge.gameObject.SetActive(false);
             for (int i = 0; i < MaxChips; i++)
             {
                 Image chip = UiKit.Card(_vitals, "Chip " + i, Color.white, 8);
@@ -259,6 +284,21 @@ namespace Bajoterra.Unity
             UiKit.Place(blasterLabel.rectTransform, new Vector2(0f, 0f), new Vector2(100f, 20f), new Vector2(36f, 30f));
             _blaster = new UiBar(card.transform, "BlasterBar", new Vector2(290f, 20f), UiKit.GoldColor, 8, 14);
             UiKit.Place(_blaster.Rect, new Vector2(0f, 0f), new Vector2(290f, 20f), new Vector2(36f, 10f));
+
+            // ----- just above it: the fusion energy, glowing once a fusion shot is ready
+            _fusionPanel = UiKit.Rect("Fusion", Root);
+            UiKit.Place(_fusionPanel, new Vector2(1f, 0f), new Vector2(350f, 62f), new Vector2(-30f, 228f));
+            _fusionGlow = UiKit.Panel(_fusionPanel, "Glow", Palette.WithAlpha(Palette.Fusion, 0f));
+            _fusionGlow.sprite = UiSprites.Glow();
+            UiKit.Stretch(_fusionGlow.rectTransform, -26f);
+            _fusionGlow.raycastTarget = false;
+            Image fusionBack = UiKit.Window(_fusionPanel, "Back", UiKit.PanelColor, 14);
+            UiKit.Stretch(fusionBack.rectTransform);
+            _fusionLabel = UiKit.Label(_fusionPanel, "Label", UiText.Fusion, 18, TextAnchor.MiddleLeft, UiKit.TextDim);
+            UiKit.AddShadow(_fusionLabel, 1.2f);
+            UiKit.Place(_fusionLabel.rectTransform, new Vector2(0f, 1f), new Vector2(300f, 24f), new Vector2(24f, -6f));
+            _fusion = new UiBar(_fusionPanel, "FusionBar", new Vector2(302f, 16f), Palette.Fusion, 7);
+            UiKit.Place(_fusion.Rect, new Vector2(0f, 0f), new Vector2(302f, 16f), new Vector2(24f, 10f));
 
             // ----- top left: allies
             for (int i = 0; i < MaxAllies; i++)
@@ -854,6 +894,22 @@ namespace Bajoterra.Unity
 
             RefreshCritical(deltaTime);
             RefreshCourage(model);
+            RefreshMegamorph(model);
+            RefreshFusion(model, deltaTime);
+            bool held = model.Ensnared || model.Bubbled || model.Lassoed;
+            _ensnared.gameObject.SetActive(held);
+            if (held)
+            {
+                string text = model.Bubbled ? UiText.Bubbled + "\n<size=26>" + UiText.BubbledDetail + "</size>"
+                    : model.Lassoed ? UiText.Lassoed + "\n<size=26>" + UiText.LassoedDetail + "</size>"
+                    : UiText.Ensnared + "\n<size=26>" + UiText.EnsnaredDetail + "</size>";
+                if (_ensnared.text != text)
+                {
+                    _ensnared.text = text;
+                }
+                float shake = Mathf.Sin(Time.unscaledTime * 31f) * 4f;
+                _ensnared.rectTransform.anchoredPosition = new Vector2(shake, -230f);
+            }
             RefreshGrenade(model);
             RefreshBlind(model, deltaTime);
 
@@ -904,6 +960,43 @@ namespace Bajoterra.Unity
                 float beat = 1f + 0.06f * Mathf.Sin(Time.unscaledTime * (5f + 2f * level));
                 _courageBadge.rectTransform.localScale = new Vector3(beat, beat, 1f);
             }
+        }
+
+        private void RefreshMegamorph(HudModel model)
+        {
+            int seconds = model.Alive ? Mathf.CeilToInt(model.MegamorphSeconds) : 0;
+            if (seconds != _lastMegamorphSeconds)
+            {
+                _lastMegamorphSeconds = seconds;
+                _megamorphBadge.gameObject.SetActive(seconds > 0);
+                _megamorphText.text = UiText.MegamorphBadge(seconds);
+            }
+            if (seconds > 0)
+            {
+                float beat = 1f + 0.05f * Mathf.Sin(Time.unscaledTime * 7f);
+                _megamorphBadge.rectTransform.localScale = new Vector3(beat, beat, 1f);
+            }
+        }
+
+        /// <summary>The fusion bar fills as you deal damage or help allies; full, it glows and says which key fires it.</summary>
+        private void RefreshFusion(HudModel model, float deltaTime)
+        {
+            _fusionPanel.gameObject.SetActive(model.Alive);
+            if (!model.Alive)
+            {
+                return;
+            }
+            bool ready = model.FusionReady;
+            _fusion.Set(model.Fusion, deltaTime);
+            if (ready != _lastFusionReady)
+            {
+                _lastFusionReady = ready;
+                _fusionLabel.text = ready ? UiText.FusionReady : UiText.Fusion;
+                _fusionLabel.color = ready ? Color.white : UiKit.TextDim;
+            }
+            float pulse = ready ? 0.55f + 0.45f * Mathf.Sin(Time.unscaledTime * 6f) : 0f;
+            _fusionGlow.color = Palette.WithAlpha(Palette.Fusion, 0.55f * pulse);
+            _fusion.SetFillColor(ready ? Color.Lerp(Palette.Fusion, Color.white, 0.35f * pulse) : Palette.Fusion);
         }
 
         private void RefreshGrenade(HudModel model)

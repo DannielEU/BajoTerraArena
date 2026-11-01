@@ -256,9 +256,11 @@ namespace Bajoterra.Unity.Tests
             public float MoveZ { get { return _inner.MoveZ; } }
             public Vector2 Look { get { return _inner.Look; } }
             public bool Fire { get { return _inner.Fire; } }
+            public bool Fusion { get { return _inner.Fusion; } }
             public bool IsMoveHeld(string moveId) { return _inner.IsMoveHeld(moveId); }
             public int SlotKey { get { return _inner.SlotKey; } }
             public int Scroll { get { return _inner.Scroll; } }
+            public bool DancePressed { get { return _inner.DancePressed; } }
             public bool ClickPressed { get { return _inner.ClickPressed; } }
             public bool PausePressed { get { return _inner.PausePressed; } }
             public bool DebugPressed { get { return _inner.DebugPressed; } }

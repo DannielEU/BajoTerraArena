@@ -294,6 +294,173 @@ namespace Bajoterra.Unity
             });
         }
 
+        /// <summary>A tornado's roar: a howling band of wind that rises and falls (looped while it spins).</summary>
+        public static AudioClip WindLoop()
+        {
+            const float seconds = 2f;
+            float low = 0f;
+            float band = 0f;
+            float high = 0f;
+            return Build("windloop", seconds, t =>
+            {
+                float noise = Noise(t);
+                low += (noise - low) * 0.015f;
+                band += (noise - band) * 0.09f;
+                high += (band - high) * 0.4f;
+                // Two slow gusts that loop exactly over the clip.
+                float gust = 0.65f + 0.35f * Mathf.Sin(2f * Mathf.PI * t / seconds) * Mathf.Sin(2f * Mathf.PI * 3f * t / seconds);
+                float howl = Mathf.Sin(2f * Mathf.PI * (220f + 60f * Mathf.Sin(2f * Mathf.PI * t / seconds)) * t) * 0.05f;
+                return (low * 3.2f + (band - high) * 1.4f + howl) * gust;
+            });
+        }
+
+        /// <summary>A whirlwind spinning up: a rushing whoosh that climbs in pitch.</summary>
+        public static AudioClip TornadoRise()
+        {
+            const float seconds = 0.9f;
+            float low = 0f;
+            float band = 0f;
+            return Build("tornadorise", seconds, t =>
+            {
+                float noise = Noise(t);
+                float k = 0.02f + 0.25f * (t / seconds);
+                low += (noise - low) * k;
+                band += (low - band) * 0.5f;
+                float swell = Mathf.Sin(Mathf.PI * Mathf.Clamp01(t / seconds));
+                return (low - band) * swell * 3f + low * swell * 1.5f;
+            });
+        }
+
+        /// <summary>A slug caught by the wind and flung away: a short "fwip" and a ricochet whine.</summary>
+        public static AudioClip Deflect()
+        {
+            return Build("deflect", 0.4f, t =>
+            {
+                float whine = Mathf.Sin(2f * Mathf.PI * (1400f - 1600f * t) * t) * Env(t, 0.4f, 0.004f, 9f) * 0.35f;
+                float swish = Noise(t) * Env(t, 0.4f, 0.01f, 22f) * 0.5f;
+                return whine + swish;
+            });
+        }
+
+        /// <summary>A bubble swelling round somebody: a wobbly, rising "bloop" with a glassy shimmer.</summary>
+        public static AudioClip BubbleForm()
+        {
+            return Build("bubbleform", 0.55f, t =>
+            {
+                float wobble = 1f + 0.08f * Mathf.Sin(2f * Mathf.PI * 11f * t);
+                float bloop = Mathf.Sin(2f * Mathf.PI * (180f + 520f * t) * wobble * t) * Env(t, 0.55f, 0.01f, 4f) * 0.6f;
+                float shimmer = Mathf.Sin(2f * Mathf.PI * 2200f * t) * Env(t, 0.55f, 0.05f, 6f) * 0.08f;
+                return bloop + shimmer;
+            });
+        }
+
+        /// <summary>A bubble popping: a sharp, wet "pock" with a splash of droplets.</summary>
+        public static AudioClip BubblePop()
+        {
+            return Build("bubblepop", 0.3f, t => Sweep(1300f, 300f, 0.08f, t) * Env(t, 0.3f, 0.001f, 40f) * 0.8f
+                                                 + Noise(t) * Env(t, 0.3f, 0.002f, 16f) * 0.35f);
+        }
+
+        /// <summary>A lasso of energy cracking out and snapping tight: a whip crack and an electric buzz.</summary>
+        public static AudioClip LassoCrack()
+        {
+            return Build("lassocrack", 0.5f, t =>
+            {
+                float crack = Noise(t) * Env(t, 0.5f, 0.0005f, 55f) * 0.9f;
+                float buzz = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * 120f * t)) * Env(t, 0.5f, 0.02f, 7f) * 0.18f;
+                float zing = Mathf.Sin(2f * Mathf.PI * (600f + 900f * t) * t) * Env(t, 0.5f, 0.01f, 6f) * 0.25f;
+                return crack + buzz + zing;
+            });
+        }
+
+        /// <summary>A tornado swallowing an ice slug: an icy gust with a frosty, glassy crackle.</summary>
+        public static AudioClip FrostGust()
+        {
+            const float seconds = 0.9f;
+            float low = 0f;
+            return Build("frostgust", seconds, t =>
+            {
+                low += (Noise(t) - low) * 0.08f;
+                float gust = low * Env(t, seconds, 0.05f, 3f) * 1.8f;
+                float crackle = Debris(t, 0.05f, 0.6f) * 0.5f;
+                float chime = Sweep(1800f, 2600f, seconds, t) * Env(t, seconds, 0.02f, 4f) * 0.15f;
+                return gust + crackle + chime;
+            });
+        }
+
+        /// <summary>A web shot open: a sticky, stretchy "thwip" with a twang.</summary>
+        public static AudioClip WebSpin()
+        {
+            float low = 0f;
+            return Build("webspin", 0.45f, t =>
+            {
+                low += (Noise(t) - low) * 0.2f;
+                float twang = Mathf.Sin(2f * Mathf.PI * (180f + 420f * Mathf.Exp(-t * 18f)) * t) * Env(t, 0.45f, 0.002f, 8f);
+                return low * Env(t, 0.45f, 0.005f, 30f) * 1.4f + twang * 0.4f;
+            });
+        }
+
+        /// <summary>Somebody caught in a web: a tight, sticky snap and a creak of silk.</summary>
+        public static AudioClip WebSnare()
+        {
+            return Build("websnare", 0.6f, t =>
+            {
+                float snap = Noise(t) * Env(t, 0.6f, 0.001f, 60f) * 0.8f;
+                float creak = Mathf.Sin(2f * Mathf.PI * (90f + 30f * Mathf.Sin(2f * Mathf.PI * 13f * t)) * t)
+                              * Env(t, 0.6f, 0.02f, 5f) * 0.45f;
+                return snap + creak;
+            });
+        }
+
+        /// <summary>A fusion shot: two notes leaping together over a rush of air, bright and big.</summary>
+        public static AudioClip FusionShot()
+        {
+            const float seconds = 0.8f;
+            float air = 0f;
+            return Build("fusionshot", seconds, t =>
+            {
+                air += (Noise(t) - air) * 0.1f;
+                float rise = 1f + 0.6f * Mathf.Clamp01(t / 0.12f);
+                float tone = Mathf.Sin(2f * Mathf.PI * 330f * rise * t) + Mathf.Sin(2f * Mathf.PI * 495f * rise * t) * 0.8f
+                             + Mathf.Sin(2f * Mathf.PI * 660f * rise * t) * 0.4f;
+                return tone * Env(t, seconds, 0.005f, 4.5f) * 0.3f + air * Env(t, seconds, 0.002f, 7f) * 1.6f;
+            });
+        }
+
+        /// <summary>The fusion energy is full: a quick sparkling arpeggio.</summary>
+        public static AudioClip FusionReady()
+        {
+            float[] notes = { 659.25f, 987.77f, 1318.5f };
+            return Build("fusionready", 0.5f, t =>
+            {
+                float value = 0f;
+                for (int n = 0; n < notes.Length; n++)
+                {
+                    float local = t - n * 0.07f;
+                    if (local >= 0f)
+                    {
+                        value += Mathf.Sin(2f * Mathf.PI * notes[n] * local) * Env(local, 0.4f, 0.003f, 9f);
+                    }
+                }
+                return value * 0.3f;
+            });
+        }
+
+        /// <summary>Megamorphosis: a deep surge that swells into a roar.</summary>
+        public static AudioClip Megamorph()
+        {
+            const float seconds = 1.3f;
+            float low = 0f;
+            return Build("megamorph", seconds, t =>
+            {
+                low += (Noise(t) - low) * 0.03f;
+                float swell = Mathf.Clamp01(t / 0.5f) * Mathf.Exp(-Mathf.Max(0f, t - 0.5f) * 3f);
+                float growl = Mathf.Sin(2f * Mathf.PI * (55f + 70f * Mathf.Clamp01(t / 0.6f)) * t)
+                              + Mathf.Sin(2f * Mathf.PI * (110f + 140f * Mathf.Clamp01(t / 0.6f)) * t) * 0.5f;
+                return (growl * 0.4f + low * 2.5f) * swell;
+            });
+        }
+
         /// <summary>A bright metallic "ding" for a headshot.</summary>
         public static AudioClip Critical()
         {
@@ -354,6 +521,14 @@ namespace Bajoterra.Unity
         public static AudioClip Jump()
         {
             return Build("jump", 0.14f, t => Sweep(260f, 620f, 0.14f, t) * Env(t, 0.14f, 0.004f, 7f) * 0.5f);
+        }
+
+        /// <summary>A boot kicking off rock: a dull thud and a scrape, then a short rising whoosh.</summary>
+        public static AudioClip WallKick()
+        {
+            return Build("wallkick", 0.3f, t => Mathf.Sin(2f * Mathf.PI * 110f * t) * Env(t, 0.3f, 0.002f, 30f) * 0.7f
+                                               + Noise(t) * Env(t, 0.3f, 0.004f, 18f) * 0.3f
+                                               + Sweep(300f, 700f, 0.3f, t) * Env(t, 0.3f, 0.03f, 9f) * 0.2f);
         }
 
         public static AudioClip Roll()

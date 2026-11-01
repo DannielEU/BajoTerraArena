@@ -9,16 +9,20 @@ que se conecta por red (carpeta [`unity/`](unity/README.md)).
 ## Qué hace el juego
 
 - **3 vs 3** por equipos, jugadores humanos y/o **bots** (los huecos se rellenan solos).
-- Movimientos: **saltar, agacharse, rodar** (y *dash* para Pronto). Agregar uno nuevo es un archivo JSON.
-- **10 babosas por jugador**, cada una con su efecto. Al disparar una queda **bloqueada durante los 3 tiros siguientes**;
-  además hay un **tiempo mínimo entre disparos**.
+- Movimientos: **saltar, agacharse, rodar, rebote en pared** (y *dash* para Pronto). Agregar uno nuevo es un archivo
+  JSON. **Rebote en pared**: en el aire y pegado a un muro, una cobertura alta o el borde de la arena, vuelve a pulsar
+  **Espacio** y sales impulsado hacia arriba y lejos del muro; hasta 2 rebotes antes de tocar el suelo y nunca dos
+  seguidos en el mismo muro (entre dos muros enfrentados se sube como por una chimenea). Mantener Espacio pulsado
+  desde el salto no rebota: hace falta una pulsación nueva. Los bots también rebotan para esquivar o desatascarse.
+- **5 babosas por jugador**, cada una con su efecto. Al disparar una queda **bloqueada durante los 3 tiros siguientes**;
+  además hay un **tiempo mínimo entre disparos**. Todas las babosas vuelan un 10 % más rápido que en la primera versión.
 - Derrota = escudo **y** vida en cero. Se restauran con **objetos** del mapa o con la **babosa de un aliado**
   (curación, escudo, protección).
 - **Mapas con obstáculos** que bloquean las babosas (muros, pilares, coberturas bajas que no frenan los tiros en arco).
 - **Una arena nueva en cada partida** (`mapgen/ArenaGenerator`): piezas diseñadas (pilares, bloques, cajas, muros,
   colinas y balcones con rampas) reflejadas en las dos mitades para que sea justa, y solo se acepta si se puede
   recorrer entera, los spawns no se ven, hay cobertura en todo el recorrido y ningún pasillo largo queda abierto.
-  `--map caverna` juega el mapa hecho a mano.
+  Las arenas miden de 76×50 a 86×58 m. `--map caverna` juega el mapa hecho a mano (60×40 m).
 - Rondas sin reaparición, **mejor de 5**.
 - **Grenuke**, la babosa granada: se pega donde choca y explota a los 1,6 s.
 - **Phosphoro**, la babosa cegadora: la más lenta; al pasar cerca de un enemigo se queda flotando delante de él (o se
@@ -28,8 +32,31 @@ que se conecta por red (carpeta [`unity/`](unity/README.md)).
 - **Frostcrawler**, la babosa de hielo: levanta un **muro de hielo** donde cae para cubrirse; aguanta 2 impactos o se
   derrite a los 8 s.
 - **Infurnus** deja un **muro de fuego** en el suelo por donde pasa, que quema a los enemigos que lo crucen.
-- **Las 16 babosas en 3D**, modeladas en Blender a partir de su arte oficial: vuelan como ellas mismas y aparecen en la
-  sala al elegir las 10.
+- **Tormato**, la babosa tornado: donde cae (o sobre quien golpea) se convierte en un **tornado** que avanza unos
+  segundos, arrastra a los rivales hacia su ojo, los levanta girando y les hace daño, y **desvía las babosas enemigas**
+  que lo atraviesan (sirve de escudo). Quien lo lanzó y sus aliados que entren en su ojo salen **disparados hacia
+  arriba** (salto tornado, para subir a balcones y colinas). Si pasa por un muro de fuego se vuelve un **tornado de
+  fuego**; si se le dispara una **babosa de hielo** (Frostfang o Frostcrawler, de cualquier equipo) se la traga y se
+  vuelve un **tornado congelante** que, además, congela y hace daño de hielo a los rivales de su dueño que gire en su
+  ojo. Fuego y hielo se apagan entre sí: manda el último.
+- **Bubbaleone**, la babosa burbuja (agua): un impacto directo encierra al rival en una **burbuja** que lo eleva 1,6 m y
+  lo deja flotando sin poder moverse ni disparar durante 2,4 s, fuera de su cobertura. Es frágil: el primer golpe que
+  reciba después de formarse la **revienta** y cae libre.
+- **Lariat**, la babosa lazo (agua): de corto alcance (unos 30 m); un impacto directo le lanza una **cuerda viscosa** que
+  **arrastra al rival hasta tu lado** (se queda a unos 2,5 m), saltando las coberturas bajas; mientras tira de él no
+  puede andar, pero sí disparar.
+- **Arachnet**, la babosa araña: un impacto directo **enreda** al rival (no puede andar, saltar ni rodar durante 1,6 s,
+  pero sí disparar; el fuego le hace más daño mientras tanto). Si falla, teje una **telaraña trampa** en el suelo (o al
+  pie del muro) que atrapa al primer enemigo que la pisa; cada lanzador mantiene 3 como máximo y el fuego las quema.
+- **Disparo fusión** (Q o clic derecho): hacer daño o curar llena la barra de **fusión**; llena, dispara la babosa
+  elegida **fusionada** con la siguiente del cinturón: un solo proyectil que aplica los efectos de las dos.
+- **Cristal de megamorfosis**: aparece a los 25 s de cada ronda en la línea central; quien lo toma tiene 12 s de
+  **babosas gigantes** (más grandes, ×1,35 de daño y disparo más rápido), pero brilla en morado y todos lo ven.
+- **Las 18 babosas en 3D**, modeladas en Blender a partir de su arte oficial: vuelan como ellas mismas y aparecen en la
+  sala al elegir las 5.
+- **Bailes de celebración**: cada héroe sabe tres bailes (saltos con el bláster en alto, paso lateral y giro con pose
+  final). Pulsa **B** para bailar (cada pulsación, el siguiente baile); moverte, disparar o usar un movimiento lo para.
+  Al ganar una ronda, los supervivientes del equipo ganador lo celebran bailando solos.
 - **Un pequeño charco** decorativo en cada arena, con ondas de verdad: salpica al pisarlo, deja estela, rocía cuando una
   babosa pasa rasante y hace "plop" cuando una cae dentro.
 - **Golpe crítico** (×1,5) al acertar en la cabeza y **Coraje** para el equipo que se queda en desventaja numérica.

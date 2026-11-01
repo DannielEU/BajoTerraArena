@@ -14,7 +14,10 @@ namespace Bajoterra.Client.Prediction
         Impulse,
 
         /// <summary>Fixed horizontal velocity while the move lasts (roll, dash).</summary>
-        Drive
+        Drive,
+
+        /// <summary>A kick off a wall in mid-air: up and away from the wall (wall_kick).</summary>
+        WallKick
     }
 
     /// <summary>A move of the player's character, with the behavior parameters already parsed.</summary>
@@ -35,6 +38,12 @@ namespace Bajoterra.Client.Prediction
                     Kind = BehaviorKind.Drive;
                     DriveSpeed = info.BehaviorParams.TryGetValue("speed", out value) ? value : 0.0;
                     break;
+                case "wallkick":
+                    Kind = BehaviorKind.WallKick;
+                    Vertical = info.BehaviorParams.TryGetValue("vertical", out value) ? value : 0.0;
+                    Horizontal = info.BehaviorParams.TryGetValue("push", out value) ? value : 0.0;
+                    MaxKicks = info.BehaviorParams.TryGetValue("maxKicks", out value) ? (int)Math.Round(value) : 1;
+                    break;
                 default:
                     Kind = BehaviorKind.None;
                     break;
@@ -50,6 +59,9 @@ namespace Bajoterra.Client.Prediction
         public double Horizontal { get; }
 
         public double DriveSpeed { get; }
+
+        /// <summary>Wall kicks allowed before landing (wall kick only).</summary>
+        public int MaxKicks { get; }
     }
 
     /// <summary>
@@ -101,6 +113,16 @@ namespace Bajoterra.Client.Prediction
         public double DirX;
         public double DirZ = 1.0;
 
+        /// <summary>Move buttons held on the previous tick (a wall kick needs a fresh press).</summary>
+        public int LastMask;
+
+        // Wall kicks: the wall within reach after the last step, kicks since landing and the last wall kicked off.
+        public double WallNX;
+        public double WallNZ;
+        public int WallKicks;
+        public double LastKickX;
+        public double LastKickZ;
+
         // Effects of statuses on movement (slows, freezes, stun), constant over a replay window.
         public double StatusSpeed = 1.0;
         public bool Stunned;
@@ -119,6 +141,9 @@ namespace Bajoterra.Client.Prediction
             Elapsed = 0;
             DirX = 0.0;
             DirZ = 1.0;
+            LastMask = 0;
+            WallNX = WallNZ = LastKickX = LastKickZ = 0.0;
+            WallKicks = 0;
             StatusSpeed = 1.0;
             Stunned = false;
             HitHeightNow = HitHeight;
@@ -142,6 +167,12 @@ namespace Bajoterra.Client.Prediction
             Elapsed = other.Elapsed;
             DirX = other.DirX;
             DirZ = other.DirZ;
+            LastMask = other.LastMask;
+            WallNX = other.WallNX;
+            WallNZ = other.WallNZ;
+            WallKicks = other.WallKicks;
+            LastKickX = other.LastKickX;
+            LastKickZ = other.LastKickZ;
             StatusSpeed = other.StatusSpeed;
             Stunned = other.Stunned;
             HitHeightNow = other.HitHeightNow;
@@ -171,6 +202,12 @@ namespace Bajoterra.Client.Prediction
             Elapsed = (int)local.MoveElapsedTicks;
             DirX = local.MoveDirX;
             DirZ = local.MoveDirZ;
+            LastMask = (int)local.LastMoveMask;
+            WallNX = local.WallNormalX;
+            WallNZ = local.WallNormalZ;
+            WallKicks = (int)local.WallKicks;
+            LastKickX = local.LastKickX;
+            LastKickZ = local.LastKickZ;
             ActiveSlot = -1;
             if (state.ActiveMove >= 0)
             {

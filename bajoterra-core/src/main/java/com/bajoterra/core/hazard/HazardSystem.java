@@ -95,6 +95,22 @@ public final class HazardSystem {
         }
     }
 
+    /** True when a patch of fire burns within {@code reach} of (x, z), on about the same floor as {@code y}. */
+    public boolean burningNear(double x, double y, double z, double reach) {
+        for (Hazard h : hazards) {
+            if (!h.active || Math.abs(h.y - y) > 1.0) {
+                continue;
+            }
+            double dx = h.x - x;
+            double dz = h.z - z;
+            double r = reach + h.slug.trail().radius();
+            if (dx * dx + dz * dz <= r * r) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** A patch that can hurt {@code c} and that {@code c} stands in, or null. */
     public Hazard touching(Combatant c) {
         for (Hazard h : hazards) {

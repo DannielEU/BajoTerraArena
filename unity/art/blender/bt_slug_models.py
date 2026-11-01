@@ -1,4 +1,4 @@
-"""The fifteen slugs of the game as standalone 3D models, the ones the blasters fire.
+"""The eighteen slugs of the game as standalone 3D models, the ones the blasters fire.
 
 Each one follows its official protoform art (Disney's Slug Arsenal and the series): an upright soft body that is also
 the head, with a flared foot and a short tail, two small side flippers, big eyes ON the face and each species' own
@@ -27,6 +27,10 @@ unity/BajoTerraClient/Assets/Resources/Models/Slugs/<id>.fbx (no skeleton: the g
   Rammstone  tan with a red hood flaring over its cheeks, a blue crest and an open mouth with two teeth.
   Thresher   teal with a mint belly, shark fins at the cheeks and on the back and a grin full of sharp teeth.
   Tormato    red-orange with dark freckles, a pale yellow bib, two striped yellow horns and two buck teeth.
+  Bubbaleone pink with a turquoise bib up to its mouth, two huge bulging eyes on the sides of its head, two thin
+             feelers and a wide mouth with four big square teeth.
+  Lariat     dark teal with lime stripes over the head, a lime foot and sides, a glossy mint gem on the belly,
+             long lime feelers, heavy-lidded orange eyes and a smug closed smile.
 
 Headless:   blender -b -P unity/art/blender/bt_build.py -- slugs          (all of them)
             blender -b -P unity/art/blender/bt_build.py -- slug:grenuke   (one)
@@ -43,8 +47,8 @@ from bt_lib import Acc, collection, loft, material, shell, sphere
 V = Vector
 
 HEIGHT = .5
-IDS = ('aquabeek', 'arachnet', 'armashelt', 'boon_doc', 'doc', 'flaringo', 'frostcrawler', 'frostfang', 'grenuke',
-       'hop_rock', 'infurnus', 'phosphoro', 'rammstone', 'tazerling', 'thresher', 'tormato')
+IDS = ('aquabeek', 'arachnet', 'armashelt', 'boon_doc', 'bubbaleone', 'doc', 'flaringo', 'frostcrawler', 'frostfang',
+       'grenuke', 'hop_rock', 'infurnus', 'lariat', 'phosphoro', 'rammstone', 'tazerling', 'thresher', 'tormato')
 
 # Body rows from the foot (u = -1) to the top (u = 1): (u, width, depth, forward shift). TALL is the classic slug,
 # BLOCK a squarer one (Grenuke, Hop Rock, Armashelt) and BROAD widens towards a flat-topped head (AquaBeek, Thresher).
@@ -105,6 +109,11 @@ SPECIES = {
     'tormato': dict(shape=TALL, Body='#d4502a', Belly='#f2d87a', Horn='#f0c63a', HornBand='#b88a1c',
                     Freckle='#a83a1c', Iris='#1d6a78', Mouth='#3a1410', belly=.22, bib=True, freckles=True,
                     horns=('Horn', .6), eyes=dict(look=(.5, .05), size=1.1), mouth=('buck',)),
+    'bubbaleone': dict(shape=TALL, Body='#d47ad8', Belly='#5ec6da', Iris='#2a86c8', Mouth='#3a1440', belly=.55,
+                       wide_bib=True, bulge_eyes=True, ant=('Body', .6, .02), ant_w=.5, mouth=('bigteeth',)),
+    'lariat': dict(shape=TALL, Body='#1d6e6a', Belly='#8ccf45', Stripe='#8ccf45', Gem='#a4ecd2', Iris='#e2661c',
+                   Mouth='#0e2a28', belly=.0, lower=True, stripes=True, gem_belly=True, glow=('Gem',),
+                   ant=('Belly', .8, .1), ant_w=.55, eyes=dict(lid=(.5, .1), look=(.5, 0), size=1.0), mouth=('smirk',)),
 }
 
 
@@ -112,7 +121,7 @@ def make_materials(kind):
     P = SPECIES[kind]
     for role, value in P.items():
         if isinstance(value, str) and value.startswith('#'):
-            glow = role == 'Belly' and P.get('glow_belly')
+            glow = role == 'Belly' and P.get('glow_belly') or role in P.get('glow', ())
             material(mname(kind, ('Glow' if glow else '') + role), value, .35, emit=2.0 if glow else 0.0)
     material('Eye', '#ffffff', .25)
     material('Pupil', '#0d0d12', .3)
@@ -240,12 +249,20 @@ def build(kind, height=HEIGHT):
                 cu = -.62 - .12 * ((k % 2) * 2 - 1)
                 if ((X - cx) / .06) ** 2 + ((u - cu) / .07) ** 2 < 1:
                     return m('Bolt')
+        if P.get('stripes') and u > .38 and front > -.75 and abs(math.sin(math.radians(ang) * 4.5 + u * 5)) > .8:
+            return m('Stripe')
+        if P.get('gem_belly') and front > .45 and (X / .3) ** 2 + ((u + .48) / .28) ** 2 < 1:
+            return m('GlowGem')
+        if P.get('lower') and (u < -.32 + .07 * math.cos(math.radians(ang) * 3) or front > .3 and u < -.05 - .6 * X * X):
+            return m('Belly')
         if P.get('belly_patch') and front > .35 and u < -.45 - .5 * X * X:
             return m(belly_role)
         belly = P.get('belly', 0)
         if belly > 0 and front > (.05 if P.get('wide_belly') or P.get('face_white') else .3):
             if P.get('flames'):
                 edge = -.12 - 1.5 * X * X + .1 * math.cos(X * 13)
+            elif P.get('wide_bib'):
+                edge = .12 - .35 * X * X
             elif P.get('bib'):
                 edge = belly - .9 * X * X * (2.2 if P.get('freckles') else 3.5)
             elif P.get('face_white'):
@@ -262,7 +279,20 @@ def build(kind, height=HEIGHT):
     EP = P.get('eyes', {})
     k = EP.get('size', 1.0)
     white = EP.get('white', 'Eye')
-    if P.get('cyclops'):
+    if P.get('bulge_eyes'):
+        # Bubbaleone: two big eyeballs bulging out of the sides of the head, in pink sockets, looking ahead.
+        r = h * .15
+        for sx in (1, -1):
+            c = V((sx * rx * 1.0, -H.ry * .22, H.z(.7)))
+            acc.add(sphere(c + V((sx * r * .1, r * .2, -r * .05)), (r * 1.1, r * 1.0, r * 1.08), m('Body'), 28, 18),
+                    'Head')
+            d = V((sx * .4, -1, .08)).normalized()
+            acc.add(sphere(c + d * r * .14, (r, r, r), 'Eye', 28, 18), 'Head')
+            acc.add(sphere(c + d * r * 1.06, (r * .52, r * .14, r * .52), m('Iris'), 22, 12), 'Head')
+            acc.add(sphere(c + d * r * 1.15, (r * .26, r * .08, r * .26), 'Pupil', 18, 10), 'Head')
+            acc.add(sphere(c + d * r * 1.12 + V((-sx * r * .2, 0, r * .22)), (r * .1, r * .05, r * .1), 'Eye', 10, 6),
+                    'Head')
+    elif P.get('cyclops'):
         w = rx * .4 * k
         E = dict(inner=(-w, .42), outer=(w, .42), up=.3 * k, low=.26 * k, peak_up=.5, peak_low=.5,
                  iris=rx * .3 * k, look=EP.get('look', (.5, .0)), iris_mat=m('Iris'), pupil=.5, dome=h * .035,
@@ -329,6 +359,9 @@ def build(kind, height=HEIGHT):
         x = rx * .2
         hull_on_face(H, acc, [(x - h * .018, .13, h * .004), (x + h * .018, .135, h * .004), (x, .06, h * .006),
                               (x, .12, h * .012)], 'Tooth', bevel=h * .002)
+    elif kind_m == 'bigteeth':   # wide open, four big square teeth hanging from the top lip
+        open_mouth(H, acc, -rx * .62, rx * .62, .16, -.14, m('Mouth'), curve=-.03, smile=.05,
+                   teeth_up=(4, .16, h * .045))
     elif kind_m == 'ram':
         open_mouth(H, acc, -rx * .5, rx * .5, .1, -.12, m('Mouth'), curve=.0, smile=.04, teeth_up=(2, .07, h * .02))
 
@@ -362,7 +395,8 @@ def build(kind, height=HEIGHT):
             r = V((sx * rx * (.25 + spread), H.ry * .05, H.z(.88 if not cap else .98)))
             pts = [r, r + V((sx * h * .1 * length, h * .06 * length, h * .32 * length)),
                    r + V((sx * h * .16 * length, h * .16 * length, h * .62 * length))]
-            lock(H, acc, pts, h * .045, h * .04, m(mat), n=10, gap=-.002, taper=1.0, seg=8)
+            w = P.get('ant_w', 1.0)
+            lock(H, acc, pts, h * .045 * w, h * .04 * w, m(mat), n=10, gap=-.002, taper=1.0, seg=8)
             if tip:
                 lock(H, acc, [pts[1].lerp(pts[2], .55), pts[2] + (pts[2] - pts[1]).normalized() * h * .02],
                      h * .03, h * .026, m(tip), n=6, gap=-1, taper=1.0, seg=8)

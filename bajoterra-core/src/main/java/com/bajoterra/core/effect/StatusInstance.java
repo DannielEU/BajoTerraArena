@@ -23,6 +23,11 @@ public final class StatusInstance {
         return remainingTicks;
     }
 
+    /** Ticks since the status was first applied (re-applying it does not restart the count). */
+    public int ageTicks() {
+        return ageTicks;
+    }
+
     public int stacks() {
         return stacks;
     }

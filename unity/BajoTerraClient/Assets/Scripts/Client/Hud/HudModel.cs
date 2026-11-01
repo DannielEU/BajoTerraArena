@@ -32,7 +32,7 @@ namespace Bajoterra.Client.Hud
     /// </summary>
     public sealed class HudModel
     {
-        public const int SlotCount = 10;
+        public const int SlotCount = 5;
 
         public readonly SlugSlotView[] Slots = new SlugSlotView[SlotCount];
 
@@ -79,6 +79,26 @@ namespace Bajoterra.Client.Hud
         /// </summary>
         public float BlindLevel;
 
+        /// <summary>Your fusion energy, 0 to 1; at 1 the fusion button fires a fusion shot.</summary>
+        public float Fusion;
+
+        public bool FusionReady
+        {
+            get { return Alive && Fusion >= 0.999f; }
+        }
+
+        /// <summary>True while you are caught in a web (you cannot move, but you can shoot).</summary>
+        public bool Ensnared;
+
+        /// <summary>You are floating in a Bubbaleone bubble.</summary>
+        public bool Bubbled;
+
+        /// <summary>A Lariat lasso is hauling you.</summary>
+        public bool Lassoed;
+
+        /// <summary>Seconds of megamorphosis left (0 when you are not megamorphed).</summary>
+        public float MegamorphSeconds;
+
         public bool HasState { get; private set; }
 
         public string CharacterName { get; private set; }
@@ -105,6 +125,11 @@ namespace Bajoterra.Client.Hud
             Courage = you.Alive ? (int)you.Courage : 0;
             RefreshGrenade(latest, match);
             BlindLevel = you.Alive ? Blindness(you, match.TicksPerSecond) : 0f;
+            Fusion = Math.Max(0f, Math.Min(1f, you.Fusion / 100f));
+            Ensnared = you.Alive && StatusTicks(you, "ensnare") > 0;
+            Bubbled = you.Alive && StatusTicks(you, "bubble") > 0;
+            Lassoed = you.Alive && StatusTicks(you, "lasso") > 0;
+            MegamorphSeconds = you.Alive ? StatusTicks(you, "megamorph") / (float)match.TicksPerSecond : 0f;
 
             ReadySlots = 0;
             SelectedSlot = -1;
@@ -187,6 +212,19 @@ namespace Bajoterra.Client.Hud
                 }
             }
             return level;
+        }
+
+        /// <summary>Ticks left of a status on a combatant, 0 when it does not have it.</summary>
+        public static uint StatusTicks(CombatantState state, string id)
+        {
+            for (int i = 0; i < state.Statuses.Count; i++)
+            {
+                if (state.Statuses[i].Id == id)
+                {
+                    return state.Statuses[i].RemainingTicks;
+                }
+            }
+            return 0;
         }
 
         /// <summary>Formats seconds as m:ss.</summary>

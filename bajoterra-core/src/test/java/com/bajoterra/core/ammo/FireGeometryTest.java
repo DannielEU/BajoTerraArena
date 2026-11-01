@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 /** Where slugs start and where they fly: muzzle position, aim angles, camera convergence and spread. */
 class FireGeometryTest {
 
-    private static final double SPEED = 55;       // flaringo
+    private static final double SPEED = 60.5;     // flaringo
 
     private final Combatant shooter = combatant(0, 0, "eli", "flaringo");
     private final Combatant target = combatant(1, 1, "eli", "doc");
@@ -278,19 +278,19 @@ class FireGeometryTest {
 
     @Test
     void slotSelectionAndCyclingComeFromTheInputAndAreConsumed() {
-        shooter.input.selectSlot = 4;
+        shooter.input.selectSlot = 3;
         controller.update(shooter);
-        assertThat(shooter.loadout.selected()).isEqualTo(4);
+        assertThat(shooter.loadout.selected()).isEqualTo(3);
         assertThat(shooter.input.selectSlot).isEqualTo(-1);
 
         shooter.input.cycleSlot = 1;
         controller.update(shooter);
-        assertThat(shooter.loadout.selected()).isEqualTo(5);
+        assertThat(shooter.loadout.selected()).isEqualTo(4);
         assertThat(shooter.input.cycleSlot).isZero();
 
         shooter.input.cycleSlot = -1;
         controller.update(shooter);
-        assertThat(shooter.loadout.selected()).isEqualTo(4);
+        assertThat(shooter.loadout.selected()).isEqualTo(3);
     }
 
     @Test
@@ -324,7 +324,7 @@ class FireGeometryTest {
     void aSlugWithNoLockKeepsBeingSelectedByTheManualPolicy() {
         com.bajoterra.core.slug.SlugDefinition free = com.bajoterra.core.slug.SlugDefinition.builder("free")
                 .reloadShotsOverride(0).build();
-        Loadout loadout = new Loadout(java.util.Collections.nCopies(10, free), 3);
+        Loadout loadout = new Loadout(java.util.Collections.nCopies(Loadout.SIZE, free), 3);
         loadout.fireSelected();
 
         SlotSelectionPolicy.MANUAL.afterFire(loadout, 0);
@@ -337,8 +337,8 @@ class FireGeometryTest {
         Loadout loadout = shooter.loadout;
 
         assertThat(loadout.select(-1)).isFalse();
-        assertThat(loadout.select(10)).isFalse();
-        assertThat(loadout.select(9)).isTrue();
+        assertThat(loadout.select(5)).isFalse();
+        assertThat(loadout.select(4)).isTrue();
         assertThat(loadout.select(0)).isTrue();
         assertThat(loadout.cycle(0)).isFalse();
         assertThat(loadout.hasAvailable()).isTrue();
@@ -349,21 +349,21 @@ class FireGeometryTest {
 
     @Test
     void cyclingWithEverythingElseLockedKeepsTheSelection() {
-        // Reload 9: after nine shots the nine other slots are locked.
+        // Reload 4: after four shots the four other slots are locked.
         java.util.List<com.bajoterra.core.slug.SlugDefinition> slugs = new java.util.ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < Loadout.SIZE; i++) {
             slugs.add(com.bajoterra.core.slug.SlugDefinition.builder("s" + i).build());
         }
-        Loadout loadout = new Loadout(slugs, 9);
-        for (int slot = 0; slot < 9; slot++) {
+        Loadout loadout = new Loadout(slugs, 4);
+        for (int slot = 0; slot < 4; slot++) {
             loadout.select(slot);
             loadout.fireSelected();
         }
-        loadout.select(9);
+        loadout.select(4);
 
         assertThat(loadout.cycle(1)).isFalse();
         assertThat(loadout.cycle(-1)).isFalse();
-        assertThat(loadout.selected()).isEqualTo(9);
+        assertThat(loadout.selected()).isEqualTo(4);
         assertThat(loadout.hasAvailable()).isTrue();
     }
 }

@@ -6,6 +6,13 @@ Shooter 3v3 en tercera persona inspirado en **Bajoterra (Slugterra)**: se dispar
 Este repositorio contiene el **servidor en Java** (simulación autoritativa, bots, reglas y red) y el **cliente Unity (C#)**
 que se conecta por red (carpeta [`unity/`](unity/README.md)).
 
+## Tráiler
+
+[![Tráiler de Bajoterra Arena: haz clic para ver el video completo con sonido](video/trailer-preview.gif)](video/bajoterra-arena-trailer.mp4)
+
+**[▶ Ver el tráiler completo (60 s, con sonido)](video/bajoterra-arena-trailer.mp4)**: movimientos, babosas, 3 contra
+3 y disparo fusión, todo grabado del juego real. Cómo se hizo y cómo volver a grabarlo: [`video/README.md`](video/README.md).
+
 ## Qué hace el juego
 
 - **3 vs 3** por equipos, jugadores humanos y/o **bots** (los huecos se rellenan solos).

@@ -21,3 +21,4 @@ unity/BajoTerraClient/*.sln
 # dotnet build output of the client checks
 unity/dotnet/**/bin/
 unity/dotnet/**/obj/
+/video
